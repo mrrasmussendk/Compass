@@ -11,6 +11,9 @@ using UtilityAi.Compass.Runtime.Sensors;
 using UtilityAi.Orchestration;
 using UtilityAi.Utils;
 
+// Auto-load .env.compass so the host works without manually sourcing the file.
+EnvFileLoader.Load();
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddUtilityAiCompass(opts =>

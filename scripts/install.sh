@@ -61,10 +61,10 @@ cat <<EOF
 Configuration saved to: $ENV_FILE
 
 Next steps:
-  1. source "$ENV_FILE"
-  2. dotnet build "$ROOT_DIR/UtilityAi.Compass.sln"
-  3. dotnet run --project "$ROOT_DIR/samples/Compass.SampleHost"
+  1. dotnet build "$ROOT_DIR/UtilityAi.Compass.sln"
+  2. dotnet run --project "$ROOT_DIR/samples/Compass.SampleHost"
 
+The host loads .env.compass automatically — no need to source the file.
 If Discord variables are configured, the host will start in Discord mode automatically.
 EOF
 

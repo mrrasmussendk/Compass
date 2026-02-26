@@ -63,11 +63,11 @@ $lines | Set-Content -Path $EnvFile -Encoding UTF8
 Write-Host ''
 Write-Host "Configuration saved to: $EnvFile"
 Write-Host ''
-Write-Host 'Next steps (PowerShell):'
-Write-Host "  1. Get-Content `"$EnvFile`" | ForEach-Object { Invoke-Expression `$_ }"
-Write-Host "  2. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
-Write-Host "  3. dotnet run --project `"$RootDir\samples\Compass.SampleHost`""
+Write-Host 'Next steps:'
+Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
+Write-Host "  2. dotnet run --project `"$RootDir\samples\Compass.SampleHost`""
 Write-Host ''
+Write-Host 'The host loads .env.compass automatically — no need to source the file.'
 Write-Host 'If Discord variables are configured, the host will start in Discord mode automatically.'
 
 if ($includeOpenAiSamples) {
