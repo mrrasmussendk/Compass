@@ -42,6 +42,7 @@ public static class EnvFileLoader
 
     public static string? FindFile(string startDirectory)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(startDirectory);
         var dir = new DirectoryInfo(startDirectory);
         while (dir is not null)
         {
@@ -56,6 +57,7 @@ public static class EnvFileLoader
 
     public static (string? Key, string? Value) ParseLine(string line)
     {
+        ArgumentNullException.ThrowIfNull(line);
         var trimmed = line.Trim();
         if (trimmed.Length == 0 || trimmed.StartsWith('#'))
             return (null, null);
