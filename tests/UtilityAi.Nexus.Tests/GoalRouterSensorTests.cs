@@ -11,6 +11,9 @@ public class GoalRouterSensorTests
     [InlineData("please stop", GoalTag.Stop)]
     [InlineData("summarize this", GoalTag.Summarize)]
     [InlineData("what is this?", GoalTag.Answer)]
+    [InlineData("read the config file", GoalTag.Execute)]
+    [InlineData("write this to disk", GoalTag.Execute)]
+    [InlineData("update the deployment settings", GoalTag.Execute)]
     public async Task SenseAsync_ClassifiesGoalCorrectly(string text, GoalTag expectedGoal)
     {
         var sensor = new GoalRouterSensor();

@@ -11,7 +11,7 @@ public sealed class GoalRouterSensor : ISensor
         (["stop", "cancel", "abort", "quit", "halt"], GoalTag.Stop, 0.95),
         (["approve", "confirm", "accept", "yes, proceed", "granted"], GoalTag.Approve, 0.90),
         (["summarize", "summary", "tldr", "tl;dr", "brief"], GoalTag.Summarize, 0.85),
-        (["run", "execute", "do ", "perform", "apply", "deploy"], GoalTag.Execute, 0.80),
+        (["run", "execute", "do ", "perform", "apply", "deploy", "read", "write", "update"], GoalTag.Execute, 0.80),
         (["clarify", "what do you mean", "explain", "rephrase"], GoalTag.Clarify, 0.80),
         (["?", "how ", "what ", "why ", "when ", "who ", "where "], GoalTag.Answer, 0.70),
     ];

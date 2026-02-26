@@ -11,6 +11,7 @@ namespace UtilityAi.Nexus.Tests;
 [NexusCapability("test-domain", priority: 5)]
 [NexusGoals(GoalTag.Answer, GoalTag.Summarize)]
 [NexusLane(Lane.Communicate)]
+[NexusSideEffects(SideEffectLevel.Write)]
 [NexusCost(0.3)]
 [NexusRisk(0.1)]
 public sealed class FakeModule { }
@@ -34,6 +35,7 @@ public class AttributeMetadataProviderTests
         Assert.Equal(Lane.Communicate, meta.Lane);
         Assert.Contains(GoalTag.Answer, meta.Goals);
         Assert.Contains(GoalTag.Summarize, meta.Goals);
+        Assert.Equal(SideEffectLevel.Write, meta.SideEffects);
         Assert.Equal(0.3, meta.EstimatedCost);
         Assert.Equal(0.1, meta.RiskLevel);
     }
