@@ -42,22 +42,27 @@ public class FileCreationModuleTests
         Directory.CreateDirectory(tempDir);
         var filePath = Path.Combine(tempDir, "test.txt");
 
-        bus.Publish(new UserRequest($"create file {filePath} with content hello world"));
-        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+        try
+        {
+            bus.Publish(new UserRequest($"create file {filePath} with content hello world"));
+            var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
-        var proposals = module.Propose(rt).ToList();
-        Assert.Single(proposals);
+            var proposals = module.Propose(rt).ToList();
+            Assert.Single(proposals);
 
-        await proposals[0].Act(CancellationToken.None);
+            await proposals[0].Act(CancellationToken.None);
 
-        Assert.True(File.Exists(filePath));
-        Assert.Equal("hello world", File.ReadAllText(filePath));
+            Assert.True(File.Exists(filePath));
+            Assert.Equal("hello world", File.ReadAllText(filePath));
 
-        var response = bus.GetOrDefault<AiResponse>();
-        Assert.NotNull(response);
-        Assert.Contains(filePath, response.Text);
-
-        Directory.Delete(tempDir, true);
+            var response = bus.GetOrDefault<AiResponse>();
+            Assert.NotNull(response);
+            Assert.Contains(filePath, response.Text);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]

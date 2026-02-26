@@ -41,19 +41,24 @@ public class FileReadModuleTests
         var tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, "file contents here");
 
-        bus.Publish(new UserRequest($"read file {tempFile}"));
-        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+        try
+        {
+            bus.Publish(new UserRequest($"read file {tempFile}"));
+            var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
-        var proposals = module.Propose(rt).ToList();
-        Assert.Single(proposals);
+            var proposals = module.Propose(rt).ToList();
+            Assert.Single(proposals);
 
-        await proposals[0].Act(CancellationToken.None);
+            await proposals[0].Act(CancellationToken.None);
 
-        var response = bus.GetOrDefault<AiResponse>();
-        Assert.NotNull(response);
-        Assert.Equal("file contents here", response.Text);
-
-        File.Delete(tempFile);
+            var response = bus.GetOrDefault<AiResponse>();
+            Assert.NotNull(response);
+            Assert.Equal("file contents here", response.Text);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
     }
 
     [Fact]

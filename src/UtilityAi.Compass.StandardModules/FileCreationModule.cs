@@ -65,7 +65,7 @@ public sealed class FileCreationModule : ICapabilityModule
         if (tokens.Length >= 3)
         {
             var path = tokens[^1];
-            return (path, string.Join(' ', tokens[2..^0]));
+            return (path, string.Join(' ', tokens[2..^1]));
         }
 
         return ("output.txt", text);
