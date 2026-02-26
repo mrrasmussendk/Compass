@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\UtilityAi.Compass.Abstractions\UtilityAi.Compass.Abstractions.csproj" />
+    <ProjectReference Include="..\UtilityAi.Compass.Runtime\UtilityAi.Compass.Runtime.csproj" />
+    <ProjectReference Include="..\..\vendor\UtilityAi\src\UtilityAi\UtilityAi.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
