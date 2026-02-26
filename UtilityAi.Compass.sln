@@ -33,6 +33,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityAi.Compass.Tests", "tests\UtilityAi.Compass.Tests\UtilityAi.Compass.Tests.csproj", "{A8DF1B03-6504-4603-ACD4-AC49242E912A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compass.SamplePlugin.OpenAi", "samples\Compass.SamplePlugin.OpenAi\Compass.SamplePlugin.OpenAi.csproj", "{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -151,6 +153,18 @@ Global
 		{A8DF1B03-6504-4603-ACD4-AC49242E912A}.Release|x64.Build.0 = Release|Any CPU
 		{A8DF1B03-6504-4603-ACD4-AC49242E912A}.Release|x86.ActiveCfg = Release|Any CPU
 		{A8DF1B03-6504-4603-ACD4-AC49242E912A}.Release|x86.Build.0 = Release|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Debug|x64.Build.0 = Debug|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Debug|x86.Build.0 = Debug|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Release|x64.ActiveCfg = Release|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Release|x64.Build.0 = Release|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Release|x86.ActiveCfg = Release|Any CPU
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -167,5 +181,6 @@ Global
 		{F797CDD4-868B-4AD2-9E4D-561603DAAA2D} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{1F4C5FD6-443A-4512-B534-45054BD438C9} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{A8DF1B03-6504-4603-ACD4-AC49242E912A} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 	EndGlobalSection
 EndGlobal
