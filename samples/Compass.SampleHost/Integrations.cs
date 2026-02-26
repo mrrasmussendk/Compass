@@ -174,14 +174,14 @@ file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpCl
         request.Headers.Add("x-goog-api-key", config.ApiKey);
 
         var parts = new List<object>();
-        if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
-            parts.Add(new { text = modelRequest.SystemMessage });
         parts.Add(new { text = modelRequest.Prompt });
 
         var body = new Dictionary<string, object>
         {
             ["contents"] = new[] { new { parts } }
         };
+        if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
+            body["systemInstruction"] = new { parts = new[] { new { text = modelRequest.SystemMessage } } };
         if (modelRequest.Temperature.HasValue || modelRequest.MaxTokens.HasValue)
         {
             var generationConfig = new Dictionary<string, object>();
