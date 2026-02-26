@@ -4,7 +4,7 @@ public sealed record GovernanceConfig(
     double CostWeight = 0.2,
     double RiskWeight = 0.2,
     double HysteresisEpsilon = 0.05,
-    double StickinesBonus = 0.02,
+    double StickinessBonus = 0.02,
     bool HardDropOnCooldown = false,
     double CooldownPenalty = 0.8
 );

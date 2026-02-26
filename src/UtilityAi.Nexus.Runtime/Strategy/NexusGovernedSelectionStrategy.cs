@@ -64,7 +64,7 @@ public sealed class NexusGovernedSelectionStrategy : ISelectionStrategy
             var lastInList = effective.FirstOrDefault(c => c.P.Id == lastWinner.ProposalId);
             if (lastInList.P is not null)
             {
-                var stickyScore = lastInList.EffectiveScore + config.StickinesBonus;
+                var stickyScore = lastInList.EffectiveScore + config.StickinessBonus;
                 if (stickyScore >= best.EffectiveScore - config.HysteresisEpsilon)
                     return lastInList.P;
             }
