@@ -6,6 +6,8 @@ namespace UtilityAi.Nexus.Runtime.Sensors;
 
 public sealed class GoalRouterSensor : ISensor
 {
+    private const string SourceCommandLineCommonAction = "commandline-common-action";
+
     private static readonly (string[] Keywords, GoalTag Goal, double Confidence)[] Rules =
     [
         (["stop", "cancel", "abort", "quit", "halt"], GoalTag.Stop, 0.95),
@@ -28,7 +30,7 @@ public sealed class GoalRouterSensor : ISensor
 
         if (CommandLineCommonActions.IsCommonAction(text))
         {
-            rt.Bus.Publish(new GoalSelected(GoalTag.Execute, 0.80, "heuristic"));
+            rt.Bus.Publish(new GoalSelected(GoalTag.Execute, CommandLineCommonActions.DefaultHitScore, SourceCommandLineCommonAction));
             return Task.CompletedTask;
         }
 
