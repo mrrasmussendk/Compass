@@ -4,6 +4,14 @@ using System.Text.Json;
 
 namespace Nexus.SampleHost;
 
+file static class IntegrationDefaults
+{
+    public const int DefaultModelMaxTokens = 512;
+    public const int DefaultDiscordPollIntervalSeconds = 2;
+    public const int DefaultDiscordMessageLimit = 25;
+    public const int MaxDiscordMessageLimit = 100;
+}
+
 public enum ModelProvider
 {
     OpenAi,
@@ -89,7 +97,7 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
         return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()
-            ?? "OpenAI returned an empty response.";
+            ?? "OpenAI API returned a response with missing or empty content field.";
     }
 }
 
@@ -97,13 +105,17 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
 {
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
     {
+        var maxTokens = int.TryParse(Environment.GetEnvironmentVariable("NEXUS_MODEL_MAX_TOKENS"), out var configuredMaxTokens)
+            ? configuredMaxTokens
+            : IntegrationDefaults.DefaultModelMaxTokens;
+
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
         request.Headers.Add("x-api-key", config.ApiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
         request.Content = new StringContent(JsonSerializer.Serialize(new
         {
             model = config.Model,
-            max_tokens = 512,
+            max_tokens = maxTokens,
             messages = new[] { new { role = "user", content = prompt } }
         }), Encoding.UTF8, "application/json");
 
@@ -112,7 +124,7 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
         return json.RootElement.GetProperty("content")[0].GetProperty("text").GetString()
-            ?? "Anthropic returned an empty response.";
+            ?? "Anthropic API returned a response with missing or empty text field.";
     }
 }
 
@@ -120,8 +132,9 @@ file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpCl
 {
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
     {
-        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{config.Model}:generateContent?key={Uri.EscapeDataString(config.ApiKey)}";
+        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{config.Model}:generateContent";
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Add("x-goog-api-key", config.ApiKey);
         request.Content = new StringContent(JsonSerializer.Serialize(new
         {
             contents = new[] { new { parts = new[] { new { text = prompt } } } }
@@ -132,12 +145,19 @@ file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpCl
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
         return json.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString()
-            ?? "Gemini returned an empty response.";
+            ?? "Gemini API returned a response with missing or empty text field.";
     }
 }
 
 public sealed class DiscordChannelBridge(HttpClient httpClient, string botToken, string channelId)
 {
+    private readonly int _pollIntervalSeconds = int.TryParse(Environment.GetEnvironmentVariable("DISCORD_POLL_INTERVAL_SECONDS"), out var pollIntervalSeconds) && pollIntervalSeconds > 0
+        ? pollIntervalSeconds
+        : IntegrationDefaults.DefaultDiscordPollIntervalSeconds;
+    private readonly int _messageLimit = int.TryParse(Environment.GetEnvironmentVariable("DISCORD_MESSAGE_LIMIT"), out var messageLimit) && messageLimit is > 0 and <= IntegrationDefaults.MaxDiscordMessageLimit
+        ? messageLimit
+        : IntegrationDefaults.DefaultDiscordMessageLimit;
+
     public async Task RunAsync(Func<string, CancellationToken, Task<string>> onUserMessage, CancellationToken cancellationToken)
     {
         try
@@ -158,7 +178,7 @@ public sealed class DiscordChannelBridge(HttpClient httpClient, string botToken,
                     lastSeen = message.Snowflake;
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(_pollIntervalSeconds), cancellationToken);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
@@ -172,7 +192,7 @@ public sealed class DiscordChannelBridge(HttpClient httpClient, string botToken,
 
     private async Task<IReadOnlyList<DiscordMessage>> GetMessagesAsync(CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://discord.com/api/v10/channels/{channelId}/messages?limit=25");
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"https://discord.com/api/v10/channels/{channelId}/messages?limit={_messageLimit}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bot", botToken);
         using var response = await httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();

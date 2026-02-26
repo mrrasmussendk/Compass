@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env.nexus"
 
-echo "Compass installer"
+echo "Nexus installer"
 echo "Select model provider:"
 echo "  1) OpenAI"
 echo "  2) Anthropic"

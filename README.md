@@ -58,6 +58,8 @@ If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the sample host switche
 Optional:
 
 - `NEXUS_MODEL_NAME` overrides the default model name per provider.
+- `NEXUS_MODEL_MAX_TOKENS` sets Anthropic `max_tokens` (default `512`).
+- `DISCORD_POLL_INTERVAL_SECONDS` and `DISCORD_MESSAGE_LIMIT` tune Discord polling behavior.
 
 ---
 

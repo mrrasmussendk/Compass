@@ -40,7 +40,7 @@ var modelClient = hasModelClient && modelConfiguration is not null
     ? ModelClientFactory.Create(modelConfiguration, httpClient)
     : null;
 
-async Task<string> ProcessRequestAsync(string input, CancellationToken cancellationToken)
+async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
 {
     var bus = new EventBus();
     bus.Publish(new UserRequest(input));
@@ -50,14 +50,17 @@ async Task<string> ProcessRequestAsync(string input, CancellationToken cancellat
     await goalSensor.SenseAsync(rt, cancellationToken);
     await laneSensor.SenseAsync(rt, cancellationToken);
 
+    var goal = bus.GetOrDefault<GoalSelected>();
+    var lane = bus.GetOrDefault<LaneSelected>();
     var response = bus.GetOrDefault<AiResponse>();
     if (response is not null)
-        return response.Text;
+        return (goal, lane, response.Text);
 
     if (modelClient is null)
-        return "No model configured. Run scripts/install.sh to configure OpenAI, Anthropic, or Gemini.";
+        return (goal, lane, "No model configured. Run scripts/install.sh to configure OpenAI, Anthropic, or Gemini.");
 
-    return await modelClient.GenerateAsync(input, cancellationToken);
+    var modelResponse = await modelClient.GenerateAsync(input, cancellationToken);
+    return (goal, lane, modelResponse);
 }
 
 var discordToken = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
@@ -73,7 +76,11 @@ if (!string.IsNullOrWhiteSpace(discordToken) && !string.IsNullOrWhiteSpace(disco
     };
 
     var bridge = new DiscordChannelBridge(httpClient, discordToken, discordChannelId);
-    await bridge.RunAsync(ProcessRequestAsync, cts.Token);
+    await bridge.RunAsync(async (message, token) =>
+    {
+        var (_, _, response) = await ProcessRequestAsync(message, token);
+        return response;
+    }, cts.Token);
 }
 else
 {
@@ -88,17 +95,8 @@ else
         if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
             break;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        var responseText = await ProcessRequestAsync(input, cts.Token);
-
-        var bus = new EventBus();
-        bus.Publish(new UserRequest(input));
-        var rt = new Runtime(bus, 0);
-        await correlationSensor.SenseAsync(rt, cts.Token);
-        await goalSensor.SenseAsync(rt, cts.Token);
-        await laneSensor.SenseAsync(rt, cts.Token);
-        var goal = bus.GetOrDefault<GoalSelected>();
-        var lane = bus.GetOrDefault<LaneSelected>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var (goal, lane, responseText) = await ProcessRequestAsync(input, cts.Token);
 
         Console.WriteLine($"  Goal: {goal?.Goal} ({goal?.Confidence:P0}), Lane: {lane?.Lane}");
         Console.WriteLine($"  Response: {responseText}");
