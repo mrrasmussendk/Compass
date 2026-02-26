@@ -26,6 +26,14 @@ dotnet build UtilityAi.Nexus.sln
 dotnet run --project samples/Nexus.SampleHost
 ```
 
+For guided setup (model provider + deployment mode), run:
+
+```bash
+./scripts/install.sh
+source .env.nexus
+dotnet run --project samples/Nexus.SampleHost
+```
+
 A simple REPL will start:
 
 ```
@@ -36,6 +44,22 @@ Nexus SampleHost started. Type a request (or 'quit' to exit):
 ```
 
 To load plugins, copy plugin DLLs into a `plugins/` folder next to the executable before running.
+
+If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the sample host switches to Discord mode and polls the configured channel for user messages.
+
+### Built-in model provider integration
+
+`Nexus.SampleHost` includes a shared model client abstraction with provider adapters for:
+
+- OpenAI (`NEXUS_MODEL_PROVIDER=openai`, `OPENAI_API_KEY`)
+- Anthropic (`NEXUS_MODEL_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`)
+- Gemini (`NEXUS_MODEL_PROVIDER=gemini`, `GEMINI_API_KEY`)
+
+Optional:
+
+- `NEXUS_MODEL_NAME` overrides the default model name per provider.
+- `NEXUS_MODEL_MAX_TOKENS` sets Anthropic `max_tokens` (default `512`).
+- `DISCORD_POLL_INTERVAL_SECONDS` and `DISCORD_MESSAGE_LIMIT` tune Discord polling behavior.
 
 ---
 
