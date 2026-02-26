@@ -26,6 +26,12 @@ public sealed class GoalRouterSensor : ISensor
 
         var text = request.Text.ToLowerInvariant();
 
+        if (CommandLineCommonActions.IsCommonAction(text))
+        {
+            rt.Bus.Publish(new GoalSelected(GoalTag.Execute, 0.80, "heuristic"));
+            return Task.CompletedTask;
+        }
+
         foreach (var (keywords, goal, confidence) in Rules)
         {
             if (keywords.Any(k => text.Contains(k)))

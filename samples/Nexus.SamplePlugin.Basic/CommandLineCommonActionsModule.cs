@@ -17,7 +17,9 @@ public sealed class CommandLineReadModule : ICapabilityModule
 {
     public IEnumerable<Proposal> Propose(Runtime rt)
     {
-        var score = CommandLineRequestScore.For(rt, ["read", "cat", "show", "view"]);
+        var score = CommandLineCommonActions.Score(
+            rt.Bus.GetOrDefault<UserRequest>()?.Text,
+            CommandLineCommonActions.ReadKeywords);
         if (score <= 0) yield break;
 
         yield return new Proposal(
@@ -41,7 +43,9 @@ public sealed class CommandLineWriteModule : ICapabilityModule
 {
     public IEnumerable<Proposal> Propose(Runtime rt)
     {
-        var score = CommandLineRequestScore.For(rt, ["write", "create", "append", "save"]);
+        var score = CommandLineCommonActions.Score(
+            rt.Bus.GetOrDefault<UserRequest>()?.Text,
+            CommandLineCommonActions.WriteKeywords);
         if (score <= 0) yield break;
 
         yield return new Proposal(
@@ -65,7 +69,9 @@ public sealed class CommandLineUpdateModule : ICapabilityModule
 {
     public IEnumerable<Proposal> Propose(Runtime rt)
     {
-        var score = CommandLineRequestScore.For(rt, ["update", "edit", "modify", "change"]);
+        var score = CommandLineCommonActions.Score(
+            rt.Bus.GetOrDefault<UserRequest>()?.Text,
+            CommandLineCommonActions.UpdateKeywords);
         if (score <= 0) yield break;
 
         yield return new Proposal(
@@ -77,17 +83,5 @@ public sealed class CommandLineUpdateModule : ICapabilityModule
                 return Task.CompletedTask;
             }
         ) { Description = "Update data in command line context" };
-    }
-}
-
-internal static class CommandLineRequestScore
-{
-    public static double For(Runtime rt, string[] keywords)
-    {
-        var request = rt.Bus.GetOrDefault<UserRequest>();
-        if (request is null) return 0.0;
-
-        var text = request.Text.ToLowerInvariant();
-        return keywords.Any(text.Contains) ? 0.85 : 0.0;
     }
 }
