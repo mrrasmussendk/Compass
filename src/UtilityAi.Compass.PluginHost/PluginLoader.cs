@@ -1,5 +1,6 @@
 using System.Reflection;
 using UtilityAi.Capabilities;
+using UtilityAi.Compass.Abstractions.CliAction;
 using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Orchestration;
 using UtilityAi.Sensor;
@@ -45,6 +46,11 @@ public sealed class PluginLoader : IPluginDiscovery
     public IEnumerable<IOrchestrationSink> DiscoverSinks()
     {
         return DiscoverImplementations<IOrchestrationSink>();
+    }
+
+    public IEnumerable<ICliAction> DiscoverCliActions()
+    {
+        return DiscoverImplementations<ICliAction>();
     }
 
     public IEnumerable<PluginManifest> GetManifests()
