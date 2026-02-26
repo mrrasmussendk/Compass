@@ -106,6 +106,7 @@ public class WebSearchModuleTests
         Assert.Equal("Search the web for real-time information", WebSearchModule.WebSearchTool.Description);
         Assert.NotNull(WebSearchModule.WebSearchTool.Parameters);
         Assert.True(WebSearchModule.WebSearchTool.Parameters!.ContainsKey("query"));
+        Assert.Equal("string", WebSearchModule.WebSearchTool.Parameters["query"]);
     }
 
     [Fact]
