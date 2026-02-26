@@ -5,6 +5,8 @@ namespace Compass.SampleHost;
 
 public static class ModuleInstaller
 {
+    private static readonly HttpClient _httpClient = new();
+
     public static bool TryRunInstallScript()
     {
         var scriptPath = OperatingSystem.IsWindows()
@@ -20,8 +22,11 @@ public static class ModuleInstaller
 
         startInfo.UseShellExecute = false;
         var process = Process.Start(startInfo);
-        process?.WaitForExit();
-        return process?.ExitCode == 0;
+        if (process is null)
+            return false;
+
+        process.WaitForExit();
+        return process.ExitCode == 0;
     }
 
     public static async Task<string> InstallAsync(string moduleSpec, string pluginsPath, CancellationToken cancellationToken = default)
@@ -35,12 +40,11 @@ public static class ModuleInstaller
             return "Module install failed: provide a .dll/.nupkg path or NuGet reference in the form PackageId@Version.";
 
         var downloadUrl = $"https://api.nuget.org/v3-flatcontainer/{packageId.ToLowerInvariant()}/{packageVersion.ToLowerInvariant()}/{packageId.ToLowerInvariant()}.{packageVersion.ToLowerInvariant()}.nupkg";
-        using var httpClient = new HttpClient();
-        using var response = await httpClient.GetAsync(downloadUrl, cancellationToken);
+        using var response = await _httpClient.GetAsync(downloadUrl, cancellationToken);
         if (!response.IsSuccessStatusCode)
             return $"Module install failed: could not download '{packageId}@{packageVersion}' (HTTP {(int)response.StatusCode}).";
 
-        var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.nupkg");
+        var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid().ToString("N")}.nupkg");
         await using (var tempFile = File.Create(tempPath))
             await response.Content.CopyToAsync(tempFile, cancellationToken);
 
@@ -95,7 +99,11 @@ public static class ModuleInstaller
 
         foreach (var entry in archive.Entries.Where(IsPluginAssemblyEntry))
         {
-            var destination = Path.Combine(pluginsPath, entry.Name);
+            var fileName = Path.GetFileName(entry.Name);
+            if (string.IsNullOrWhiteSpace(fileName))
+                continue;
+
+            var destination = Path.Combine(pluginsPath, fileName);
             using var source = entry.Open();
             using var target = File.Create(destination);
             source.CopyTo(target);
@@ -103,7 +111,7 @@ public static class ModuleInstaller
         }
 
         if (copied == 0)
-            return $"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain plugin assemblies.";
+            return $"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain .dll files in lib/ or runtimes/*/lib/.";
 
         return $"Installed {copied} module assembly file(s) from '{packageId ?? Path.GetFileName(nupkgPath)}'.";
     }

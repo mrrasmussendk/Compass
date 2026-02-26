@@ -23,6 +23,14 @@ if (args.Length >= 2 && string.Equals(args[0], "--install-module", StringCompari
     return;
 }
 
+if (args.Length >= 1 && string.Equals(args[0], "--setup", StringComparison.OrdinalIgnoreCase))
+{
+    Console.WriteLine(ModuleInstaller.TryRunInstallScript()
+        ? "Compass setup complete."
+        : "Compass setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+    return;
+}
+
 if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
     EnvFileLoader.FindFile(Directory.GetCurrentDirectory()) is null &&
     !Console.IsInputRedirected)

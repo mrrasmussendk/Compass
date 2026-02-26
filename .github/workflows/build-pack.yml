@@ -5,6 +5,9 @@ on:
     branches: ["main", "master", "copilot/**"]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-pack:
     runs-on: ${{ matrix.os }}
