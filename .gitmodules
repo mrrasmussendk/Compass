@@ -1,0 +1,3 @@
+[submodule "vendor/UtilityAi"]
+	path = vendor/UtilityAi
+	url = https://github.com/mrrasmussendk/UtilityAi.git

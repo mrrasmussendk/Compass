@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\UtilityAi.Nexus.Abstractions\UtilityAi.Nexus.Abstractions.csproj" />
+    <ProjectReference Include="..\UtilityAi.Nexus.Runtime\UtilityAi.Nexus.Runtime.csproj" />
+    <ProjectReference Include="..\..\vendor\UtilityAi\src\UtilityAi\UtilityAi.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
