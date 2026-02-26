@@ -80,25 +80,38 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
 {
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
     {
+        var response = await GenerateAsync(new ModelRequest { Prompt = prompt }, cancellationToken);
+        return response.Text;
+    }
+
+    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
+    {
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
-        request.Content = new StringContent(JsonSerializer.Serialize(new
+
+        var messages = new List<object>();
+        if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
+            messages.Add(new { role = "system", content = modelRequest.SystemMessage });
+        messages.Add(new { role = "user", content = modelRequest.Prompt });
+
+        var body = new Dictionary<string, object>
         {
-            model = config.Model,
-            messages = new[] { new { role = "user", content = prompt } }
-        }), Encoding.UTF8, "application/json");
+            ["model"] = modelRequest.ModelHint ?? config.Model,
+            ["messages"] = messages
+        };
+        if (modelRequest.MaxTokens.HasValue)
+            body["max_tokens"] = modelRequest.MaxTokens.Value;
+        if (modelRequest.Temperature.HasValue)
+            body["temperature"] = modelRequest.Temperature.Value;
+
+        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
-        return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()
+        var text = json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()
             ?? "OpenAI API returned a response with missing or empty content field.";
-    }
-
-    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
-    {
-        var text = await GenerateAsync(modelRequest.Prompt, cancellationToken);
         return new ModelResponse { Text = text };
     }
 }
@@ -107,31 +120,40 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
 {
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
     {
-        var maxTokens = int.TryParse(Environment.GetEnvironmentVariable("COMPASS_MODEL_MAX_TOKENS"), out var configuredMaxTokens)
-            ? configuredMaxTokens
-            : IntegrationDefaults.DefaultModelMaxTokens;
+        var response = await GenerateAsync(new ModelRequest { Prompt = prompt }, cancellationToken);
+        return response.Text;
+    }
+
+    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
+    {
+        var maxTokens = modelRequest.MaxTokens
+            ?? (int.TryParse(Environment.GetEnvironmentVariable("COMPASS_MODEL_MAX_TOKENS"), out var configuredMaxTokens)
+                ? configuredMaxTokens
+                : IntegrationDefaults.DefaultModelMaxTokens);
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
         request.Headers.Add("x-api-key", config.ApiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
-        request.Content = new StringContent(JsonSerializer.Serialize(new
+
+        var body = new Dictionary<string, object>
         {
-            model = config.Model,
-            max_tokens = maxTokens,
-            messages = new[] { new { role = "user", content = prompt } }
-        }), Encoding.UTF8, "application/json");
+            ["model"] = modelRequest.ModelHint ?? config.Model,
+            ["max_tokens"] = maxTokens,
+            ["messages"] = new[] { new { role = "user", content = modelRequest.Prompt } }
+        };
+        if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
+            body["system"] = modelRequest.SystemMessage;
+        if (modelRequest.Temperature.HasValue)
+            body["temperature"] = modelRequest.Temperature.Value;
+
+        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
-        return json.RootElement.GetProperty("content")[0].GetProperty("text").GetString()
+        var text = json.RootElement.GetProperty("content")[0].GetProperty("text").GetString()
             ?? "Anthropic API returned a response with missing or empty text field.";
-    }
-
-    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
-    {
-        var text = await GenerateAsync(modelRequest.Prompt, cancellationToken);
         return new ModelResponse { Text = text };
     }
 }
@@ -140,25 +162,44 @@ file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpCl
 {
     public async Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken)
     {
-        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{config.Model}:generateContent";
+        var response = await GenerateAsync(new ModelRequest { Prompt = prompt }, cancellationToken);
+        return response.Text;
+    }
+
+    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
+    {
+        var model = modelRequest.ModelHint ?? config.Model;
+        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         request.Headers.Add("x-goog-api-key", config.ApiKey);
-        request.Content = new StringContent(JsonSerializer.Serialize(new
+
+        var parts = new List<object>();
+        parts.Add(new { text = modelRequest.Prompt });
+
+        var body = new Dictionary<string, object>
         {
-            contents = new[] { new { parts = new[] { new { text = prompt } } } }
-        }), Encoding.UTF8, "application/json");
+            ["contents"] = new[] { new { parts } }
+        };
+        if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
+            body["systemInstruction"] = new { parts = new[] { new { text = modelRequest.SystemMessage } } };
+        if (modelRequest.Temperature.HasValue || modelRequest.MaxTokens.HasValue)
+        {
+            var generationConfig = new Dictionary<string, object>();
+            if (modelRequest.Temperature.HasValue)
+                generationConfig["temperature"] = modelRequest.Temperature.Value;
+            if (modelRequest.MaxTokens.HasValue)
+                generationConfig["maxOutputTokens"] = modelRequest.MaxTokens.Value;
+            body["generationConfig"] = generationConfig;
+        }
+
+        request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
-        return json.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString()
+        var text = json.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString()
             ?? "Gemini API returned a response with missing or empty text field.";
-    }
-
-    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
-    {
-        var text = await GenerateAsync(modelRequest.Prompt, cancellationToken);
         return new ModelResponse { Text = text };
     }
 }
