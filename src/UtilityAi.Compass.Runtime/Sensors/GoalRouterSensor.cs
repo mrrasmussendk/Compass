@@ -4,8 +4,13 @@ using UtilityAi.Sensor;
 
 namespace UtilityAi.Compass.Runtime.Sensors;
 
+/// <summary>
+/// Keyword-based sensor that detects user intent from <see cref="UserRequest"/> text
+/// and publishes a <see cref="GoalSelected"/> fact to the EventBus.
+/// </summary>
 public sealed class GoalRouterSensor : ISensor
 {
+    /// <summary>Heuristic keyword rules mapping text patterns to <see cref="GoalTag"/> values with confidence scores.</summary>
     private static readonly (string[] Keywords, GoalTag Goal, double Confidence)[] Rules =
     [
         (["stop", "cancel", "abort", "quit", "halt"], GoalTag.Stop, 0.95),
@@ -16,6 +21,7 @@ public sealed class GoalRouterSensor : ISensor
         (["?", "how ", "what ", "why ", "when ", "who ", "where "], GoalTag.Answer, 0.70),
     ];
 
+    /// <inheritdoc />
     public Task SenseAsync(UtilityAi.Utils.Runtime rt, CancellationToken ct)
     {
         if (rt.Bus.TryGet<GoalSelected>(out var existing) && existing.Confidence >= 0.85)

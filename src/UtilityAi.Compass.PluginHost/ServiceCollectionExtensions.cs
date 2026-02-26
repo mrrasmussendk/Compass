@@ -7,8 +7,16 @@ using UtilityAi.Sensor;
 
 namespace UtilityAi.Compass.PluginHost;
 
+/// <summary>Dependency-injection extensions for loading Compass plugins.</summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Loads all plugin assemblies from <paramref name="folderPath"/> and registers
+    /// discovered modules, sensors, sinks, and CLI actions with the service collection.
+    /// </summary>
+    /// <param name="services">The service collection to populate.</param>
+    /// <param name="folderPath">Path to the folder containing plugin DLLs.</param>
+    /// <returns>The same <see cref="IServiceCollection"/> for chaining.</returns>
     public static IServiceCollection AddCompassPluginsFromFolder(
         this IServiceCollection services,
         string folderPath)

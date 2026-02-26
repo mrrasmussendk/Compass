@@ -10,8 +10,17 @@ using UtilityAi.Orchestration;
 
 namespace UtilityAi.Compass.Runtime.DI;
 
+/// <summary>
+/// Extension methods for registering Compass runtime services with <see cref="IServiceCollection"/>.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers all Compass runtime sensors, modules, and the governed selection strategy.
+    /// </summary>
+    /// <param name="services">The service collection to configure.</param>
+    /// <param name="configure">Optional callback to customise <see cref="CompassOptions"/>.</param>
+    /// <returns>The same <see cref="IServiceCollection"/> for chaining.</returns>
     public static IServiceCollection AddUtilityAiCompass(
         this IServiceCollection services,
         Action<CompassOptions>? configure = null)

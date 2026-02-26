@@ -8,21 +8,35 @@ using UtilityAi.Utils;
 
 namespace UtilityAi.Compass.PluginSdk.MetadataProvider;
 
+/// <summary>
+/// Reads Compass SDK attributes from module types and provides
+/// <see cref="ProposalMetadata"/> to the governance strategy.
+/// </summary>
 public sealed class AttributeMetadataProvider : IProposalMetadataProvider
 {
     private readonly Dictionary<string, ProposalMetadata> _registry = new();
     private readonly Dictionary<string, Type> _proposalModuleTypes = new();
 
+    /// <summary>Registers explicit <see cref="ProposalMetadata"/> for a given proposal identifier.</summary>
+    /// <param name="proposalId">The unique proposal identifier.</param>
+    /// <param name="metadata">The metadata to associate with the proposal.</param>
     public void Register(string proposalId, ProposalMetadata metadata)
     {
         _registry[proposalId] = metadata;
     }
 
+    /// <summary>Associates a module <see cref="Type"/> with a proposal so metadata can be built from its attributes.</summary>
+    /// <param name="proposalId">The unique proposal identifier.</param>
+    /// <param name="moduleType">The module type whose attributes will be inspected.</param>
     public void RegisterModuleType(string proposalId, Type moduleType)
     {
         _proposalModuleTypes[proposalId] = moduleType;
     }
 
+    /// <summary>Returns the <see cref="ProposalMetadata"/> for a proposal, building it from attributes if needed.</summary>
+    /// <param name="proposal">The proposal to look up metadata for.</param>
+    /// <param name="rt">The current utility-AI runtime.</param>
+    /// <returns>The metadata, or <c>null</c> if none could be resolved.</returns>
     public ProposalMetadata? GetMetadata(Proposal proposal, Runtime rt)
     {
         if (_registry.TryGetValue(proposal.Id, out var meta))

@@ -7,12 +7,20 @@ using UtilityAi.Sensor;
 
 namespace UtilityAi.Compass.PluginHost;
 
+/// <summary>
+/// Loads plugin assemblies from disk and discovers
+/// <see cref="ICapabilityModule"/>, <see cref="ISensor"/>,
+/// <see cref="IOrchestrationSink"/>, and <see cref="ICliAction"/> types.
+/// </summary>
 public sealed class PluginLoader : IPluginDiscovery
 {
     private readonly List<Assembly> _assemblies = new();
 
+    /// <summary>Initializes a new instance of <see cref="PluginLoader"/>.</summary>
     public PluginLoader() { }
 
+    /// <summary>Loads all <c>.dll</c> files from the specified folder as plugin assemblies.</summary>
+    /// <param name="folderPath">Path to the folder containing plugin DLLs.</param>
     public void LoadFromFolder(string folderPath)
     {
         if (!Directory.Exists(folderPath)) return;
@@ -28,26 +36,32 @@ public sealed class PluginLoader : IPluginDiscovery
         }
     }
 
+    /// <summary>Adds an already-loaded assembly to the plugin discovery set.</summary>
+    /// <param name="assembly">The assembly to include in discovery.</param>
     public void LoadAssembly(Assembly assembly)
     {
         _assemblies.Add(assembly);
     }
 
+    /// <summary>Discovers and instantiates all <see cref="ICapabilityModule"/> implementations from loaded assemblies.</summary>
     public IEnumerable<ICapabilityModule> DiscoverModules()
     {
         return DiscoverImplementations<ICapabilityModule>();
     }
 
+    /// <summary>Discovers and instantiates all <see cref="ISensor"/> implementations from loaded assemblies.</summary>
     public IEnumerable<ISensor> DiscoverSensors()
     {
         return DiscoverImplementations<ISensor>();
     }
 
+    /// <summary>Discovers and instantiates all <see cref="IOrchestrationSink"/> implementations from loaded assemblies.</summary>
     public IEnumerable<IOrchestrationSink> DiscoverSinks()
     {
         return DiscoverImplementations<IOrchestrationSink>();
     }
 
+    /// <summary>Discovers and instantiates all <see cref="ICliAction"/> implementations from loaded assemblies.</summary>
     public IEnumerable<ICliAction> DiscoverCliActions()
     {
         return DiscoverImplementations<ICliAction>();
@@ -67,6 +81,7 @@ public sealed class PluginLoader : IPluginDiscovery
         }
     }
 
+    /// <summary>Returns a <see cref="PluginManifest"/> for each loaded assembly describing its discovered types.</summary>
     public IEnumerable<PluginManifest> GetManifests()
     {
         foreach (var assembly in _assemblies)
