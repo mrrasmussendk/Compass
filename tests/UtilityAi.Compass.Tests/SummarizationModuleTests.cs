@@ -76,4 +76,15 @@ public class SummarizationModuleTests
         Assert.Single(proposals);
         Assert.True(proposals[0].Utility(rt) > 0);
     }
+
+    [Fact]
+    public void BuildStructuredRequest_ProducesValidJson()
+    {
+        var json = SummarizationModule.BuildStructuredRequest("gpt-5.2", "Summarize this article about AI.");
+
+        Assert.NotNull(json);
+        Assert.Contains("gpt-5.2", json);
+        Assert.Contains("summary_result", json);
+        Assert.Contains("Summarize this article about AI.", json);
+    }
 }
