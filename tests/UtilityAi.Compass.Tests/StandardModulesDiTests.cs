@@ -25,10 +25,10 @@ public class StandardModulesDiTests
 
         var provider = services.BuildServiceProvider();
 
-        Assert.NotNull(provider.GetService<FileReadModule>());
-        Assert.NotNull(provider.GetService<FileCreationModule>());
-        Assert.NotNull(provider.GetService<SummarizationModule>());
-        Assert.NotNull(provider.GetService<WebSearchModule>());
+        Assert.NotNull(provider.GetRequiredService<FileReadModule>());
+        Assert.NotNull(provider.GetRequiredService<FileCreationModule>());
+        Assert.NotNull(provider.GetRequiredService<SummarizationModule>());
+        Assert.NotNull(provider.GetRequiredService<WebSearchModule>());
     }
 
     [Fact]
