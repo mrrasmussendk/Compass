@@ -7,15 +7,22 @@ using UtilityAi.Compass.Hitl.Facts;
 
 namespace UtilityAi.Compass.Hitl.Modules;
 
+/// <summary>
+/// Capability module that gates destructive operations behind human approval
+/// using an <see cref="IHumanDecisionChannel"/>.
+/// </summary>
 public sealed class HitlGateModule : ICapabilityModule
 {
     private readonly IHumanDecisionChannel _channel;
 
+    /// <summary>Initializes a new instance of <see cref="HitlGateModule"/>.</summary>
+    /// <param name="channel">The channel used to send requests and receive decisions from a human reviewer.</param>
     public HitlGateModule(IHumanDecisionChannel channel)
     {
         _channel = channel;
     }
 
+    /// <inheritdoc />
     public IEnumerable<Proposal> Propose(UtilityAi.Utils.Runtime rt)
     {
         var pending = rt.Bus.GetOrDefault<HitlPending>();
