@@ -65,4 +65,15 @@ public class ModuleInstallerTests
             Directory.Delete(root, recursive: true);
         }
     }
+
+    [Theory]
+    [InlineData("/install-module My.Plugin@1.2.3", "My.Plugin@1.2.3")]
+    [InlineData("   /install-module   /tmp/plugin.dll   ", "/tmp/plugin.dll")]
+    public void TryParseInstallCommand_ParsesExpectedFormat(string input, string expected)
+    {
+        var ok = ModuleInstaller.TryParseInstallCommand(input, out var moduleSpec);
+
+        Assert.True(ok);
+        Assert.Equal(expected, moduleSpec);
+    }
 }

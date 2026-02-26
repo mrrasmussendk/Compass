@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\UtilityAi.Compass.PluginHost\UtilityAi.Compass.PluginHost.csproj" />
+    <ProjectReference Include="..\UtilityAi.Compass.Hitl\UtilityAi.Compass.Hitl.csproj" />
+    <ProjectReference Include="..\UtilityAi.Compass.Runtime\UtilityAi.Compass.Runtime.csproj" />
+    <ProjectReference Include="..\UtilityAi.Compass.StandardModules\UtilityAi.Compass.StandardModules.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>compass</ToolCommandName>
+    <PackageId>UtilityAi.Compass.Cli</PackageId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\samples\Compass.SampleHost\Program.cs" Link="Program.cs" />
+    <Compile Include="..\..\samples\Compass.SampleHost\EnvFileLoader.cs" Link="EnvFileLoader.cs" />
+    <Compile Include="..\..\samples\Compass.SampleHost\Integrations.cs" Link="Integrations.cs" />
+    <Compile Include="..\..\samples\Compass.SampleHost\ModuleInstaller.cs" Link="ModuleInstaller.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\scripts\install.sh" Link="scripts/install.sh">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>false</Pack>
+    </Content>
+    <Content Include="..\..\scripts\install.ps1" Link="scripts/install.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>false</Pack>
+    </Content>
+  </ItemGroup>
+
+</Project>

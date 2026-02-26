@@ -76,6 +76,20 @@ public static class ModuleInstaller
         return packageId.Length > 0 && packageVersion.Length > 0;
     }
 
+    public static bool TryParseInstallCommand(string input, out string moduleSpec)
+    {
+        moduleSpec = string.Empty;
+        if (string.IsNullOrWhiteSpace(input))
+            return false;
+
+        const string command = "/install-module";
+        if (!input.TrimStart().StartsWith(command, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        moduleSpec = input.TrimStart()[command.Length..].Trim();
+        return moduleSpec.Length > 0;
+    }
+
     private static string InstallFromFile(string filePath, string pluginsPath)
     {
         var extension = Path.GetExtension(filePath);

@@ -37,7 +37,7 @@ jobs:
         run: dotnet test UtilityAi.Compass.sln -c Release --no-build
 
       - name: Pack Compass tool
-        run: dotnet pack samples/Compass.SampleHost/Compass.SampleHost.csproj -c Release --no-build -o artifacts
+        run: dotnet pack src/UtilityAi.Compass.Cli/UtilityAi.Compass.Cli.csproj -c Release --no-build -o artifacts
 
       - name: Upload NuGet artifact
         uses: actions/upload-artifact@v4

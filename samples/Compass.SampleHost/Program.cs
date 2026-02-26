@@ -19,7 +19,7 @@ if (args.Length >= 2 && string.Equals(args[0], "--install-module", StringCompari
 {
     var installMessage = await ModuleInstaller.InstallAsync(args[1], pluginsPath);
     Console.WriteLine(installMessage);
-    Console.WriteLine("Restart Compass SampleHost to load the new module.");
+    Console.WriteLine("Restart Compass CLI to load the new module.");
     return;
 }
 
@@ -102,7 +102,7 @@ var discordToken = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
 var discordChannelId = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
 if (!string.IsNullOrWhiteSpace(discordToken) && !string.IsNullOrWhiteSpace(discordChannelId))
 {
-    Console.WriteLine("Compass SampleHost started in Discord mode.");
+    Console.WriteLine("Compass CLI started in Discord mode.");
     using var cts = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) =>
     {
@@ -119,7 +119,8 @@ if (!string.IsNullOrWhiteSpace(discordToken) && !string.IsNullOrWhiteSpace(disco
 }
 else
 {
-    Console.WriteLine("Compass SampleHost started. Type a request (or 'quit' to exit):");
+    Console.WriteLine("Compass CLI started. Type a request (or 'quit' to exit):");
+    Console.WriteLine("Commands: /setup, /install-module <path|package@version>");
     if (modelConfiguration is not null)
         Console.WriteLine($"Model provider configured: {modelConfiguration.Provider} ({modelConfiguration.Model})");
 
@@ -130,6 +131,22 @@ else
         if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
             break;
 
+        if (string.Equals(input.Trim(), "/setup", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(ModuleInstaller.TryRunInstallScript()
+                ? "Compass setup complete."
+                : "Compass setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+            continue;
+        }
+
+        if (ModuleInstaller.TryParseInstallCommand(input, out var moduleSpec))
+        {
+            var installMessage = await ModuleInstaller.InstallAsync(moduleSpec, pluginsPath);
+            Console.WriteLine($"  {installMessage}");
+            Console.WriteLine("  Restart Compass CLI to load the new module.");
+            continue;
+        }
+
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var (goal, lane, responseText) = await ProcessRequestAsync(input, cts.Token);
 
@@ -138,4 +155,4 @@ else
     }
 }
 
-Console.WriteLine("Compass SampleHost stopped.");
+Console.WriteLine("Compass CLI stopped.");

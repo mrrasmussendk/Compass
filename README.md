@@ -20,10 +20,10 @@ dotnet build UtilityAi.Compass.sln
 
 ---
 
-## How to Run the Sample Host
+## How to Run the Compass CLI
 
 ```bash
-dotnet run --project samples/Compass.SampleHost
+dotnet run --project src/UtilityAi.Compass.Cli
 ```
 
 If no Compass model setup exists, the host will attempt to launch the platform installer script automatically on startup.
@@ -35,7 +35,7 @@ For guided setup (model provider + deployment mode):
 ```bash
 ./scripts/install.sh
 source .env.compass
-dotnet run --project samples/Compass.SampleHost
+dotnet run --project src/UtilityAi.Compass.Cli
 ```
 
 **Windows (PowerShell):**
@@ -43,13 +43,13 @@ dotnet run --project samples/Compass.SampleHost
 ```powershell
 .\scripts\install.ps1
 Get-Content .env.compass | ForEach-Object { Invoke-Expression $_ }
-dotnet run --project samples/Compass.SampleHost
+dotnet run --project src/UtilityAi.Compass.Cli
 ```
 
 A simple REPL will start:
 
 ```
-Compass SampleHost started. Type a request (or 'quit' to exit):
+Compass CLI started. Type a request (or 'quit' to exit):
 > summarize this document
   Goal: Summarize (85%), Lane: Communicate
 > quit
@@ -59,16 +59,17 @@ To load plugins, copy plugin DLLs into a `plugins/` folder next to the executabl
 
 You can also install modules with the host command:
 
-- DLL module: `dotnet run --project samples/Compass.SampleHost -- --install-module /absolute/path/MyPlugin.dll`
-- NuGet module: `dotnet run --project samples/Compass.SampleHost -- --install-module Package.Id@1.2.3`
+- CLI command: `/install-module /absolute/path/MyPlugin.dll`
+- CLI command: `/install-module Package.Id@1.2.3`
+- Startup args: `dotnet run --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3`
 
 Installed modules are copied into the host `plugins/` folder and loaded after restarting the host.
 
-If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the sample host switches to Discord mode and polls the configured channel for user messages.
+If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the CLI switches to Discord mode and polls the configured channel for user messages.
 
 ### Built-in model provider integration
 
-`Compass.SampleHost` includes a shared model client abstraction with provider adapters for:
+`UtilityAi.Compass.Cli` includes a shared model client abstraction with provider adapters for:
 
 - OpenAI (`COMPASS_MODEL_PROVIDER=openai`, `OPENAI_API_KEY`)
 - Anthropic (`COMPASS_MODEL_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`)
@@ -176,4 +177,4 @@ UtilityAi.Compass.sln
 
 ## CI package build
 
-GitHub Actions workflow `.github/workflows/build-pack.yml` builds/tests on Linux and Windows and packs a cross-platform .NET tool NuGet package for `Compass.SampleHost`.
+GitHub Actions workflow `.github/workflows/build-pack.yml` builds/tests on Linux and Windows and packs a cross-platform .NET tool NuGet package for `UtilityAi.Compass.Cli`.
