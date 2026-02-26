@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using UtilityAi.Memory;
+using UtilityAi.Compass.Abstractions.CliAction;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Compass.Runtime.Modules;
@@ -25,12 +26,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CorrelationSensor>();
         services.AddSingleton<GoalRouterSensor>();
         services.AddSingleton<LaneRouterSensor>();
+        services.AddSingleton<CliIntentSensor>();
         services.AddSingleton<GovernanceMemoryProjectionSensor>(sp =>
             new GovernanceMemoryProjectionSensor(
                 sp.GetRequiredService<IMemoryStore>(),
                 options.TrackedCooldownKeys));
 
         services.AddSingleton<RoutingBootstrapModule>();
+        services.AddSingleton<CliActionModule>(sp =>
+            new CliActionModule(sp.GetServices<ICliAction>()));
 
         if (options.EnableGovernanceFinalizer)
             services.AddSingleton<GovernanceFinalizerModule>();

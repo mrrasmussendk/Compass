@@ -1,4 +1,5 @@
 using UtilityAi.Capabilities;
+using UtilityAi.Compass.Abstractions.CliAction;
 using UtilityAi.Orchestration;
 using UtilityAi.Sensor;
 
@@ -9,4 +10,5 @@ public interface IPluginDiscovery
     IEnumerable<ICapabilityModule> DiscoverModules();
     IEnumerable<ISensor> DiscoverSensors();
     IEnumerable<IOrchestrationSink> DiscoverSinks();
+    IEnumerable<ICliAction> DiscoverCliActions() => Enumerable.Empty<ICliAction>();
 }

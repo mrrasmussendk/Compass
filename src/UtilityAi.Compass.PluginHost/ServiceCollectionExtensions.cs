@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using UtilityAi.Compass.Abstractions.CliAction;
 using UtilityAi.Compass.Abstractions.Interfaces;
 
 namespace UtilityAi.Compass.PluginHost;
@@ -22,6 +23,9 @@ public static class ServiceCollectionExtensions
 
         foreach (var sink in loader.DiscoverSinks())
             services.AddSingleton(sink.GetType(), sink);
+
+        foreach (var cliAction in loader.DiscoverCliActions())
+            services.AddSingleton<ICliAction>(cliAction);
 
         return services;
     }
