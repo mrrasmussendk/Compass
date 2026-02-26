@@ -14,6 +14,27 @@ using UtilityAi.Utils;
 // Auto-load .env.compass so the host works without manually sourcing the file.
 EnvFileLoader.Load();
 
+var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
+if (args.Length >= 2 && string.Equals(args[0], "--install-module", StringComparison.OrdinalIgnoreCase))
+{
+    var installMessage = await ModuleInstaller.InstallAsync(args[1], pluginsPath);
+    Console.WriteLine(installMessage);
+    Console.WriteLine("Restart Compass SampleHost to load the new module.");
+    return;
+}
+
+if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
+    EnvFileLoader.FindFile(Directory.GetCurrentDirectory()) is null &&
+    !Console.IsInputRedirected)
+{
+    Console.WriteLine("No Compass setup found. Running installer...");
+    if (ModuleInstaller.TryRunInstallScript())
+    {
+        EnvFileLoader.Load();
+        ModelConfiguration.TryCreateFromEnvironment(out modelConfiguration);
+    }
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddUtilityAiCompass(opts =>
@@ -28,14 +49,12 @@ builder.Services.AddSingleton<IProposalMetadataProvider>(sp => sp.GetRequiredSer
 // Register the host-level model client so plugins receive it via DI.
 // The concrete provider (OpenAI, Anthropic, Gemini) is chosen by env config.
 var httpClient = new HttpClient();
-var hasModelClient = ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration);
-IModelClient? modelClient = hasModelClient && modelConfiguration is not null
+IModelClient? modelClient = modelConfiguration is not null
     ? ModelClientFactory.Create(modelConfiguration, httpClient)
     : null;
 if (modelClient is not null)
     builder.Services.AddSingleton<IModelClient>(modelClient);
 
-var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 builder.Services.AddCompassPluginsFromFolder(pluginsPath);
 
 var host = builder.Build();
@@ -65,7 +84,7 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
         return (goal, lane, response.Text);
 
     if (modelClient is null)
-        return (goal, lane, "No model configured. Run scripts/install.sh (Linux/macOS) or scripts/install.ps1 (Windows) to configure OpenAI, Anthropic, or Gemini.");
+        return (goal, lane, "No model configured. Run 'compass --setup' or scripts/install.sh (Linux/macOS) / scripts/install.ps1 (Windows).");
 
     var modelResponse = await modelClient.GenerateAsync(input, cancellationToken);
     return (goal, lane, modelResponse);

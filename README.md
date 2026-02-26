@@ -26,6 +26,8 @@ dotnet build UtilityAi.Compass.sln
 dotnet run --project samples/Compass.SampleHost
 ```
 
+If no Compass model setup exists, the host will attempt to launch the platform installer script automatically on startup.
+
 For guided setup (model provider + deployment mode):
 
 **Linux / macOS:**
@@ -54,6 +56,13 @@ Compass SampleHost started. Type a request (or 'quit' to exit):
 ```
 
 To load plugins, copy plugin DLLs into a `plugins/` folder next to the executable before running.
+
+You can also install modules with the host command:
+
+- DLL module: `dotnet run --project samples/Compass.SampleHost -- --install-module /absolute/path/MyPlugin.dll`
+- NuGet module: `dotnet run --project samples/Compass.SampleHost -- --install-module Package.Id@1.2.3`
+
+Installed modules are copied into the host `plugins/` folder and loaded after restarting the host.
 
 If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the sample host switches to Discord mode and polls the configured channel for user messages.
 
@@ -164,3 +173,7 @@ UtilityAi.Compass.sln
 └── tests/
     └── UtilityAi.Compass.Tests/           ← xUnit tests (17 tests)
 ```
+
+## CI package build
+
+GitHub Actions workflow `.github/workflows/build-pack.yml` builds/tests on Linux and Windows and packs a cross-platform .NET tool NuGet package for `Compass.SampleHost`.
