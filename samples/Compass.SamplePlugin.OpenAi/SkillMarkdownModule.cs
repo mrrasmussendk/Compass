@@ -58,7 +58,18 @@ public sealed class SkillMarkdownModule : ICapabilityModule
         if (!File.Exists(skillPath))
             return DefaultSkillPrompt;
 
-        var prompt = File.ReadAllText(skillPath).Trim();
-        return string.IsNullOrWhiteSpace(prompt) ? DefaultSkillPrompt : prompt;
+        try
+        {
+            var prompt = File.ReadAllText(skillPath).Trim();
+            return string.IsNullOrWhiteSpace(prompt) ? DefaultSkillPrompt : prompt;
+        }
+        catch (IOException)
+        {
+            return DefaultSkillPrompt;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return DefaultSkillPrompt;
+        }
     }
 }
