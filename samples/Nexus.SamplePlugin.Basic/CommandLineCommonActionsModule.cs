@@ -52,7 +52,7 @@ public sealed class CommandLineWriteModule : ICapabilityModule
                 rt.Bus.Publish(new AiResponse("Command line write action selected."));
                 return Task.CompletedTask;
             }
-        ) { Description = "Write data from command line context" };
+        ) { Description = "Write data in command line context" };
     }
 }
 
@@ -76,7 +76,7 @@ public sealed class CommandLineUpdateModule : ICapabilityModule
                 rt.Bus.Publish(new AiResponse("Command line update action selected."));
                 return Task.CompletedTask;
             }
-        ) { Description = "Update data from command line context" };
+        ) { Description = "Update data in command line context" };
     }
 }
 
