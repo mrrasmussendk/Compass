@@ -2,6 +2,10 @@
 
 A modular orchestration framework built on top of [UtilityAi](https://github.com/mrrasmussendk/UtilityAi) that adds governance, plugin hosting, goal routing, and human-in-the-loop support.
 
+## Installation
+
+See [INSTALL.md](INSTALL.md) for prerequisites, setup, and step-by-step installation instructions.
+
 ## Projects
 
 | Project | Description |
