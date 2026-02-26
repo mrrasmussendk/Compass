@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="$ROOT_DIR/.env.nexus"
+ENV_FILE="$ROOT_DIR/.env.compass"
 
-echo "Nexus installer"
+echo "Compass installer"
 echo "Select model provider:"
 echo "  1) OpenAI"
 echo "  2) Anthropic"
@@ -29,9 +29,9 @@ echo "  2) Discord channel"
 read -r -p "> " deploy_choice
 
 {
-  echo "export NEXUS_MODEL_PROVIDER=${provider}"
+  echo "export COMPASS_MODEL_PROVIDER=${provider}"
   echo "export ${key_name}=${api_key}"
-  echo "export NEXUS_MODEL_NAME=${selected_model}"
+  echo "export COMPASS_MODEL_NAME=${selected_model}"
 } > "$ENV_FILE"
 
 if [[ "$deploy_choice" == "2" ]]; then
@@ -49,8 +49,8 @@ Configuration saved to: $ENV_FILE
 
 Next steps:
   1. source "$ENV_FILE"
-  2. dotnet build "$ROOT_DIR/UtilityAi.Nexus.sln"
-  3. dotnet run --project "$ROOT_DIR/samples/Nexus.SampleHost"
+  2. dotnet build "$ROOT_DIR/UtilityAi.Compass.sln"
+  3. dotnet run --project "$ROOT_DIR/samples/Compass.SampleHost"
 
 If Discord variables are configured, the host will start in Discord mode automatically.
 EOF
