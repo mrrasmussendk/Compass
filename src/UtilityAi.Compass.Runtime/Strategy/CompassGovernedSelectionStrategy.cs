@@ -7,12 +7,22 @@ using UtilityAi.Orchestration;
 
 namespace UtilityAi.Compass.Runtime.Strategy;
 
+/// <summary>
+/// Core governance strategy that applies goal/lane filtering, conflict resolution,
+/// cooldowns, cost/risk penalties, and hysteresis to select the best <see cref="Proposal"/>.
+/// </summary>
 public sealed class CompassGovernedSelectionStrategy : ISelectionStrategy
 {
     private readonly IMemoryStore _store;
     private readonly IProposalMetadataProvider _metadataProvider;
     private readonly GovernanceConfig _defaultConfig;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CompassGovernedSelectionStrategy"/> class.
+    /// </summary>
+    /// <param name="store">The memory store for governance state lookups.</param>
+    /// <param name="metadataProvider">Provider that resolves <see cref="ProposalMetadata"/> for each proposal.</param>
+    /// <param name="defaultConfig">Optional default <see cref="GovernanceConfig"/>; falls back to a new instance if <c>null</c>.</param>
     public CompassGovernedSelectionStrategy(
         IMemoryStore store,
         IProposalMetadataProvider metadataProvider,
@@ -23,6 +33,7 @@ public sealed class CompassGovernedSelectionStrategy : ISelectionStrategy
         _defaultConfig = defaultConfig ?? new GovernanceConfig();
     }
 
+    /// <inheritdoc />
     public Proposal Select(IReadOnlyList<(Proposal P, double Utility)> scored, UtilityAi.Utils.Runtime rt)
     {
         if (scored.Count == 0) throw new InvalidOperationException("No proposals to select from.");

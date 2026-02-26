@@ -6,8 +6,13 @@ using UtilityAi.Compass.Abstractions.Facts;
 
 namespace UtilityAi.Compass.Runtime.Modules;
 
+/// <summary>
+/// Proposes a clarification prompt when <see cref="GoalSelected"/> confidence is too low,
+/// ensuring the user is asked to clarify ambiguous requests.
+/// </summary>
 public sealed class RoutingBootstrapModule : ICapabilityModule
 {
+    /// <inheritdoc />
     public IEnumerable<Proposal> Propose(UtilityAi.Utils.Runtime rt)
     {
         var request = rt.Bus.GetOrDefault<UserRequest>();

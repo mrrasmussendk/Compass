@@ -4,8 +4,13 @@ using UtilityAi.Sensor;
 
 namespace UtilityAi.Compass.Runtime.Sensors;
 
+/// <summary>
+/// Maps the current <see cref="GoalSelected"/> fact to an execution <see cref="Lane"/>
+/// and publishes a <see cref="LaneSelected"/> fact to the EventBus.
+/// </summary>
 public sealed class LaneRouterSensor : ISensor
 {
+    /// <inheritdoc />
     public Task SenseAsync(UtilityAi.Utils.Runtime rt, CancellationToken ct)
     {
         if (rt.Bus.TryGet<LaneSelected>(out _)) return Task.CompletedTask;
