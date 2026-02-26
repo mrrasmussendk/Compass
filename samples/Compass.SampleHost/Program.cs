@@ -8,6 +8,7 @@ using UtilityAi.Compass.PluginHost;
 using UtilityAi.Compass.PluginSdk.MetadataProvider;
 using UtilityAi.Compass.Runtime.DI;
 using UtilityAi.Compass.Runtime.Sensors;
+using UtilityAi.Compass.StandardModules.DI;
 using UtilityAi.Orchestration;
 using UtilityAi.Utils;
 
@@ -21,6 +22,8 @@ builder.Services.AddUtilityAiCompass(opts =>
     opts.EnableGovernanceFinalizer = true;
     opts.EnableHitl = false;
 });
+
+builder.Services.AddCompassStandardModules();
 
 builder.Services.AddSingleton<AttributeMetadataProvider>();
 builder.Services.AddSingleton<IProposalMetadataProvider>(sp => sp.GetRequiredService<AttributeMetadataProvider>());
