@@ -62,7 +62,7 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
         return (goal, lane, response.Text);
 
     if (modelClient is null)
-        return (goal, lane, "No model configured. Run scripts/install.sh to configure OpenAI, Anthropic, or Gemini.");
+        return (goal, lane, "No model configured. Run scripts/install.sh (Linux/macOS) or scripts/install.ps1 (Windows) to configure OpenAI, Anthropic, or Gemini.");
 
     var modelResponse = await modelClient.GenerateAsync(input, cancellationToken);
     return (goal, lane, modelResponse);

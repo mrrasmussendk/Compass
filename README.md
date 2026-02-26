@@ -26,11 +26,21 @@ dotnet build UtilityAi.Compass.sln
 dotnet run --project samples/Compass.SampleHost
 ```
 
-For guided setup (model provider + deployment mode), run:
+For guided setup (model provider + deployment mode):
+
+**Linux / macOS:**
 
 ```bash
 ./scripts/install.sh
 source .env.compass
+dotnet run --project samples/Compass.SampleHost
+```
+
+**Windows (PowerShell):**
+
+```powershell
+.\scripts\install.ps1
+Get-Content .env.compass | ForEach-Object { Invoke-Expression $_ }
 dotnet run --project samples/Compass.SampleHost
 ```
 
