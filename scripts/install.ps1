@@ -42,20 +42,20 @@ Write-Host '  2) Discord channel'
 $deployChoice = Read-Host '>'
 
 $lines = @(
-    "set COMPASS_MODEL_PROVIDER=$provider"
-    "set $keyName=$apiKey"
-    "set COMPASS_MODEL_NAME=$selectedModel"
+    "`$env:COMPASS_MODEL_PROVIDER='$provider'"
+    "`$env:${keyName}='$apiKey'"
+    "`$env:COMPASS_MODEL_NAME='$selectedModel'"
 )
 
 if ($deployChoice -eq '2') {
     $discordToken   = Read-Host 'Enter DISCORD_BOT_TOKEN'
     $discordChannel = Read-Host 'Enter DISCORD_CHANNEL_ID'
-    $lines += "set DISCORD_BOT_TOKEN=$discordToken"
-    $lines += "set DISCORD_CHANNEL_ID=$discordChannel"
+    $lines += "`$env:DISCORD_BOT_TOKEN='$discordToken'"
+    $lines += "`$env:DISCORD_CHANNEL_ID='$discordChannel'"
 }
 
 if ($includeOpenAiSamples) {
-    $lines += 'set COMPASS_INCLUDE_OPENAI_SAMPLES=true'
+    $lines += "`$env:COMPASS_INCLUDE_OPENAI_SAMPLES='true'"
 }
 
 $lines | Set-Content -Path $EnvFile -Encoding UTF8
