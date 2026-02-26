@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using UtilityAi.Compass.Abstractions.Interfaces;
 
 namespace Compass.SampleHost;
 
@@ -65,11 +66,6 @@ public sealed record ModelConfiguration(ModelProvider Provider, string ApiKey, s
     }
 }
 
-public interface IModelClient
-{
-    Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken);
-}
-
 public static class ModelClientFactory
 {
     public static IModelClient Create(ModelConfiguration configuration, HttpClient httpClient) => configuration.Provider switch
@@ -99,6 +95,12 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
         return json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()
             ?? "OpenAI API returned a response with missing or empty content field.";
     }
+
+    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
+    {
+        var text = await GenerateAsync(modelRequest.Prompt, cancellationToken);
+        return new ModelResponse { Text = text };
+    }
 }
 
 file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient httpClient) : IModelClient
@@ -126,6 +128,12 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
         return json.RootElement.GetProperty("content")[0].GetProperty("text").GetString()
             ?? "Anthropic API returned a response with missing or empty text field.";
     }
+
+    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
+    {
+        var text = await GenerateAsync(modelRequest.Prompt, cancellationToken);
+        return new ModelResponse { Text = text };
+    }
 }
 
 file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpClient) : IModelClient
@@ -146,6 +154,12 @@ file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpCl
         using var json = JsonDocument.Parse(payload);
         return json.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString()
             ?? "Gemini API returned a response with missing or empty text field.";
+    }
+
+    public async Task<ModelResponse> GenerateAsync(ModelRequest modelRequest, CancellationToken cancellationToken)
+    {
+        var text = await GenerateAsync(modelRequest.Prompt, cancellationToken);
+        return new ModelResponse { Text = text };
     }
 }
 

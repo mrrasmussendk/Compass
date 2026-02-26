@@ -53,6 +53,20 @@ public sealed class PluginLoader : IPluginDiscovery
         return DiscoverImplementations<ICliAction>();
     }
 
+    /// <summary>
+    /// Returns concrete types that implement <typeparamref name="T"/> across
+    /// all loaded assemblies, without instantiating them. This enables the DI
+    /// container to construct them with proper dependency injection.
+    /// </summary>
+    public IEnumerable<Type> DiscoverTypes<T>()
+    {
+        foreach (var assembly in _assemblies)
+        {
+            foreach (var type in GetConcreteTypes<T>(assembly))
+                yield return type;
+        }
+    }
+
     public IEnumerable<PluginManifest> GetManifests()
     {
         foreach (var assembly in _assemblies)

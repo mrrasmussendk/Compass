@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using UtilityAi.Capabilities;
 using UtilityAi.Compass.Abstractions.CliAction;
 using UtilityAi.Compass.Abstractions.Interfaces;
+using UtilityAi.Orchestration;
+using UtilityAi.Sensor;
 
 namespace UtilityAi.Compass.PluginHost;
 
@@ -15,17 +18,19 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IPluginDiscovery>(loader);
 
-        foreach (var module in loader.DiscoverModules())
-            services.AddSingleton(module.GetType(), module);
+        // Register plugin types for DI-based construction so the container
+        // can inject framework services (e.g. IModelClient) into modules.
+        foreach (var type in loader.DiscoverTypes<ICapabilityModule>())
+            services.AddSingleton(type);
 
-        foreach (var sensor in loader.DiscoverSensors())
-            services.AddSingleton(sensor.GetType(), sensor);
+        foreach (var type in loader.DiscoverTypes<ISensor>())
+            services.AddSingleton(type);
 
-        foreach (var sink in loader.DiscoverSinks())
-            services.AddSingleton(sink.GetType(), sink);
+        foreach (var type in loader.DiscoverTypes<IOrchestrationSink>())
+            services.AddSingleton(type);
 
-        foreach (var cliAction in loader.DiscoverCliActions())
-            services.AddSingleton<ICliAction>(cliAction);
+        foreach (var type in loader.DiscoverTypes<ICliAction>())
+            services.AddSingleton(typeof(ICliAction), type);
 
         return services;
     }
