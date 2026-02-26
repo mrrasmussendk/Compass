@@ -1,7 +1,76 @@
 namespace UtilityAi.Compass.Abstractions;
 
-public enum GoalTag { Answer, Clarify, Summarize, Execute, Approve, Stop }
-public enum Lane { Interpret, Plan, Execute, Communicate, Safety, Housekeeping }
-public enum SideEffectLevel { ReadOnly, Write, Destructive }
-public enum OutcomeTag { Success, Failure, Skipped, Escalated }
-public enum CliVerb { Read, Write, Update }
+/// <summary>
+/// High-level intent detected from a user request.
+/// Used by <see cref="Facts.GoalSelected"/> to drive goal-based routing.
+/// </summary>
+public enum GoalTag
+{
+    /// <summary>Provide an answer to a question.</summary>
+    Answer,
+    /// <summary>Ask a clarifying question before proceeding.</summary>
+    Clarify,
+    /// <summary>Summarize existing content or conversation.</summary>
+    Summarize,
+    /// <summary>Execute an action or command.</summary>
+    Execute,
+    /// <summary>Request human approval before proceeding.</summary>
+    Approve,
+    /// <summary>Halt processing or end the conversation.</summary>
+    Stop
+}
+
+/// <summary>
+/// Processing lane that categorises a proposal's stage in the pipeline.
+/// Used by <see cref="Facts.LaneSelected"/> for lane-based routing.
+/// </summary>
+public enum Lane
+{
+    /// <summary>Parse and understand the user's input.</summary>
+    Interpret,
+    /// <summary>Formulate a plan of action.</summary>
+    Plan,
+    /// <summary>Carry out the planned action.</summary>
+    Execute,
+    /// <summary>Deliver a response to the user.</summary>
+    Communicate,
+    /// <summary>Apply safety checks and guardrails.</summary>
+    Safety,
+    /// <summary>Perform background maintenance tasks.</summary>
+    Housekeeping
+}
+
+/// <summary>Indicates the level of side effects a proposal may produce.</summary>
+public enum SideEffectLevel
+{
+    /// <summary>No state changes – safe to execute speculatively.</summary>
+    ReadOnly,
+    /// <summary>Creates or updates state.</summary>
+    Write,
+    /// <summary>Permanently removes or irreversibly alters state.</summary>
+    Destructive
+}
+
+/// <summary>Outcome tag recorded after a proposal has been executed.</summary>
+public enum OutcomeTag
+{
+    /// <summary>The action completed successfully.</summary>
+    Success,
+    /// <summary>The action failed.</summary>
+    Failure,
+    /// <summary>The action was skipped (e.g. due to cooldown).</summary>
+    Skipped,
+    /// <summary>The action was escalated to a human.</summary>
+    Escalated
+}
+
+/// <summary>Verb for CLI intent detection, indicating the type of CLI operation.</summary>
+public enum CliVerb
+{
+    /// <summary>A read / query operation.</summary>
+    Read,
+    /// <summary>A write / create operation.</summary>
+    Write,
+    /// <summary>An update / modify operation.</summary>
+    Update
+}
