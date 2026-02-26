@@ -9,6 +9,7 @@ public class ModelClientDiTests
     private sealed class StubModelClient : IModelClient
     {
         public string LastPrompt { get; private set; } = "";
+        public ModelRequest? LastModelRequest { get; private set; }
 
         public Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken = default)
         {
@@ -19,6 +20,7 @@ public class ModelClientDiTests
         public Task<ModelResponse> GenerateAsync(ModelRequest request, CancellationToken cancellationToken = default)
         {
             LastPrompt = request.Prompt;
+            LastModelRequest = request;
             return Task.FromResult(new ModelResponse { Text = $"stub:{request.Prompt}" });
         }
     }
@@ -70,6 +72,26 @@ public class ModelClientDiTests
         var response = bus.GetOrDefault<UtilityAi.Compass.Abstractions.Facts.AiResponse>();
         Assert.NotNull(response);
         Assert.Equal("stub:Hello world", response!.Text);
+    }
+
+    [Fact]
+    public async Task OpenAiModule_Proposal_SendsSystemMessageAndParameters()
+    {
+        var stub = new StubModelClient();
+        var module = new OpenAiModule(stub);
+
+        var bus = new UtilityAi.Utils.EventBus();
+        bus.Publish(new UtilityAi.Compass.Abstractions.Facts.UserRequest("Tell me a joke"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var proposal = module.Propose(rt).First();
+        await proposal.Act(CancellationToken.None);
+
+        Assert.NotNull(stub.LastModelRequest);
+        Assert.Equal("Tell me a joke", stub.LastModelRequest!.Prompt);
+        Assert.Equal("You are a helpful assistant.", stub.LastModelRequest.SystemMessage);
+        Assert.Equal(0.7, stub.LastModelRequest.Temperature);
+        Assert.Equal(512, stub.LastModelRequest.MaxTokens);
     }
 
     [Fact]

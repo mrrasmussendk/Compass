@@ -33,7 +33,13 @@ public sealed class OpenAiModule : ICapabilityModule
             act: async ct =>
             {
                 var response = await _modelClient.GenerateAsync(
-                    new ModelRequest { Prompt = request.Text },
+                    new ModelRequest
+                    {
+                        Prompt = request.Text,
+                        SystemMessage = "You are a helpful assistant.",
+                        Temperature = 0.7,
+                        MaxTokens = 512
+                    },
                     ct);
                 rt.Bus.Publish(new AiResponse(response.Text));
             }
