@@ -22,6 +22,16 @@ builder.Services.AddUtilityAiCompass(opts =>
 builder.Services.AddSingleton<AttributeMetadataProvider>();
 builder.Services.AddSingleton<IProposalMetadataProvider>(sp => sp.GetRequiredService<AttributeMetadataProvider>());
 
+// Register the host-level model client so plugins receive it via DI.
+// The concrete provider (OpenAI, Anthropic, Gemini) is chosen by env config.
+var httpClient = new HttpClient();
+var hasModelClient = ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration);
+IModelClient? modelClient = hasModelClient && modelConfiguration is not null
+    ? ModelClientFactory.Create(modelConfiguration, httpClient)
+    : null;
+if (modelClient is not null)
+    builder.Services.AddSingleton<IModelClient>(modelClient);
+
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 builder.Services.AddCompassPluginsFromFolder(pluginsPath);
 
@@ -34,11 +44,6 @@ var strategy = host.Services.GetRequiredService<UtilityAi.Compass.Runtime.Strate
 var correlationSensor = host.Services.GetRequiredService<CorrelationSensor>();
 var goalSensor = host.Services.GetRequiredService<GoalRouterSensor>();
 var laneSensor = host.Services.GetRequiredService<LaneRouterSensor>();
-var httpClient = new HttpClient();
-var hasModelClient = ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration);
-var modelClient = hasModelClient && modelConfiguration is not null
-    ? ModelClientFactory.Create(modelConfiguration, httpClient)
-    : null;
 
 async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
 {
