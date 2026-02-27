@@ -19,6 +19,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>compass</ToolCommandName>
     <PackageId>UtilityAi.Compass.Cli</PackageId>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <Content Include="..\..\scripts\install.sh" Link="scripts/install.sh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Pack>false</Pack>
