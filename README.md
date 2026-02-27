@@ -34,6 +34,12 @@ For guided setup (model provider + deployment mode), run:
 dotnet run --project src/UtilityAi.Compass.Cli -- --setup
 ```
 
+To install the CLI as a .NET tool:
+
+```bash
+dotnet tool install --global UtilityAi.Compass.Cli
+```
+
 If installed as a .NET tool:
 
 ```bash
