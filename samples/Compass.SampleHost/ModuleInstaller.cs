@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.Loader;
 using UtilityAi.Capabilities;
 
 namespace Compass.SampleHost;
@@ -176,21 +177,44 @@ public static class ModuleInstaller
 
     private static bool TryValidateModuleAssembly(string assemblyPath, out string error)
     {
+        var loadContext = new AssemblyLoadContext($"Compass.ModuleValidation.{Guid.NewGuid():N}", isCollectible: true);
         try
         {
-            var assembly = Assembly.LoadFrom(assemblyPath);
-            var hasModule = assembly
-                .GetTypes()
-                .Any(t => t.IsClass && !t.IsAbstract && typeof(ICapabilityModule).IsAssignableFrom(t));
+            var assembly = loadContext.LoadFromAssemblyPath(assemblyPath);
+            var hasModule = assembly.GetExportedTypes().Any(IsUtilityAiModuleType);
             if (hasModule)
             {
                 error = string.Empty;
                 return true;
             }
         }
-        catch
+        catch (ReflectionTypeLoadException ex)
+        {
+            if (ex.Types.OfType<Type>().Any(IsUtilityAiModuleType))
+            {
+                error = string.Empty;
+                return true;
+            }
+        }
+        catch (FileNotFoundException)
         {
             // handled below
+        }
+        catch (FileLoadException)
+        {
+            // handled below
+        }
+        catch (BadImageFormatException)
+        {
+            // handled below
+        }
+        catch (NotSupportedException)
+        {
+            // handled below
+        }
+        finally
+        {
+            loadContext.Unload();
         }
 
         error = $"Module install failed: '{Path.GetFileName(assemblyPath)}' is not a compatible UtilityAI module assembly.";
@@ -218,10 +242,36 @@ public static class ModuleInstaller
         if (!tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var versionDigits = new string(tfm.Skip(3).TakeWhile(char.IsDigit).ToArray());
-        if (versionDigits.Length == 0 || !int.TryParse(versionDigits, out var major))
+        var tfmBody = tfm[3..];
+        var versionText = new string(tfmBody.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
+        if (versionText.Length == 0 || !Version.TryParse(versionText, out var version))
             return false;
 
-        return major <= Environment.Version.Major;
+        if (tfmBody.StartsWith($"{versionText}-", StringComparison.OrdinalIgnoreCase)
+            && !IsCompatiblePlatformTfm(tfmBody[(versionText.Length + 1)..]))
+            return false;
+
+        return version.Major <= Environment.Version.Major;
+    }
+
+    private static bool IsCompatiblePlatformTfm(string platformPart)
+    {
+        if (platformPart.StartsWith("windows", StringComparison.OrdinalIgnoreCase))
+            return OperatingSystem.IsWindows();
+        if (platformPart.StartsWith("linux", StringComparison.OrdinalIgnoreCase))
+            return OperatingSystem.IsLinux();
+        if (platformPart.StartsWith("osx", StringComparison.OrdinalIgnoreCase))
+            return OperatingSystem.IsMacOS();
+
+        return true;
+    }
+
+    private static bool IsUtilityAiModuleType(Type type)
+    {
+        if (!type.IsClass || type.IsAbstract)
+            return false;
+
+        return type.GetInterfaces()
+            .Any(i => i.FullName == typeof(ICapabilityModule).FullName);
     }
 }
