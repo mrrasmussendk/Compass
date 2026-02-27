@@ -144,11 +144,11 @@ public sealed class CliPackagingTests
             Assert.NotNull(process);
             using (process)
             {
-                const string anthropicProviderSelection = "2";
+                const string openAiProviderSelection = "1";
                 const string apiKey = "test-key";
                 const string localConsoleDeploymentSelection = "1";
 
-                await process.StandardInput.WriteLineAsync(anthropicProviderSelection);
+                await process.StandardInput.WriteLineAsync(openAiProviderSelection);
                 await process.StandardInput.WriteLineAsync(apiKey);
                 await process.StandardInput.WriteLineAsync(string.Empty);
                 await process.StandardInput.WriteLineAsync(localConsoleDeploymentSelection);
@@ -165,6 +165,7 @@ public sealed class CliPackagingTests
                 Assert.Contains("Configuration saved to:", output);
                 Assert.Contains("Run: compass", output);
                 Assert.DoesNotContain("UtilityAi.Compass.sln", output, StringComparison.Ordinal);
+                Assert.DoesNotContain("OpenAI samples enabled.", output, StringComparison.Ordinal);
             }
         }
         finally

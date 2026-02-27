@@ -28,13 +28,6 @@ $apiKey = Read-Host "Enter $keyName"
 $selectedModel = Read-Host "Enter model name [$defaultModel]"
 if ([string]::IsNullOrWhiteSpace($selectedModel)) { $selectedModel = $defaultModel }
 
-$includeOpenAiSamples = $false
-if ($provider -eq 'openai') {
-    Write-Host ''
-    $includeSamples = Read-Host 'Include OpenAI samples? (y/N)'
-    if ($includeSamples -match '^[Yy]$') { $includeOpenAiSamples = $true }
-}
-
 Write-Host ''
 Write-Host 'Select deployment mode:'
 Write-Host '  1) Local console'
@@ -52,10 +45,6 @@ if ($deployChoice -eq '2') {
     $discordChannel = Read-Host 'Enter DISCORD_CHANNEL_ID'
     $lines += "`$env:DISCORD_BOT_TOKEN='$discordToken'"
     $lines += "`$env:DISCORD_CHANNEL_ID='$discordChannel'"
-}
-
-if ($includeOpenAiSamples) {
-    $lines += "`$env:COMPASS_INCLUDE_OPENAI_SAMPLES='true'"
 }
 
 $lines | Set-Content -Path $EnvFile -Encoding UTF8
@@ -76,17 +65,3 @@ else {
 Write-Host ''
 Write-Host 'The host loads .env.compass automatically — no need to source the file.'
 Write-Host 'If Discord variables are configured, the host will start in Discord mode automatically.'
-
-if ($includeOpenAiSamples) {
-    Write-Host ''
-    if ($hasSourceLayout -and (Test-Path (Join-Path $RootDir 'samples\Compass.SamplePlugin.OpenAi'))) {
-        Write-Host 'OpenAI samples enabled. Deploy the plugin before running the host:'
-        Write-Host "  dotnet publish `"$RootDir\samples\Compass.SamplePlugin.OpenAi`" -c Release"
-        Write-Host "  New-Item -ItemType Directory -Force `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins`""
-        Write-Host "  Copy-Item `"$RootDir\samples\Compass.SamplePlugin.OpenAi\bin\Release\net10.0\publish\*`" ``"
-        Write-Host "    `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins\`""
-    }
-    else {
-        Write-Host 'OpenAI samples enabled. Source repository samples are required to deploy the example plugin.'
-    }
-}

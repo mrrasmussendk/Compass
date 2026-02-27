@@ -26,15 +26,6 @@ read -r -p "Enter ${key_name}: " api_key
 read -r -p "Enter model name [${default_model}]: " selected_model
 selected_model="${selected_model:-$default_model}"
 
-include_openai_samples="false"
-if [[ "$provider" == "openai" ]]; then
-  echo
-  read -r -p "Include OpenAI samples? (y/N): " include_samples
-  if [[ "$include_samples" =~ ^[Yy]$ ]]; then
-    include_openai_samples="true"
-  fi
-fi
-
 echo
 echo "Select deployment mode:"
 echo "  1) Local console"
@@ -54,10 +45,6 @@ if [[ "$deploy_choice" == "2" ]]; then
     echo "export DISCORD_BOT_TOKEN=${discord_token}"
     echo "export DISCORD_CHANNEL_ID=${discord_channel}"
   } >> "$ENV_FILE"
-fi
-
-if [[ "$include_openai_samples" == "true" ]]; then
-  echo "export COMPASS_INCLUDE_OPENAI_SAMPLES=true" >> "$ENV_FILE"
 fi
 
 cat <<EOF
@@ -84,17 +71,3 @@ cat <<EOF
 The host loads .env.compass automatically — no need to source the file.
 If Discord variables are configured, the host will start in Discord mode automatically.
 EOF
-
-if [[ "$include_openai_samples" == "true" ]]; then
-  if [[ "$HAS_SOURCE_LAYOUT" == "true" && -d "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi" ]]; then
-    cat <<EOF
-OpenAI samples enabled. Deploy the plugin before running the host:
-  dotnet publish "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi" -c Release
-  mkdir -p "$ROOT_DIR/samples/Compass.SampleHost/bin/Debug/net10.0/plugins"
-  cp "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi/bin/Release/net10.0/publish/"* \\
-     "$ROOT_DIR/samples/Compass.SampleHost/bin/Debug/net10.0/plugins/"
-EOF
-  else
-    echo "OpenAI samples enabled. Source repository samples are required to deploy the example plugin."
-  fi
-fi
