@@ -48,6 +48,22 @@ public class CliActionModuleTests
     }
 
     [Fact]
+    public void Propose_UsesLowercaseVerbToken_ForUpdateVerb()
+    {
+        var actions = new ICliAction[] { new StubCliAction(CliVerb.Update, "config") };
+        var module = new CliActionModule(actions);
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("update config"));
+        bus.Publish(new CliIntent(CliVerb.Update, "config", 0.9));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var proposals = module.Propose(rt).ToList();
+
+        Assert.Single(proposals);
+        Assert.Equal("cli.update.config", proposals[0].Id);
+    }
+
+    [Fact]
     public void Propose_ReturnsEmpty_WhenNoCliIntent()
     {
         var actions = new ICliAction[] { new StubCliAction(CliVerb.Read, "config") };
