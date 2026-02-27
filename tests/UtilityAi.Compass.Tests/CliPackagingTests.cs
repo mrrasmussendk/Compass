@@ -11,12 +11,23 @@ public sealed class CliPackagingTests
     {
         var repoRoot = FindRepoRoot();
         var cliProject = Path.Combine(repoRoot, "src", "UtilityAi.Compass.Cli", "UtilityAi.Compass.Cli.csproj");
-        var targetFramework = XDocument.Load(cliProject)
+        var projectDocument = XDocument.Load(cliProject);
+        var targetFramework = projectDocument
             .Descendants("TargetFramework")
             .First()
             .Value;
+        var packageId = projectDocument
+            .Descendants("PackageId")
+            .First()
+            .Value;
+        var packageVersion = projectDocument
+            .Descendants("Version")
+            .First()
+            .Value;
         var outputDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var toolPath = Path.Combine(outputDir, "tools");
         Directory.CreateDirectory(outputDir);
+        Directory.CreateDirectory(toolPath);
 
         try
         {
@@ -46,6 +57,27 @@ public sealed class CliPackagingTests
 
                 using var archive = ZipFile.OpenRead(nupkgPath);
                 Assert.NotNull(archive.GetEntry($"tools/{targetFramework}/any/DotnetToolSettings.xml"));
+            }
+
+            process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"tool install --tool-path \"{toolPath}\" {packageId} --version {packageVersion} --add-source \"{outputDir}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            });
+
+            Assert.NotNull(process);
+            using (process)
+            {
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                var output = await outputTask;
+                var error = await errorTask;
+                Assert.True(process.ExitCode == 0, $"dotnet tool install failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
             }
         }
         finally
