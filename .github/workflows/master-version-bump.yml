@@ -1,0 +1,70 @@
+name: master-version-bump
+
+on:
+  push:
+    branches: ["master"]
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump package versions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bump_semver() {
+            local version="$1"
+            IFS='.' read -r major minor patch <<< "$version"
+
+            if (( patch < 9 )); then
+              patch=$((patch + 1))
+            else
+              patch=0
+              if (( minor < 9 )); then
+                minor=$((minor + 1))
+              else
+                minor=0
+                major=$((major + 1))
+              fi
+            fi
+
+            echo "$major.$minor.$patch"
+          }
+
+          projects=(
+            "src/UtilityAi.Compass.Cli/UtilityAi.Compass.Cli.csproj"
+            "src/UtilityAi.Compass.WeatherModule/UtilityAi.Compass.WeatherModule.csproj"
+          )
+
+          for project in "${projects[@]}"; do
+            current_version=$(grep -oP '(?<=<Version>)[^<]+' "$project" | head -n1)
+            new_version=$(bump_semver "$current_version")
+            sed -i "s#<Version>$current_version</Version>#<Version>$new_version</Version>#" "$project"
+            echo "$project: $current_version -> $new_version"
+          done
+
+      - name: Commit and push version bump
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet; then
+            echo "No version changes detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/UtilityAi.Compass.Cli/UtilityAi.Compass.Cli.csproj src/UtilityAi.Compass.WeatherModule/UtilityAi.Compass.WeatherModule.csproj
+          git commit -m "chore: bump package versions [skip ci]"
+          git push
