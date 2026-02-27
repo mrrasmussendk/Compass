@@ -67,6 +67,12 @@ public sealed class PluginLoader : IPluginDiscovery
         return DiscoverImplementations<ICliAction>();
     }
 
+    /// <summary>Discovers and instantiates all <see cref="IWorkflowModule"/> implementations from loaded assemblies.</summary>
+    public IEnumerable<IWorkflowModule> DiscoverWorkflowModules()
+    {
+        return DiscoverImplementations<IWorkflowModule>();
+    }
+
     /// <summary>
     /// Returns concrete types that implement <typeparamref name="T"/> across
     /// all loaded assemblies, without instantiating them. This enables the DI

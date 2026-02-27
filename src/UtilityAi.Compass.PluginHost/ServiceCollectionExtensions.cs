@@ -40,6 +40,9 @@ public static class ServiceCollectionExtensions
         foreach (var type in loader.DiscoverTypes<ICliAction>())
             services.AddSingleton(typeof(ICliAction), type);
 
+        foreach (var type in loader.DiscoverTypes<IWorkflowModule>())
+            services.AddSingleton(typeof(IWorkflowModule), type);
+
         return services;
     }
 }

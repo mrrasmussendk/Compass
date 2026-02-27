@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using UtilityAi.Compass.Abstractions.Interfaces;
 
 namespace UtilityAi.Compass.StandardModules.DI;
 
@@ -8,14 +9,17 @@ namespace UtilityAi.Compass.StandardModules.DI;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers all built-in Compass standard modules:
+    /// Registers all built-in Compass standard modules and their workflow equivalents:
     /// <see cref="FileReadModule"/>, <see cref="FileCreationModule"/>,
-    /// <see cref="SummarizationModule"/>, and <see cref="WebSearchModule"/>.
+    /// <see cref="SummarizationModule"/>, <see cref="WebSearchModule"/>,
+    /// <see cref="FileReadWorkflow"/>, <see cref="FileCreationWorkflow"/>,
+    /// <see cref="SummarizationWorkflow"/>, and <see cref="WebSearchWorkflow"/>.
     /// </summary>
     /// <param name="services">The service collection to configure.</param>
     /// <returns>The same <see cref="IServiceCollection"/> for chaining.</returns>
     /// <remarks>
-    /// <see cref="SummarizationModule"/> and <see cref="WebSearchModule"/> require an
+    /// <see cref="SummarizationModule"/> / <see cref="SummarizationWorkflow"/> and
+    /// <see cref="WebSearchModule"/> / <see cref="WebSearchWorkflow"/> require an
     /// <c>IModelClient</c> registration in the container.
     /// </remarks>
     public static IServiceCollection AddCompassStandardModules(
@@ -25,6 +29,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FileCreationModule>();
         services.AddSingleton<SummarizationModule>();
         services.AddSingleton<WebSearchModule>();
+
+        services.AddSingleton<IWorkflowModule, FileReadWorkflow>();
+        services.AddSingleton<IWorkflowModule, FileCreationWorkflow>();
+        services.AddSingleton<IWorkflowModule, SummarizationWorkflow>();
+        services.AddSingleton<IWorkflowModule, WebSearchWorkflow>();
 
         return services;
     }

@@ -74,3 +74,74 @@ public enum CliVerb
     /// <summary>An update / modify operation.</summary>
     Update
 }
+
+/// <summary>Outcome of a single workflow step execution.</summary>
+public enum StepOutcome
+{
+    /// <summary>The step completed successfully.</summary>
+    Succeeded,
+    /// <summary>The step failed but can be retried.</summary>
+    FailedRetryable,
+    /// <summary>The step failed fatally and cannot be retried.</summary>
+    FailedFatal,
+    /// <summary>The step requires additional user input to proceed.</summary>
+    NeedsUserInput,
+    /// <summary>The step produced output that requires validation.</summary>
+    NeedsValidation,
+    /// <summary>The step was cancelled before completion.</summary>
+    Cancelled
+}
+
+/// <summary>Lifecycle state of a workflow run.</summary>
+public enum WorkflowStatus
+{
+    /// <summary>No workflow is active.</summary>
+    Idle,
+    /// <summary>The workflow is actively executing steps.</summary>
+    Active,
+    /// <summary>The workflow is blocked waiting for user input.</summary>
+    AwaitingUser,
+    /// <summary>The workflow is awaiting validation of a step or final result.</summary>
+    Validating,
+    /// <summary>The workflow is executing a repair sequence.</summary>
+    Repairing,
+    /// <summary>The workflow completed successfully.</summary>
+    Completed,
+    /// <summary>The workflow was aborted due to a fatal error or budget exhaustion.</summary>
+    Aborted
+}
+
+/// <summary>Type of repair action to take when a step or validation fails.</summary>
+public enum RepairType
+{
+    /// <summary>Retry the failed step.</summary>
+    RetryStep,
+    /// <summary>Re-plan the remaining workflow steps.</summary>
+    Replan,
+    /// <summary>Switch to an entirely different workflow.</summary>
+    SwitchWorkflow,
+    /// <summary>Ask the user for guidance.</summary>
+    AskUser,
+    /// <summary>Escalate to a human-in-the-loop reviewer.</summary>
+    Hitl
+}
+
+/// <summary>Scope at which validation is applied.</summary>
+public enum ValidationScope
+{
+    /// <summary>Validate the result of a single step.</summary>
+    Step,
+    /// <summary>Validate the overall workflow result.</summary>
+    Workflow
+}
+
+/// <summary>Outcome of a validation check.</summary>
+public enum ValidationOutcomeTag
+{
+    /// <summary>Validation passed.</summary>
+    Pass,
+    /// <summary>Validation failed but the issue is retryable.</summary>
+    FailRetryable,
+    /// <summary>Validation failed fatally.</summary>
+    FailFatal
+}
