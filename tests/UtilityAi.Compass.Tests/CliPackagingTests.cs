@@ -12,10 +12,11 @@ public sealed class CliPackagingTests
         var repoRoot = FindRepoRoot();
         var cliProject = Path.Combine(repoRoot, "src", "UtilityAi.Compass.Cli", "UtilityAi.Compass.Cli.csproj");
         var projectDocument = XDocument.Load(cliProject);
-        var targetFramework = projectDocument
-            .Descendants("TargetFramework")
+        var targetFrameworks = projectDocument
+            .Descendants("TargetFrameworks")
             .First()
-            .Value;
+            .Value
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var packageId = projectDocument
             .Descendants("PackageId")
             .First()
@@ -56,7 +57,8 @@ public sealed class CliPackagingTests
                     .Single(path => !path.EndsWith(".snupkg", StringComparison.OrdinalIgnoreCase));
 
                 using var archive = ZipFile.OpenRead(nupkgPath);
-                Assert.NotNull(archive.GetEntry($"tools/{targetFramework}/any/DotnetToolSettings.xml"));
+                Assert.All(targetFrameworks, framework =>
+                    Assert.NotNull(archive.GetEntry($"tools/{framework}/any/DotnetToolSettings.xml")));
             }
 
             process = Process.Start(new ProcessStartInfo
