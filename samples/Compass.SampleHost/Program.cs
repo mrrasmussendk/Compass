@@ -16,6 +16,31 @@ using UtilityAi.Utils;
 EnvFileLoader.Load();
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
+void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version>");
+void PrintInstalledModules()
+{
+    var modules = ModuleInstaller.ListInstalledModules(pluginsPath);
+    Console.WriteLine(modules.Count == 0
+        ? "No installed modules found."
+        : $"Installed modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", modules)}");
+}
+
+if (args.Length >= 1 && string.Equals(args[0], "--help", StringComparison.OrdinalIgnoreCase))
+{
+    Console.WriteLine("Compass CLI arguments:");
+    Console.WriteLine("  --help");
+    Console.WriteLine("  --setup");
+    Console.WriteLine("  --list-modules");
+    Console.WriteLine("  --install-module <path|package@version>");
+    return;
+}
+
+if (args.Length >= 1 && string.Equals(args[0], "--list-modules", StringComparison.OrdinalIgnoreCase))
+{
+    PrintInstalledModules();
+    return;
+}
+
 if (args.Length >= 2 && string.Equals(args[0], "--install-module", StringComparison.OrdinalIgnoreCase))
 {
     var installMessage = await ModuleInstaller.InstallAsync(args[1], pluginsPath);
@@ -123,7 +148,7 @@ if (!string.IsNullOrWhiteSpace(discordToken) && !string.IsNullOrWhiteSpace(disco
 else
 {
     Console.WriteLine("Compass CLI started. Type a request (or 'quit' to exit):");
-    Console.WriteLine("Commands: /setup, /install-module <path|package@version>");
+    PrintCommands();
     if (modelConfiguration is not null)
         Console.WriteLine($"Model provider configured: {modelConfiguration.Provider} ({modelConfiguration.Model})");
 
@@ -134,11 +159,23 @@ else
         if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
             break;
 
+        if (string.Equals(input.Trim(), "/help", StringComparison.OrdinalIgnoreCase))
+        {
+            PrintCommands();
+            continue;
+        }
+
         if (string.Equals(input.Trim(), "/setup", StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine(ModuleInstaller.TryRunInstallScript()
                 ? "Compass setup complete."
                 : "Compass setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+            continue;
+        }
+
+        if (string.Equals(input.Trim(), "/list-modules", StringComparison.OrdinalIgnoreCase))
+        {
+            PrintInstalledModules();
             continue;
         }
 
