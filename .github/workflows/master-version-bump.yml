@@ -19,40 +19,54 @@ jobs:
           fetch-depth: 0
 
       - name: Bump package versions
-        shell: bash
         run: |
-          set -euo pipefail
+          python <<'PY'
+          import re
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
 
-          bump_semver() {
-            local version="$1"
-            IFS='.' read -r major minor patch <<< "$version"
+          projects = [
+              Path("src/UtilityAi.Compass.Cli/UtilityAi.Compass.Cli.csproj"),
+              Path("src/UtilityAi.Compass.WeatherModule/UtilityAi.Compass.WeatherModule.csproj"),
+          ]
 
-            if (( patch < 9 )); then
-              patch=$((patch + 1))
-            else
-              patch=0
-              if (( minor < 9 )); then
-                minor=$((minor + 1))
-              else
-                minor=0
-                major=$((major + 1))
-              fi
-            fi
+          for project in projects:
+              content = project.read_text(encoding="utf-8")
+              root = ET.fromstring(content)
+              version_element = root.find(".//Version")
+              if version_element is None or not version_element.text:
+                  raise ValueError(f"Could not find <Version> in {project}")
 
-            echo "$major.$minor.$patch"
-          }
+              version_text = version_element.text.strip()
+              parts = version_text.split(".")
+              if len(parts) != 3 or not all(part.isdigit() for part in parts):
+                  raise ValueError(
+                      f"Invalid version format in {project}: expected major.minor.patch, got {version_text}"
+                  )
 
-          projects=(
-            "src/UtilityAi.Compass.Cli/UtilityAi.Compass.Cli.csproj"
-            "src/UtilityAi.Compass.WeatherModule/UtilityAi.Compass.WeatherModule.csproj"
-          )
+              major, minor, patch = map(int, parts)
+              if patch < 9:
+                  patch += 1
+              else:
+                  patch = 0
+                  if minor < 9:
+                      minor += 1
+                  else:
+                      minor = 0
+                      major += 1
 
-          for project in "${projects[@]}"; do
-            current_version=$(grep -oP '(?<=<Version>)[^<]+' "$project" | head -n1)
-            new_version=$(bump_semver "$current_version")
-            sed -i "s#<Version>$current_version</Version>#<Version>$new_version</Version>#" "$project"
-            echo "$project: $current_version -> $new_version"
-          done
+              new_version = f"{major}.{minor}.{patch}"
+              print(f"{project}: {version_element.text} -> {new_version}")
+              updated = re.sub(
+                  r"(<Version>\s*)"
+                  + re.escape(version_element.text)
+                  + r"(\s*</Version>)",
+                  rf"\g<1>{new_version}\g<2>",
+                  content,
+                  count=1,
+              )
+              project.write_text(updated, encoding="utf-8")
+          PY
 
       - name: Commit and push version bump
         run: |

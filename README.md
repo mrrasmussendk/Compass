@@ -197,3 +197,9 @@ UtilityAi.Compass.sln
 ## CI package build
 
 GitHub Actions workflow `.github/workflows/build-pack.yml` builds/tests on Linux and Windows and packs a cross-platform .NET tool NuGet package for `UtilityAi.Compass.Cli`.
+
+GitHub Actions workflow `.github/workflows/master-version-bump.yml` runs only on pushes to `master` and bumps package versions using this repository's custom rollover policy:
+
+- `major.minor.patch` increments `patch` until `9`
+- `x.y.9` rolls to `x.(y+1).0`
+- `x.9.9` rolls to `(x+1).0.0`
