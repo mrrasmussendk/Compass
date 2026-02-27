@@ -28,22 +28,16 @@ dotnet run --project src/UtilityAi.Compass.Cli
 
 If no Compass model setup exists, the host will attempt to launch the platform installer script automatically on startup.
 
-For guided setup (model provider + deployment mode):
-
-**Linux / macOS:**
+For guided setup (model provider + deployment mode), run:
 
 ```bash
-./scripts/install.sh
-source .env.compass
-dotnet run --project src/UtilityAi.Compass.Cli
+dotnet run --project src/UtilityAi.Compass.Cli -- --setup
 ```
 
-**Windows (PowerShell):**
+If installed as a .NET tool:
 
-```powershell
-.\scripts\install.ps1
-Get-Content .env.compass | ForEach-Object { Invoke-Expression $_ }
-dotnet run --project src/UtilityAi.Compass.Cli
+```bash
+compass --setup
 ```
 
 A simple REPL will start:
