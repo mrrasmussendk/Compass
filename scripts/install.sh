@@ -3,6 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env.compass"
+HAS_SOURCE_LAYOUT="false"
+if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/samples/Compass.SampleHost" ]]; then
+  HAS_SOURCE_LAYOUT="true"
+fi
 
 echo "Compass installer"
 echo "Select model provider:"
@@ -63,7 +67,7 @@ Configuration saved to: $ENV_FILE
 Next steps:
 EOF
 
-if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/samples/Compass.SampleHost" ]]; then
+if [[ "$HAS_SOURCE_LAYOUT" == "true" ]]; then
   cat <<EOF
   1. dotnet build "$ROOT_DIR/UtilityAi.Compass.sln"
   2. dotnet run --project "$ROOT_DIR/samples/Compass.SampleHost"
@@ -82,7 +86,7 @@ If Discord variables are configured, the host will start in Discord mode automat
 EOF
 
 if [[ "$include_openai_samples" == "true" ]]; then
-  if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi" && -d "$ROOT_DIR/samples/Compass.SampleHost" ]]; then
+  if [[ "$HAS_SOURCE_LAYOUT" == "true" && -d "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi" ]]; then
     cat <<EOF
 OpenAI samples enabled. Deploy the plugin before running the host:
   dotnet publish "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi" -c Release

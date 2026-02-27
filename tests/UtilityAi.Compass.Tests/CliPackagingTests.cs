@@ -144,10 +144,14 @@ public sealed class CliPackagingTests
             Assert.NotNull(process);
             using (process)
             {
-                await process.StandardInput.WriteLineAsync("2");
-                await process.StandardInput.WriteLineAsync("test-key");
+                const string anthropicProviderSelection = "2";
+                const string apiKey = "test-key";
+                const string localConsoleDeploymentSelection = "1";
+
+                await process.StandardInput.WriteLineAsync(anthropicProviderSelection);
+                await process.StandardInput.WriteLineAsync(apiKey);
                 await process.StandardInput.WriteLineAsync(string.Empty);
-                await process.StandardInput.WriteLineAsync("1");
+                await process.StandardInput.WriteLineAsync(localConsoleDeploymentSelection);
                 process.StandardInput.Close();
 
                 var outputTask = process.StandardOutput.ReadToEndAsync();
