@@ -142,9 +142,11 @@ public static class ModuleInstaller
                 continue;
 
             var destination = Path.Combine(pluginsPath, fileName);
-            using var source = entry.Open();
-            using var target = File.Create(destination);
-            source.CopyTo(target);
+            using (var source = entry.Open())
+            using (var target = File.Create(destination))
+            {
+                source.CopyTo(target);
+            }
             copiedFiles.Add(destination);
             if (!hasUtilityAiModule && TryValidateModuleAssembly(destination, out _))
                 hasUtilityAiModule = true;
@@ -180,7 +182,9 @@ public static class ModuleInstaller
         var loadContext = new AssemblyLoadContext($"Compass.ModuleValidation.{Guid.NewGuid():N}", isCollectible: true);
         try
         {
-            var assembly = loadContext.LoadFromAssemblyPath(assemblyPath);
+            // Load from a memory stream to avoid holding a file lock on Windows.
+            var bytes = File.ReadAllBytes(assemblyPath);
+            var assembly = loadContext.LoadFromStream(new MemoryStream(bytes));
             var hasModule = assembly.GetExportedTypes().Any(IsUtilityAiModuleType);
             if (hasModule)
             {
@@ -215,8 +219,6 @@ public static class ModuleInstaller
         finally
         {
             loadContext.Unload();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
 
         error = $"Module install failed: '{Path.GetFileName(assemblyPath)}' is not a compatible UtilityAI module assembly.";
