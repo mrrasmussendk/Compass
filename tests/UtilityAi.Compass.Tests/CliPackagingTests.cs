@@ -130,6 +130,38 @@ public sealed class CliPackagingTests
                 Assert.Contains("No installed modules found.", output);
                 Assert.DoesNotContain("Compass CLI started. Type a request", output, StringComparison.Ordinal);
             }
+
+            process = Process.Start(new ProcessStartInfo
+            {
+                FileName = toolCommandPath,
+                Arguments = "--setup",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            });
+
+            Assert.NotNull(process);
+            using (process)
+            {
+                await process.StandardInput.WriteLineAsync("2");
+                await process.StandardInput.WriteLineAsync("test-key");
+                await process.StandardInput.WriteLineAsync(string.Empty);
+                await process.StandardInput.WriteLineAsync("1");
+                process.StandardInput.Close();
+
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                var output = await outputTask;
+                var error = await errorTask;
+
+                Assert.True(process.ExitCode == 0, $"compass --setup failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
+                Assert.Contains("Configuration saved to:", output);
+                Assert.Contains("Run: compass", output);
+                Assert.DoesNotContain("UtilityAi.Compass.sln", output, StringComparison.Ordinal);
+            }
         }
         finally
         {

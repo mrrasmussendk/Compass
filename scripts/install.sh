@@ -61,19 +61,36 @@ cat <<EOF
 Configuration saved to: $ENV_FILE
 
 Next steps:
+EOF
+
+if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/samples/Compass.SampleHost" ]]; then
+  cat <<EOF
   1. dotnet build "$ROOT_DIR/UtilityAi.Compass.sln"
   2. dotnet run --project "$ROOT_DIR/samples/Compass.SampleHost"
+EOF
+else
+  cat <<EOF
+  1. Run: compass
+  2. Use /help to view available commands.
+EOF
+fi
+
+cat <<EOF
 
 The host loads .env.compass automatically — no need to source the file.
 If Discord variables are configured, the host will start in Discord mode automatically.
 EOF
 
 if [[ "$include_openai_samples" == "true" ]]; then
-  cat <<EOF
+  if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi" && -d "$ROOT_DIR/samples/Compass.SampleHost" ]]; then
+    cat <<EOF
 OpenAI samples enabled. Deploy the plugin before running the host:
   dotnet publish "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi" -c Release
   mkdir -p "$ROOT_DIR/samples/Compass.SampleHost/bin/Debug/net10.0/plugins"
   cp "$ROOT_DIR/samples/Compass.SamplePlugin.OpenAi/bin/Release/net10.0/publish/"* \\
      "$ROOT_DIR/samples/Compass.SampleHost/bin/Debug/net10.0/plugins/"
 EOF
+  else
+    echo "OpenAI samples enabled. Source repository samples are required to deploy the example plugin."
+  fi
 fi

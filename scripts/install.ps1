@@ -64,17 +64,29 @@ Write-Host ''
 Write-Host "Configuration saved to: $EnvFile"
 Write-Host ''
 Write-Host 'Next steps:'
-Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
-Write-Host "  2. dotnet run --project `"$RootDir\samples\Compass.SampleHost`""
+$hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Compass.sln')) -and (Test-Path (Join-Path $RootDir 'samples\Compass.SampleHost'))
+if ($hasSourceLayout) {
+    Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
+    Write-Host "  2. dotnet run --project `"$RootDir\samples\Compass.SampleHost`""
+}
+else {
+    Write-Host '  1. Run: compass'
+    Write-Host '  2. Use /help to view available commands.'
+}
 Write-Host ''
 Write-Host 'The host loads .env.compass automatically — no need to source the file.'
 Write-Host 'If Discord variables are configured, the host will start in Discord mode automatically.'
 
 if ($includeOpenAiSamples) {
     Write-Host ''
-    Write-Host 'OpenAI samples enabled. Deploy the plugin before running the host:'
-    Write-Host "  dotnet publish `"$RootDir\samples\Compass.SamplePlugin.OpenAi`" -c Release"
-    Write-Host "  New-Item -ItemType Directory -Force `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins`""
-    Write-Host "  Copy-Item `"$RootDir\samples\Compass.SamplePlugin.OpenAi\bin\Release\net10.0\publish\*`" ``"
-    Write-Host "    `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins\`""
+    if ($hasSourceLayout -and (Test-Path (Join-Path $RootDir 'samples\Compass.SamplePlugin.OpenAi'))) {
+        Write-Host 'OpenAI samples enabled. Deploy the plugin before running the host:'
+        Write-Host "  dotnet publish `"$RootDir\samples\Compass.SamplePlugin.OpenAi`" -c Release"
+        Write-Host "  New-Item -ItemType Directory -Force `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins`""
+        Write-Host "  Copy-Item `"$RootDir\samples\Compass.SamplePlugin.OpenAi\bin\Release\net10.0\publish\*`" ``"
+        Write-Host "    `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins\`""
+    }
+    else {
+        Write-Host 'OpenAI samples enabled. Source repository samples are required to deploy the example plugin.'
+    }
 }
