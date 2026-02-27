@@ -118,4 +118,21 @@ public class ModelClientDiTests
         Assert.Equal("search", request.Tools[0].Name);
         Assert.Equal("gpt-4o", request.ModelHint);
     }
+
+    [Fact]
+    public async Task SkillMarkdownModule_Proposal_LoadsSystemMessageFromSkillFile()
+    {
+        var stub = new StubModelClient();
+        var module = new SkillMarkdownModule(stub);
+
+        var bus = new UtilityAi.Utils.EventBus();
+        bus.Publish(new UtilityAi.Compass.Abstractions.Facts.UserRequest("Explain utility AI"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var proposal = module.Propose(rt).First();
+        await proposal.Act(CancellationToken.None);
+
+        Assert.NotNull(stub.LastModelRequest);
+        Assert.Contains("When answering:", stub.LastModelRequest!.SystemMessage);
+    }
 }

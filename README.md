@@ -71,6 +71,8 @@ Optional:
 - `COMPASS_MODEL_MAX_TOKENS` sets Anthropic `max_tokens` (default `512`).
 - `DISCORD_POLL_INTERVAL_SECONDS` and `DISCORD_MESSAGE_LIMIT` tune Discord polling behavior.
 
+The sample `Compass.SamplePlugin.OpenAi` now also includes `SkillMarkdownModule`, which loads its system instructions from `skill.md`. Because it uses the shared `IModelClient` abstraction, the same module works with OpenAI, Anthropic, and Gemini.
+
 ---
 
 ## How to Write a Plugin

@@ -11,4 +11,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Content Include="skill.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
