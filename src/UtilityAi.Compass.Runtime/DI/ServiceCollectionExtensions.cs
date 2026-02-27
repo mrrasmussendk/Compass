@@ -41,6 +41,11 @@ public static class ServiceCollectionExtensions
                 sp.GetRequiredService<IMemoryStore>(),
                 options.TrackedCooldownKeys));
 
+        services.AddSingleton<WorkflowStateSensor>(sp =>
+            new WorkflowStateSensor(sp.GetRequiredService<IMemoryStore>()));
+        services.AddSingleton<ValidationStateSensor>(sp =>
+            new ValidationStateSensor(sp.GetRequiredService<IMemoryStore>()));
+
         services.AddSingleton<RoutingBootstrapModule>();
         services.AddSingleton<CliActionModule>(sp =>
             new CliActionModule(sp.GetServices<ICliAction>()));

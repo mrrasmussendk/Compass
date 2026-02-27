@@ -33,6 +33,9 @@ public sealed class CompassGovernedSelectionStrategy : ISelectionStrategy
         _defaultConfig = defaultConfig ?? new GovernanceConfig();
     }
 
+    // Proposal ID prefixes that are always allowed through the workflow commitment filter.
+    private static readonly string[] SystemPrefixes = ["askuser.", "validate.", "repair."];
+
     /// <inheritdoc />
     public Proposal Select(IReadOnlyList<(Proposal P, double Utility)> scored, UtilityAi.Utils.Runtime rt)
     {
@@ -42,11 +45,13 @@ public sealed class CompassGovernedSelectionStrategy : ISelectionStrategy
         var goal = rt.Bus.GetOrDefault<GoalSelected>();
         var lane = rt.Bus.GetOrDefault<LaneSelected>();
         var lastWinner = rt.Bus.GetOrDefault<LastWinner>();
+        var activeWorkflow = rt.Bus.GetOrDefault<ActiveWorkflow>();
 
         var withMeta = scored
             .Select(s => (s.P, s.Utility, Meta: _metadataProvider.GetMetadata(s.P, rt)))
             .ToList();
 
+        withMeta = ApplyWorkflowCommitment(withMeta, activeWorkflow);
         var candidates = FilterByGoalAndLane(withMeta, goal, lane);
         candidates = ResolveConflicts(candidates);
         candidates = ApplyCooldowns(candidates, config, rt);
@@ -181,5 +186,38 @@ public sealed class CompassGovernedSelectionStrategy : ISelectionStrategy
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// When an active workflow exists and is not interruptible, drops all proposals
+    /// that do not belong to the active workflow, except system proposals
+    /// (AskUser, Validate, Repair) which are always allowed through.
+    /// </summary>
+    private static List<(Proposal P, double Utility, ProposalMetadata? Meta)> ApplyWorkflowCommitment(
+        List<(Proposal P, double Utility, ProposalMetadata? Meta)> all,
+        ActiveWorkflow? activeWorkflow)
+    {
+        if (activeWorkflow is null || activeWorkflow.CanInterrupt)
+            return all;
+
+        if (activeWorkflow.Status is WorkflowStatus.Completed or WorkflowStatus.Aborted or WorkflowStatus.Idle)
+            return all;
+
+        var filtered = all.Where(c =>
+            c.P.Id.StartsWith(activeWorkflow.WorkflowId + ".", StringComparison.OrdinalIgnoreCase)
+            || IsSystemProposal(c.P.Id))
+            .ToList();
+
+        return filtered.Count > 0 ? filtered : all;
+    }
+
+    private static bool IsSystemProposal(string proposalId)
+    {
+        foreach (var prefix in SystemPrefixes)
+        {
+            if (proposalId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 }
