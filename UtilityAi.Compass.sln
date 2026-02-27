@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityAi.Compass.StandardM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityAi.Compass.Cli", "src\UtilityAi.Compass.Cli\UtilityAi.Compass.Cli.csproj", "{F195AD91-BC80-4A41-99C8-A174810C9632}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UtilityAi.Compass.WeatherModule", "src\UtilityAi.Compass.WeatherModule\UtilityAi.Compass.WeatherModule.csproj", "{4EEE5008-C036-4E24-9CB5-D132A2F0E781}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -193,6 +195,18 @@ Global
 		{F195AD91-BC80-4A41-99C8-A174810C9632}.Release|x64.Build.0 = Release|Any CPU
 		{F195AD91-BC80-4A41-99C8-A174810C9632}.Release|x86.ActiveCfg = Release|Any CPU
 		{F195AD91-BC80-4A41-99C8-A174810C9632}.Release|x86.Build.0 = Release|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Debug|x64.Build.0 = Debug|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Debug|x86.Build.0 = Debug|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Release|x64.ActiveCfg = Release|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Release|x64.Build.0 = Release|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Release|x86.ActiveCfg = Release|Any CPU
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -212,5 +226,6 @@ Global
 		{773D4589-A6A3-4DC7-8BAB-E0218D7D05CF} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{9CD94005-A7ED-4A91-AECD-44A3DD41B9E8} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{F195AD91-BC80-4A41-99C8-A174810C9632} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{4EEE5008-C036-4E24-9CB5-D132A2F0E781} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

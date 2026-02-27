@@ -77,6 +77,7 @@ You can also install modules with the host command:
 - CLI command: `/list-modules`
 - CLI command: `/install-module /absolute/path/MyPlugin.dll`
 - CLI command: `/install-module Package.Id@1.2.3`
+- Example: `/install-module UtilityAi.Compass.WeatherModule@1.0.0`
 - Startup args: `dotnet run --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3`
 
 Installed modules are copied into the host `plugins/` folder and loaded after restarting the host.

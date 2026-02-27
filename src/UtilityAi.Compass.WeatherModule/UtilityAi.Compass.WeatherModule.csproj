@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\UtilityAi.Compass.PluginSdk\UtilityAi.Compass.PluginSdk.csproj" />
+    <ProjectReference Include="..\UtilityAi.Compass.Abstractions\UtilityAi.Compass.Abstractions.csproj" />
+    <ProjectReference Include="..\..\vendor\UtilityAi\src\UtilityAi\UtilityAi.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.0.0</Version>
+    <PackageId>UtilityAi.Compass.WeatherModule</PackageId>
+    <Description>Compass plugin module that fetches current weather data from the web.</Description>
+  </PropertyGroup>
+
+</Project>
