@@ -184,7 +184,8 @@ public static class ModuleInstaller
         {
             // Load from a memory stream to avoid holding a file lock on Windows.
             var bytes = File.ReadAllBytes(assemblyPath);
-            var assembly = loadContext.LoadFromStream(new MemoryStream(bytes));
+            using var ms = new MemoryStream(bytes);
+            var assembly = loadContext.LoadFromStream(ms);
             var hasModule = assembly.GetExportedTypes().Any(IsUtilityAiModuleType);
             if (hasModule)
             {
