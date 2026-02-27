@@ -73,7 +73,7 @@ if (startupArgs.Length >= 1 &&
 }
 
 if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
-    EnvFileLoader.FindFile(Directory.GetCurrentDirectory()) is null &&
+    EnvFileLoader.FindFile([Directory.GetCurrentDirectory(), AppContext.BaseDirectory]) is null &&
     !Console.IsInputRedirected)
 {
     Console.WriteLine("No Compass setup found. Running installer...");

@@ -68,6 +68,29 @@ public class EnvFileLoaderTests
     }
 
     [Fact]
+    public void FindFile_WithMultipleStartDirectories_ReturnsFirstMatch()
+    {
+        var missingRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        var child = Path.Combine(root, "nested");
+        Directory.CreateDirectory(missingRoot);
+        Directory.CreateDirectory(child);
+        var envFile = Path.Combine(root, ".env.compass");
+        File.WriteAllText(envFile, "KEY=value");
+        try
+        {
+            var result = EnvFileLoader.FindFile([missingRoot, child]);
+            Assert.NotNull(result);
+            Assert.Equal(envFile, result);
+        }
+        finally
+        {
+            Directory.Delete(missingRoot, recursive: true);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Load_SetsEnvironmentVariables_FromFile()
     {
         var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
