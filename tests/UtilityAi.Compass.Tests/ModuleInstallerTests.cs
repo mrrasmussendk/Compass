@@ -76,4 +76,32 @@ public class ModuleInstallerTests
         Assert.True(ok);
         Assert.Equal(expected, moduleSpec);
     }
+
+    [Fact]
+    public void ListInstalledModules_ReturnsEmpty_WhenFolderDoesNotExist()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var modules = ModuleInstaller.ListInstalledModules(root);
+        Assert.Empty(modules);
+    }
+
+    [Fact]
+    public async Task ListInstalledModules_ReturnsSortedDllNamesOnly()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        await File.WriteAllTextAsync(Path.Combine(root, "z-plugin.dll"), "a");
+        await File.WriteAllTextAsync(Path.Combine(root, "a-plugin.dll"), "b");
+        await File.WriteAllTextAsync(Path.Combine(root, "readme.txt"), "c");
+
+        try
+        {
+            var modules = ModuleInstaller.ListInstalledModules(root);
+            Assert.Equal(["a-plugin.dll", "z-plugin.dll"], modules);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
 }

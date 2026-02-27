@@ -90,6 +90,20 @@ public static class ModuleInstaller
         return moduleSpec.Length > 0;
     }
 
+    public static IReadOnlyList<string> ListInstalledModules(string pluginsPath)
+    {
+        if (!Directory.Exists(pluginsPath))
+            return [];
+
+        return Directory
+            .EnumerateFiles(pluginsPath, "*.dll", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileName)
+            .OfType<string>()
+            .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
+            .OrderBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     private static string InstallFromFile(string filePath, string pluginsPath)
     {
         var extension = Path.GetExtension(filePath);

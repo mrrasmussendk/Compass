@@ -34,6 +34,18 @@ For guided setup (model provider + deployment mode), run:
 dotnet run --project src/UtilityAi.Compass.Cli -- --setup
 ```
 
+To show available CLI arguments:
+
+```bash
+dotnet run --project src/UtilityAi.Compass.Cli -- --help
+```
+
+To list currently installed plugin modules:
+
+```bash
+dotnet run --project src/UtilityAi.Compass.Cli -- --list-modules
+```
+
 To install the CLI as a .NET tool:
 
 ```bash
@@ -44,6 +56,8 @@ If installed as a .NET tool:
 
 ```bash
 compass --setup
+compass --help
+compass --list-modules
 ```
 
 A simple REPL will start:
@@ -59,6 +73,8 @@ To load plugins, copy plugin DLLs into a `plugins/` folder next to the executabl
 
 You can also install modules with the host command:
 
+- CLI command: `/help`
+- CLI command: `/list-modules`
 - CLI command: `/install-module /absolute/path/MyPlugin.dll`
 - CLI command: `/install-module Package.Id@1.2.3`
 - Startup args: `dotnet run --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3`
