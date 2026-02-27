@@ -42,16 +42,22 @@ public sealed class CliActionModule : ICapabilityModule
             var score = routeMatch ? intent.Confidence : intent.Confidence * 0.5;
 
             var captured = action;
-            yield return new Proposal(
+                yield return new Proposal(
                 id: $"cli.{VerbToken(action.Verb)}.{action.Route}",
                 cons: [new ConstantValue(score)],
                 act: async ct =>
                 {
-                    var request = rt.Bus.GetOrDefault<UserRequest>();
-                    var result = await captured.ExecuteAsync(request?.Text ?? string.Empty, ct);
+                    var instruction = BuildInstruction(intent, captured);
+                    var result = await captured.ExecuteAsync(instruction, ct);
                     rt.Bus.Publish(new AiResponse(result));
                 }
             ) { Description = action.Description };
         }
+    }
+
+    private static string BuildInstruction(CliIntent intent, ICliAction action)
+    {
+        var verb = VerbToken(intent.Verb);
+        return string.IsNullOrWhiteSpace(action.Route) ? verb : $"{verb} {action.Route}";
     }
 }

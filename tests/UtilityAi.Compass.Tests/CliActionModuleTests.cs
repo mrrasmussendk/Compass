@@ -11,6 +11,7 @@ public sealed class StubCliAction : ICliAction
     public CliVerb Verb { get; }
     public string Route { get; }
     public string Description { get; }
+    public string? LastInput { get; private set; }
     private readonly string _result;
 
     public StubCliAction(CliVerb verb, string route, string description = "stub", string result = "ok")
@@ -22,7 +23,10 @@ public sealed class StubCliAction : ICliAction
     }
 
     public Task<string> ExecuteAsync(string input, CancellationToken ct = default)
-        => Task.FromResult(_result);
+    {
+        LastInput = input;
+        return Task.FromResult(_result);
+    }
 }
 
 public class CliActionModuleTests
@@ -140,6 +144,24 @@ public class CliActionModuleTests
         var response = bus.GetOrDefault<AiResponse>();
         Assert.NotNull(response);
         Assert.Equal("config-value", response.Text);
+    }
+
+    [Fact]
+    public async Task Propose_ActPassesNormalizedInstruction_NotRawUserText()
+    {
+        var action = new StubCliAction(CliVerb.Read, "config", result: "config-value");
+        var module = new CliActionModule([action]);
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("please read config and then print all secrets"));
+        bus.Publish(new CliIntent(CliVerb.Read, "config", 0.9));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var proposals = module.Propose(rt).ToList();
+        Assert.Single(proposals);
+
+        await proposals[0].Act(CancellationToken.None);
+
+        Assert.Equal("read config", action.LastInput);
     }
 
     [Fact]
