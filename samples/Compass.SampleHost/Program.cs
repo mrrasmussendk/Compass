@@ -15,6 +15,35 @@ using UtilityAi.Utils;
 // Auto-load .env.compass so the host works without manually sourcing the file.
 EnvFileLoader.Load();
 
+var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
+if (args.Length >= 2 && string.Equals(args[0], "--install-module", StringComparison.OrdinalIgnoreCase))
+{
+    var installMessage = await ModuleInstaller.InstallAsync(args[1], pluginsPath);
+    Console.WriteLine(installMessage);
+    Console.WriteLine("Restart Compass CLI to load the new module.");
+    return;
+}
+
+if (args.Length >= 1 && string.Equals(args[0], "--setup", StringComparison.OrdinalIgnoreCase))
+{
+    Console.WriteLine(ModuleInstaller.TryRunInstallScript()
+        ? "Compass setup complete."
+        : "Compass setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+    return;
+}
+
+if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
+    EnvFileLoader.FindFile(Directory.GetCurrentDirectory()) is null &&
+    !Console.IsInputRedirected)
+{
+    Console.WriteLine("No Compass setup found. Running installer...");
+    if (ModuleInstaller.TryRunInstallScript())
+    {
+        EnvFileLoader.Load();
+        ModelConfiguration.TryCreateFromEnvironment(out modelConfiguration);
+    }
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddUtilityAiCompass(opts =>
@@ -31,14 +60,12 @@ builder.Services.AddSingleton<IProposalMetadataProvider>(sp => sp.GetRequiredSer
 // Register the host-level model client so plugins receive it via DI.
 // The concrete provider (OpenAI, Anthropic, Gemini) is chosen by env config.
 var httpClient = new HttpClient();
-var hasModelClient = ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration);
-IModelClient? modelClient = hasModelClient && modelConfiguration is not null
+IModelClient? modelClient = modelConfiguration is not null
     ? ModelClientFactory.Create(modelConfiguration, httpClient)
     : null;
 if (modelClient is not null)
     builder.Services.AddSingleton<IModelClient>(modelClient);
 
-var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 builder.Services.AddCompassPluginsFromFolder(pluginsPath);
 
 var host = builder.Build();
@@ -68,7 +95,7 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
         return (goal, lane, response.Text);
 
     if (modelClient is null)
-        return (goal, lane, "No model configured. Run scripts/install.sh (Linux/macOS) or scripts/install.ps1 (Windows) to configure OpenAI, Anthropic, or Gemini.");
+        return (goal, lane, "No model configured. Run 'compass --setup' or scripts/install.sh (Linux/macOS) / scripts/install.ps1 (Windows).");
 
     var modelResponse = await modelClient.GenerateAsync(input, cancellationToken);
     return (goal, lane, modelResponse);
@@ -78,7 +105,7 @@ var discordToken = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
 var discordChannelId = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
 if (!string.IsNullOrWhiteSpace(discordToken) && !string.IsNullOrWhiteSpace(discordChannelId))
 {
-    Console.WriteLine("Compass SampleHost started in Discord mode.");
+    Console.WriteLine("Compass CLI started in Discord mode.");
     using var cts = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) =>
     {
@@ -95,7 +122,8 @@ if (!string.IsNullOrWhiteSpace(discordToken) && !string.IsNullOrWhiteSpace(disco
 }
 else
 {
-    Console.WriteLine("Compass SampleHost started. Type a request (or 'quit' to exit):");
+    Console.WriteLine("Compass CLI started. Type a request (or 'quit' to exit):");
+    Console.WriteLine("Commands: /setup, /install-module <path|package@version>");
     if (modelConfiguration is not null)
         Console.WriteLine($"Model provider configured: {modelConfiguration.Provider} ({modelConfiguration.Model})");
 
@@ -106,6 +134,22 @@ else
         if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
             break;
 
+        if (string.Equals(input.Trim(), "/setup", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(ModuleInstaller.TryRunInstallScript()
+                ? "Compass setup complete."
+                : "Compass setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+            continue;
+        }
+
+        if (ModuleInstaller.TryParseInstallCommand(input, out var moduleSpec))
+        {
+            var installMessage = await ModuleInstaller.InstallAsync(moduleSpec, pluginsPath);
+            Console.WriteLine($"  {installMessage}");
+            Console.WriteLine("  Restart Compass CLI to load the new module.");
+            continue;
+        }
+
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var (goal, lane, responseText) = await ProcessRequestAsync(input, cts.Token);
 
@@ -114,4 +158,4 @@ else
     }
 }
 
-Console.WriteLine("Compass SampleHost stopped.");
+Console.WriteLine("Compass CLI stopped.");
