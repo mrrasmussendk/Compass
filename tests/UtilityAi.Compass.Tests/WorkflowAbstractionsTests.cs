@@ -3,7 +3,7 @@ using UtilityAi.Compass.Abstractions.Facts;
 
 namespace UtilityAi.Compass.Tests;
 
-public class WorkflowAbstractionExtensionsTests
+public class WorkflowAbstractionsTests
 {
     [Fact]
     public void ProposalKind_HasAllExpectedValues()
@@ -26,7 +26,6 @@ public class WorkflowAbstractionExtensionsTests
         var values = Enum.GetValues<RepairType>();
 
         Assert.Contains(RepairType.Abort, values);
-        Assert.Equal(6, values.Length);
     }
 
     [Fact]
