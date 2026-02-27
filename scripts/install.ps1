@@ -28,13 +28,6 @@ $apiKey = Read-Host "Enter $keyName"
 $selectedModel = Read-Host "Enter model name [$defaultModel]"
 if ([string]::IsNullOrWhiteSpace($selectedModel)) { $selectedModel = $defaultModel }
 
-$includeOpenAiSamples = $false
-if ($provider -eq 'openai') {
-    Write-Host ''
-    $includeSamples = Read-Host 'Include OpenAI samples? (y/N)'
-    if ($includeSamples -match '^[Yy]$') { $includeOpenAiSamples = $true }
-}
-
 Write-Host ''
 Write-Host 'Select deployment mode:'
 Write-Host '  1) Local console'
@@ -54,27 +47,21 @@ if ($deployChoice -eq '2') {
     $lines += "`$env:DISCORD_CHANNEL_ID='$discordChannel'"
 }
 
-if ($includeOpenAiSamples) {
-    $lines += "`$env:COMPASS_INCLUDE_OPENAI_SAMPLES='true'"
-}
-
 $lines | Set-Content -Path $EnvFile -Encoding UTF8
 
 Write-Host ''
 Write-Host "Configuration saved to: $EnvFile"
 Write-Host ''
 Write-Host 'Next steps:'
-Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
-Write-Host "  2. dotnet run --project `"$RootDir\samples\Compass.SampleHost`""
+$hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Compass.sln')) -and (Test-Path (Join-Path $RootDir 'samples\Compass.SampleHost'))
+if ($hasSourceLayout) {
+    Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
+    Write-Host "  2. dotnet run --project `"$RootDir\samples\Compass.SampleHost`""
+}
+else {
+    Write-Host '  1. Run: compass'
+    Write-Host '  2. Use /help to view available commands.'
+}
 Write-Host ''
 Write-Host 'The host loads .env.compass automatically — no need to source the file.'
 Write-Host 'If Discord variables are configured, the host will start in Discord mode automatically.'
-
-if ($includeOpenAiSamples) {
-    Write-Host ''
-    Write-Host 'OpenAI samples enabled. Deploy the plugin before running the host:'
-    Write-Host "  dotnet publish `"$RootDir\samples\Compass.SamplePlugin.OpenAi`" -c Release"
-    Write-Host "  New-Item -ItemType Directory -Force `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins`""
-    Write-Host "  Copy-Item `"$RootDir\samples\Compass.SamplePlugin.OpenAi\bin\Release\net10.0\publish\*`" ``"
-    Write-Host "    `"$RootDir\samples\Compass.SampleHost\bin\Debug\net10.0\plugins\`""
-}
