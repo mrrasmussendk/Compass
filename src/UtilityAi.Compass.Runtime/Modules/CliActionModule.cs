@@ -14,6 +14,13 @@ namespace UtilityAi.Compass.Runtime.Modules;
 public sealed class CliActionModule : ICapabilityModule
 {
     private readonly IReadOnlyList<ICliAction> _actions;
+    private static string VerbToken(CliVerb verb) => verb switch
+    {
+        CliVerb.Read => "read",
+        CliVerb.Write => "write",
+        CliVerb.Update => "update",
+        _ => verb.ToString().ToLowerInvariant()
+    };
 
     public CliActionModule(IEnumerable<ICliAction> actions)
     {
@@ -36,7 +43,7 @@ public sealed class CliActionModule : ICapabilityModule
 
             var captured = action;
             yield return new Proposal(
-                id: $"cli.{action.Verb.ToString().ToLowerInvariant()}.{action.Route}",
+                id: $"cli.{VerbToken(action.Verb)}.{action.Route}",
                 cons: [new ConstantValue(score)],
                 act: async ct =>
                 {
