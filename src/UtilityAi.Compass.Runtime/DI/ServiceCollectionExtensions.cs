@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using UtilityAi.Capabilities;
 using UtilityAi.Memory;
 using UtilityAi.Compass.Abstractions.CliAction;
 using UtilityAi.Compass.Abstractions.Facts;
@@ -7,6 +8,7 @@ using UtilityAi.Compass.Runtime.Modules;
 using UtilityAi.Compass.Runtime.Sensors;
 using UtilityAi.Compass.Runtime.Strategy;
 using UtilityAi.Orchestration;
+using UtilityAi.Sensor;
 
 namespace UtilityAi.Compass.Runtime.DI;
 
@@ -33,25 +35,43 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMemoryStore, InMemoryStore>();
 
         services.AddSingleton<CorrelationSensor>();
+        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<CorrelationSensor>());
+
         services.AddSingleton<GoalRouterSensor>();
+        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<GoalRouterSensor>());
+
         services.AddSingleton<LaneRouterSensor>();
+        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<LaneRouterSensor>());
+
         services.AddSingleton<CliIntentSensor>();
+        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<CliIntentSensor>());
+
         services.AddSingleton<GovernanceMemoryProjectionSensor>(sp =>
             new GovernanceMemoryProjectionSensor(
                 sp.GetRequiredService<IMemoryStore>(),
                 options.TrackedCooldownKeys));
+        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<GovernanceMemoryProjectionSensor>());
 
         services.AddSingleton<WorkflowStateSensor>(sp =>
             new WorkflowStateSensor(sp.GetRequiredService<IMemoryStore>()));
+        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<WorkflowStateSensor>());
+
         services.AddSingleton<ValidationStateSensor>(sp =>
             new ValidationStateSensor(sp.GetRequiredService<IMemoryStore>()));
+        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<ValidationStateSensor>());
 
         services.AddSingleton<RoutingBootstrapModule>();
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<RoutingBootstrapModule>());
+
         services.AddSingleton<CliActionModule>(sp =>
             new CliActionModule(sp.GetServices<ICliAction>()));
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<CliActionModule>());
 
         if (options.EnableGovernanceFinalizer)
+        {
             services.AddSingleton<GovernanceFinalizerModule>();
+            services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<GovernanceFinalizerModule>());
+        }
 
         services.AddSingleton<CompassGovernedSelectionStrategy>(sp =>
             new CompassGovernedSelectionStrategy(

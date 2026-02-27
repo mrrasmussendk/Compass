@@ -11,7 +11,7 @@ namespace UtilityAi.Compass.WeatherModule;
 
 [CompassCapability("weather-web", priority: 4)]
 [CompassGoals(GoalTag.Answer)]
-[CompassLane(Lane.Execute)]
+[CompassLane(Lane.Communicate)]
 [CompassCost(0.3)]
 [CompassRisk(0.0)]
 [CompassCooldown("weather-web.current", secondsTtl: 15)]

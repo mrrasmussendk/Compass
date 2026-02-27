@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using UtilityAi.Capabilities;
 using UtilityAi.Compass.Abstractions.Interfaces;
 
 namespace UtilityAi.Compass.StandardModules.DI;
@@ -26,9 +27,16 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services)
     {
         services.AddSingleton<FileReadModule>();
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<FileReadModule>());
+
         services.AddSingleton<FileCreationModule>();
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<FileCreationModule>());
+
         services.AddSingleton<SummarizationModule>();
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<SummarizationModule>());
+
         services.AddSingleton<WebSearchModule>();
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<WebSearchModule>());
 
         services.AddSingleton<IWorkflowModule, FileReadWorkflow>();
         services.AddSingleton<IWorkflowModule, FileCreationWorkflow>();

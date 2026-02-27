@@ -29,10 +29,16 @@ public static class ServiceCollectionExtensions
         // Register plugin types for DI-based construction so the container
         // can inject framework services (e.g. IModelClient) into modules.
         foreach (var type in loader.DiscoverTypes<ICapabilityModule>())
+        {
             services.AddSingleton(type);
+            services.AddSingleton(typeof(ICapabilityModule), sp => sp.GetRequiredService(type));
+        }
 
         foreach (var type in loader.DiscoverTypes<ISensor>())
+        {
             services.AddSingleton(type);
+            services.AddSingleton(typeof(ISensor), sp => sp.GetRequiredService(type));
+        }
 
         foreach (var type in loader.DiscoverTypes<IOrchestrationSink>())
             services.AddSingleton(type);

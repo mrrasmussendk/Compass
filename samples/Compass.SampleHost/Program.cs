@@ -1,15 +1,19 @@
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Compass.SampleHost;
+using UtilityAi.Capabilities;
 using UtilityAi.Memory;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Compass.PluginHost;
+using UtilityAi.Compass.PluginSdk.Attributes;
 using UtilityAi.Compass.PluginSdk.MetadataProvider;
 using UtilityAi.Compass.Runtime.DI;
 using UtilityAi.Compass.Runtime.Sensors;
 using UtilityAi.Compass.StandardModules.DI;
 using UtilityAi.Orchestration;
+using UtilityAi.Sensor;
 using UtilityAi.Utils;
 
 // Auto-load .env.compass so the host works without manually sourcing the file.
@@ -120,23 +124,39 @@ builder.Services.AddCompassPluginsFromFolder(pluginsPath);
 
 var host = builder.Build();
 
-var store = host.Services.GetRequiredService<IMemoryStore>();
-var metadataProvider = host.Services.GetRequiredService<IProposalMetadataProvider>();
 var strategy = host.Services.GetRequiredService<UtilityAi.Compass.Runtime.Strategy.CompassGovernedSelectionStrategy>();
+var metadataProvider = host.Services.GetRequiredService<AttributeMetadataProvider>();
 
-var correlationSensor = host.Services.GetRequiredService<CorrelationSensor>();
-var goalSensor = host.Services.GetRequiredService<GoalRouterSensor>();
-var laneSensor = host.Services.GetRequiredService<LaneRouterSensor>();
+// Register all module types with the metadata provider so their attributes can be read
+// We use a wildcard pattern - any proposal starting with the domain will use this module's metadata
+foreach (var module in host.Services.GetServices<ICapabilityModule>())
+{
+    var moduleType = module.GetType();
+    var capabilityAttr = moduleType.GetCustomAttribute<CompassCapabilityAttribute>();
+    if (capabilityAttr is not null)
+    {
+        // Register with domain + "." so it matches proposals like "file-creation.write", "weather-web.current", etc.
+        metadataProvider.RegisterModuleType(capabilityAttr.Domain + ".", moduleType);
+    }
+}
 
 async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
 {
     var bus = new EventBus();
     bus.Publish(new UserRequest(input));
-    var rt = new Runtime(bus, 0);
 
-    await correlationSensor.SenseAsync(rt, cancellationToken);
-    await goalSensor.SenseAsync(rt, cancellationToken);
-    await laneSensor.SenseAsync(rt, cancellationToken);
+    // Create orchestrator with the governance strategy and the request-specific bus
+    var requestOrchestrator = new UtilityAiOrchestrator(selector: strategy, stopAtZero: true, bus: bus);
+
+    // Add all sensors
+    foreach (var sensor in host.Services.GetServices<ISensor>())
+        requestOrchestrator.AddSensor(sensor);
+
+    // Add all modules
+    foreach (var module in host.Services.GetServices<ICapabilityModule>())
+        requestOrchestrator.AddModule(module);
+
+    await requestOrchestrator.RunAsync(maxTicks: 1, cancellationToken);
 
     var goal = bus.GetOrDefault<GoalSelected>();
     var lane = bus.GetOrDefault<LaneSelected>();

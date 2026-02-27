@@ -42,10 +42,17 @@ public sealed class AttributeMetadataProvider : IProposalMetadataProvider
         if (_registry.TryGetValue(proposal.Id, out var meta))
             return meta;
 
-        if (!_proposalModuleTypes.TryGetValue(proposal.Id, out var moduleType))
-            return null;
+        if (_proposalModuleTypes.TryGetValue(proposal.Id, out var moduleType))
+            return BuildFromAttributes(moduleType);
 
-        return BuildFromAttributes(moduleType);
+        // Try prefix matching - if proposal ID starts with a registered key, use that module type
+        foreach (var (key, type) in _proposalModuleTypes)
+        {
+            if (proposal.Id.StartsWith(key, StringComparison.Ordinal))
+                return BuildFromAttributes(type);
+        }
+
+        return null;
     }
 
     private static ProposalMetadata? BuildFromAttributes(Type moduleType)
