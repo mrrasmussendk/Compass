@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\src\UtilityAi.Compass.Abstractions\UtilityAi.Compass.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\UtilityAi.Compass.Hitl\UtilityAi.Compass.Hitl.csproj" />
     <ProjectReference Include="..\..\src\UtilityAi.Compass.StandardModules\UtilityAi.Compass.StandardModules.csproj" />
+    <ProjectReference Include="..\..\src\UtilityAi.Compass.WeatherModule\UtilityAi.Compass.WeatherModule.csproj" />
   </ItemGroup>
 
 </Project>
