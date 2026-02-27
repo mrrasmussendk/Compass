@@ -215,6 +215,8 @@ public static class ModuleInstaller
         finally
         {
             loadContext.Unload();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         error = $"Module install failed: '{Path.GetFileName(assemblyPath)}' is not a compatible UtilityAI module assembly.";
