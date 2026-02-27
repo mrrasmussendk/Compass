@@ -19,10 +19,20 @@ var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version>");
 void PrintInstalledModules()
 {
-    var modules = ModuleInstaller.ListInstalledModules(pluginsPath);
-    Console.WriteLine(modules.Count == 0
+    var standardModules = new[]
+    {
+        nameof(UtilityAi.Compass.StandardModules.FileReadModule),
+        nameof(UtilityAi.Compass.StandardModules.FileCreationModule),
+        nameof(UtilityAi.Compass.StandardModules.SummarizationModule),
+        nameof(UtilityAi.Compass.StandardModules.WebSearchModule)
+    };
+
+    Console.WriteLine($"Standard modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", standardModules)}");
+
+    var installedModules = ModuleInstaller.ListInstalledModules(pluginsPath);
+    Console.WriteLine(installedModules.Count == 0
         ? "No installed modules found."
-        : $"Installed modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", modules)}");
+        : $"Installed modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", installedModules)}");
 }
 
 var startupArgs = args

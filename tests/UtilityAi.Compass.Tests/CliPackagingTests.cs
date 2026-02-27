@@ -103,6 +103,8 @@ public sealed class CliPackagingTests
                 var error = await errorTask;
 
                 Assert.True(process.ExitCode == 0, $"compass --list-modules failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
+                Assert.Contains("Standard modules:", output);
+                Assert.Contains("FileReadModule", output);
                 Assert.Contains("No installed modules found.", output);
                 Assert.DoesNotContain("Compass CLI started. Type a request", output, StringComparison.Ordinal);
             }
@@ -127,6 +129,8 @@ public sealed class CliPackagingTests
                 var error = await errorTask;
 
                 Assert.True(process.ExitCode == 0, $"compass -- --list-modules failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
+                Assert.Contains("Standard modules:", output);
+                Assert.Contains("FileReadModule", output);
                 Assert.Contains("No installed modules found.", output);
                 Assert.DoesNotContain("Compass CLI started. Type a request", output, StringComparison.Ordinal);
             }
