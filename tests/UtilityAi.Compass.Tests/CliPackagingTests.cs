@@ -81,6 +81,31 @@ public sealed class CliPackagingTests
                 var error = await errorTask;
                 Assert.True(process.ExitCode == 0, $"dotnet tool install failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
             }
+
+            var toolCommandPath = Path.Combine(toolInstallPath, OperatingSystem.IsWindows() ? "compass.exe" : "compass");
+            process = Process.Start(new ProcessStartInfo
+            {
+                FileName = toolCommandPath,
+                Arguments = "-- --list-modules",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            });
+
+            Assert.NotNull(process);
+            using (process)
+            {
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                var output = await outputTask;
+                var error = await errorTask;
+
+                Assert.True(process.ExitCode == 0, $"compass -- --list-modules failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
+                Assert.Contains("No installed modules found.", output);
+                Assert.DoesNotContain("Compass CLI started. Type a request", output, StringComparison.Ordinal);
+            }
         }
         finally
         {

@@ -25,7 +25,16 @@ void PrintInstalledModules()
         : $"Installed modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", modules)}");
 }
 
-if (args.Length >= 1 && string.Equals(args[0], "--help", StringComparison.OrdinalIgnoreCase))
+var startupArgs = args
+    .Where(arg => !string.IsNullOrWhiteSpace(arg))
+    .Select(arg => arg.Trim())
+    .ToArray();
+if (startupArgs.Length >= 1 && string.Equals(startupArgs[0], "--", StringComparison.Ordinal))
+    startupArgs = startupArgs[1..];
+
+if (startupArgs.Length >= 1 &&
+    (string.Equals(startupArgs[0], "--help", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "/help", StringComparison.OrdinalIgnoreCase)))
 {
     Console.WriteLine("Compass CLI arguments:");
     Console.WriteLine("  --help");
@@ -35,21 +44,27 @@ if (args.Length >= 1 && string.Equals(args[0], "--help", StringComparison.Ordina
     return;
 }
 
-if (args.Length >= 1 && string.Equals(args[0], "--list-modules", StringComparison.OrdinalIgnoreCase))
+if (startupArgs.Length >= 1 &&
+    (string.Equals(startupArgs[0], "--list-modules", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "/list-modules", StringComparison.OrdinalIgnoreCase)))
 {
     PrintInstalledModules();
     return;
 }
 
-if (args.Length >= 2 && string.Equals(args[0], "--install-module", StringComparison.OrdinalIgnoreCase))
+if (startupArgs.Length >= 2 &&
+    (string.Equals(startupArgs[0], "--install-module", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "/install-module", StringComparison.OrdinalIgnoreCase)))
 {
-    var installMessage = await ModuleInstaller.InstallAsync(args[1], pluginsPath);
+    var installMessage = await ModuleInstaller.InstallAsync(startupArgs[1], pluginsPath);
     Console.WriteLine(installMessage);
     Console.WriteLine("Restart Compass CLI to load the new module.");
     return;
 }
 
-if (args.Length >= 1 && string.Equals(args[0], "--setup", StringComparison.OrdinalIgnoreCase))
+if (startupArgs.Length >= 1 &&
+    (string.Equals(startupArgs[0], "--setup", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "/setup", StringComparison.OrdinalIgnoreCase)))
 {
     Console.WriteLine(ModuleInstaller.TryRunInstallScript()
         ? "Compass setup complete."
