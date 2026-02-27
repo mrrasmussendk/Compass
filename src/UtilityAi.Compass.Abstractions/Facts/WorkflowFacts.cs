@@ -11,6 +11,12 @@ namespace UtilityAi.Compass.Abstractions.Facts;
 /// <param name="CanInterrupt">Whether the workflow allows interruption by a higher-priority workflow.</param>
 /// <param name="StickinessUntilUtc">Optional commitment TTL; the workflow is sticky until this time.</param>
 /// <param name="BudgetRemaining">Optional remaining budget for cost-capped workflows.</param>
+/// <param name="SessionId">Session identifier scoping this workflow run.</param>
+/// <param name="StepAttempt">Current attempt number for the active step (1-based).</param>
+/// <param name="MissingFacts">Fact names that are required but not yet available.</param>
+/// <param name="ValidationTargetId">Identifier of the step or workflow being validated, if any.</param>
+/// <param name="StartedUtc">Timestamp when the workflow run started.</param>
+/// <param name="UpdatedUtc">Timestamp of the last state change.</param>
 public sealed record ActiveWorkflow(
     string WorkflowId,
     string RunId,
@@ -18,7 +24,13 @@ public sealed record ActiveWorkflow(
     WorkflowStatus Status,
     bool CanInterrupt = false,
     DateTimeOffset? StickinessUntilUtc = null,
-    double? BudgetRemaining = null
+    double? BudgetRemaining = null,
+    string? SessionId = null,
+    int StepAttempt = 1,
+    IReadOnlyList<string>? MissingFacts = null,
+    string? ValidationTargetId = null,
+    DateTimeOffset? StartedUtc = null,
+    DateTimeOffset? UpdatedUtc = null
 );
 
 /// <summary>
@@ -29,11 +41,15 @@ public sealed record ActiveWorkflow(
 /// <param name="StepId">Identifier of the step being evaluated.</param>
 /// <param name="IsReady"><c>true</c> if all preconditions are satisfied.</param>
 /// <param name="MissingFacts">Names of facts that are required but not yet available.</param>
+/// <param name="SessionId">Session identifier scoping this evaluation.</param>
+/// <param name="RunId">Identifier of the parent workflow run.</param>
 public sealed record StepReady(
     string WorkflowId,
     string StepId,
     bool IsReady,
-    IReadOnlyList<string> MissingFacts
+    IReadOnlyList<string> MissingFacts,
+    string? SessionId = null,
+    string? RunId = null
 );
 
 /// <summary>
@@ -44,11 +60,15 @@ public sealed record StepReady(
 /// <param name="RunId">Unique identifier for this workflow run.</param>
 /// <param name="Scope">Whether validation targets a single step or the entire workflow.</param>
 /// <param name="TargetId">The step or workflow identifier to validate.</param>
+/// <param name="SessionId">Session identifier scoping this validation request.</param>
+/// <param name="CreatedUtc">Timestamp when the validation was requested.</param>
 public sealed record NeedsValidation(
     string WorkflowId,
     string RunId,
     ValidationScope Scope,
-    string TargetId
+    string TargetId,
+    string? SessionId = null,
+    DateTimeOffset? CreatedUtc = null
 );
 
 /// <summary>
@@ -56,9 +76,19 @@ public sealed record NeedsValidation(
 /// </summary>
 /// <param name="Outcome">Whether the validation passed, failed retryably, or failed fatally.</param>
 /// <param name="Diagnostics">Optional human-readable diagnostic message.</param>
+/// <param name="SessionId">Session identifier scoping this validation outcome.</param>
+/// <param name="WorkflowId">Identifier of the workflow definition.</param>
+/// <param name="RunId">Identifier of the parent workflow run.</param>
+/// <param name="TargetId">The step or workflow identifier that was validated.</param>
+/// <param name="CompletedUtc">Timestamp when the validation completed.</param>
 public sealed record ValidationOutcome(
     ValidationOutcomeTag Outcome,
-    string? Diagnostics = null
+    string? Diagnostics = null,
+    string? SessionId = null,
+    string? WorkflowId = null,
+    string? RunId = null,
+    string? TargetId = null,
+    DateTimeOffset? CompletedUtc = null
 );
 
 /// <summary>
@@ -66,9 +96,17 @@ public sealed record ValidationOutcome(
 /// </summary>
 /// <param name="Repair">The type of repair action to take.</param>
 /// <param name="Details">Optional details describing the repair action.</param>
+/// <param name="SessionId">Session identifier scoping this repair directive.</param>
+/// <param name="WorkflowId">Identifier of the workflow definition.</param>
+/// <param name="RunId">Identifier of the parent workflow run.</param>
+/// <param name="CreatedUtc">Timestamp when the repair was requested.</param>
 public sealed record RepairDirective(
     RepairType Repair,
-    string? Details = null
+    string? Details = null,
+    string? SessionId = null,
+    string? WorkflowId = null,
+    string? RunId = null,
+    DateTimeOffset? CreatedUtc = null
 );
 
 /// <summary>

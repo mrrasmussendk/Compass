@@ -123,7 +123,28 @@ public enum RepairType
     /// <summary>Ask the user for guidance.</summary>
     AskUser,
     /// <summary>Escalate to a human-in-the-loop reviewer.</summary>
-    Hitl
+    Hitl,
+    /// <summary>Abort the workflow entirely.</summary>
+    Abort
+}
+
+/// <summary>Classifies the kind of proposal for workflow-aware selection.</summary>
+public enum ProposalKind
+{
+    /// <summary>A standalone, non-workflow proposal.</summary>
+    Atomic,
+    /// <summary>Proposes starting a new workflow.</summary>
+    StartWorkflow,
+    /// <summary>Continues the current workflow step.</summary>
+    ContinueStep,
+    /// <summary>Validates a step or workflow result.</summary>
+    Validate,
+    /// <summary>Repairs a failed step or validation.</summary>
+    Repair,
+    /// <summary>Requests user input to unblock a workflow.</summary>
+    AskUser,
+    /// <summary>A system-level proposal (e.g. cooldown, housekeeping).</summary>
+    System
 }
 
 /// <summary>Scope at which validation is applied.</summary>
