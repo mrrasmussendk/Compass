@@ -25,9 +25,9 @@ public sealed class CliPackagingTests
             .First()
             .Value;
         var outputDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var toolPath = Path.Combine(outputDir, "tools");
+        var toolInstallPath = Path.Combine(outputDir, "tools");
         Directory.CreateDirectory(outputDir);
-        Directory.CreateDirectory(toolPath);
+        Directory.CreateDirectory(toolInstallPath);
 
         try
         {
@@ -62,7 +62,7 @@ public sealed class CliPackagingTests
             process = Process.Start(new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"tool install --tool-path \"{toolPath}\" {packageId} --version {packageVersion} --add-source \"{outputDir}\"",
+                Arguments = $"tool install --tool-path \"{toolInstallPath}\" {packageId} --version {packageVersion} --add-source \"{outputDir}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
