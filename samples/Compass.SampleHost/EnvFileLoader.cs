@@ -9,8 +9,8 @@ namespace Compass.SampleHost;
 ///   <item><c>export KEY=VALUE</c> (bash / install.sh)</item>
 ///   <item><c>$env:KEY='VALUE'</c> (PowerShell / install.ps1)</item>
 /// </list>
-/// Existing environment variables are never overwritten, allowing callers to
-/// override individual values via the shell when needed.
+/// Existing environment variables are not overwritten by default, allowing callers
+/// to override individual values via the shell when needed.
 /// </summary>
 public static class EnvFileLoader
 {
@@ -22,7 +22,7 @@ public static class EnvFileLoader
     /// ancestor directories. If the file is found, each recognised line is set as an
     /// environment variable for the current process.
     /// </summary>
-    public static void Load(string? startDirectory = null)
+    public static void Load(string? startDirectory = null, bool overwriteExisting = false)
     {
         var path = FindFile([
             startDirectory ?? Directory.GetCurrentDirectory(),
@@ -37,8 +37,7 @@ public static class EnvFileLoader
             if (key is null)
                 continue;
 
-            // Never overwrite an existing variable so shell overrides still work.
-            if (Environment.GetEnvironmentVariable(key) is null)
+            if (overwriteExisting || Environment.GetEnvironmentVariable(key) is null)
                 Environment.SetEnvironmentVariable(key, value);
         }
     }
