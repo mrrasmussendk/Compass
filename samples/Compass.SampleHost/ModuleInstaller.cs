@@ -98,9 +98,9 @@ public static class ModuleInstaller
         return Directory
             .EnumerateFiles(pluginsPath, "*.dll", SearchOption.TopDirectoryOnly)
             .Select(Path.GetFileName)
+            .OfType<string>()
             .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
             .OrderBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
-            .Cast<string>()
             .ToArray();
     }
 
