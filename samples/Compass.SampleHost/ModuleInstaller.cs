@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Reflection;
+using UtilityAi.Capabilities;
 
 namespace Compass.SampleHost;
 
@@ -109,6 +111,9 @@ public static class ModuleInstaller
         var extension = Path.GetExtension(filePath);
         if (extension.Equals(".dll", StringComparison.OrdinalIgnoreCase))
         {
+            if (!TryValidateModuleAssembly(filePath, out var validationError))
+                return validationError;
+
             var destination = Path.Combine(pluginsPath, Path.GetFileName(filePath));
             File.Copy(filePath, destination, overwrite: true);
             return $"Installed module DLL: {Path.GetFileName(filePath)}";
@@ -123,10 +128,14 @@ public static class ModuleInstaller
     private static string InstallFromNupkg(string nupkgPath, string pluginsPath, string? packageId = null)
     {
         using var archive = ZipFile.OpenRead(nupkgPath);
-        var copied = 0;
+        var copiedFiles = new List<string>();
+        var hasUtilityAiModule = false;
 
         foreach (var entry in archive.Entries.Where(IsPluginAssemblyEntry))
         {
+            if (!IsCompatibleTargetFramework(entry.FullName))
+                continue;
+
             var fileName = Path.GetFileName(entry.Name);
             if (string.IsNullOrWhiteSpace(fileName))
                 continue;
@@ -135,13 +144,23 @@ public static class ModuleInstaller
             using var source = entry.Open();
             using var target = File.Create(destination);
             source.CopyTo(target);
-            copied++;
+            copiedFiles.Add(destination);
+            if (!hasUtilityAiModule && TryValidateModuleAssembly(destination, out _))
+                hasUtilityAiModule = true;
         }
 
-        if (copied == 0)
-            return $"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain .dll files in lib/ or runtimes/*/lib/.";
+        if (copiedFiles.Count == 0)
+            return $"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain compatible .dll files in lib/ or runtimes/*/lib/.";
 
-        return $"Installed {copied} module assembly file(s) from '{packageId ?? Path.GetFileName(nupkgPath)}'.";
+        if (!hasUtilityAiModule)
+        {
+            foreach (var file in copiedFiles.Where(File.Exists))
+                File.Delete(file);
+
+            return $"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain a compatible UtilityAI module assembly.";
+        }
+
+        return $"Installed {copiedFiles.Count} module assembly file(s) from '{packageId ?? Path.GetFileName(nupkgPath)}'.";
     }
 
     private static bool IsPluginAssemblyEntry(ZipArchiveEntry entry)
@@ -153,5 +172,56 @@ public static class ModuleInstaller
         return normalized.StartsWith("lib/", StringComparison.OrdinalIgnoreCase)
             || (normalized.StartsWith("runtimes/", StringComparison.OrdinalIgnoreCase)
                 && normalized.Contains("/lib/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool TryValidateModuleAssembly(string assemblyPath, out string error)
+    {
+        try
+        {
+            var assembly = Assembly.LoadFrom(assemblyPath);
+            var hasModule = assembly
+                .GetTypes()
+                .Any(t => t.IsClass && !t.IsAbstract && typeof(ICapabilityModule).IsAssignableFrom(t));
+            if (hasModule)
+            {
+                error = string.Empty;
+                return true;
+            }
+        }
+        catch
+        {
+            // handled below
+        }
+
+        error = $"Module install failed: '{Path.GetFileName(assemblyPath)}' is not a compatible UtilityAI module assembly.";
+        return false;
+    }
+
+    private static bool IsCompatibleTargetFramework(string entryPath)
+    {
+        var normalized = entryPath.Replace('\\', '/');
+        var parts = normalized.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var tfm = parts.Length >= 3 && parts[0].Equals("lib", StringComparison.OrdinalIgnoreCase)
+            ? parts[1]
+            : parts.Length >= 5
+                && parts[0].Equals("runtimes", StringComparison.OrdinalIgnoreCase)
+                && parts[2].Equals("lib", StringComparison.OrdinalIgnoreCase)
+                ? parts[3]
+                : null;
+
+        if (string.IsNullOrWhiteSpace(tfm))
+            return false;
+
+        if (tfm.StartsWith("netstandard", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (!tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var versionDigits = new string(tfm.Skip(3).TakeWhile(char.IsDigit).ToArray());
+        if (versionDigits.Length == 0 || !int.TryParse(versionDigits, out var major))
+            return false;
+
+        return major <= Environment.Version.Major;
     }
 }

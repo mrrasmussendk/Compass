@@ -22,7 +22,7 @@ public class ModuleInstallerTests
         Directory.CreateDirectory(root);
         var pluginDll = Path.Combine(root, "sample-plugin.dll");
         var pluginsDir = Path.Combine(root, "plugins");
-        await File.WriteAllTextAsync(pluginDll, "fake");
+        File.Copy(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location, pluginDll, overwrite: true);
 
         try
         {
@@ -49,8 +49,8 @@ public class ModuleInstallerTests
         {
             var libEntry = archive.CreateEntry("lib/net10.0/example.plugin.dll");
             await using (var stream = libEntry.Open())
-            await using (var writer = new StreamWriter(stream))
-                await writer.WriteAsync("fake");
+            await using (var source = File.OpenRead(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location))
+                await source.CopyToAsync(stream);
         }
 
         try
@@ -59,6 +59,58 @@ public class ModuleInstallerTests
 
             Assert.Contains("Installed 1 module assembly file", message);
             Assert.True(File.Exists(Path.Combine(pluginsDir, "example.plugin.dll")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InstallAsync_RejectsNonUtilityAiDll()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var hostDll = typeof(ModuleInstaller).Assembly.Location;
+        var pluginDll = Path.Combine(root, "not-a-module.dll");
+        var pluginsDir = Path.Combine(root, "plugins");
+        File.Copy(hostDll, pluginDll, overwrite: true);
+
+        try
+        {
+            var message = await ModuleInstaller.InstallAsync(pluginDll, pluginsDir);
+
+            Assert.Contains("not a compatible UtilityAI module assembly", message);
+            Assert.False(File.Exists(Path.Combine(pluginsDir, "not-a-module.dll")));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InstallAsync_RejectsPackageWithoutCompatibleFrameworkDlls()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var nupkgPath = Path.Combine(root, "plugin.nupkg");
+        var pluginsDir = Path.Combine(root, "plugins");
+
+        using (var archive = ZipFile.Open(nupkgPath, ZipArchiveMode.Create))
+        {
+            var libEntry = archive.CreateEntry("lib/net11.0/example.plugin.dll");
+            await using var stream = libEntry.Open();
+            await using var writer = new StreamWriter(stream);
+            await writer.WriteAsync("fake");
+        }
+
+        try
+        {
+            var message = await ModuleInstaller.InstallAsync(nupkgPath, pluginsDir);
+
+            Assert.Contains("does not contain compatible .dll files", message);
+            Assert.False(Directory.Exists(pluginsDir) && Directory.EnumerateFiles(pluginsDir, "*.dll").Any());
         }
         finally
         {
