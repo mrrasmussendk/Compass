@@ -45,7 +45,8 @@ public sealed class WeatherModulePackagingTests
 
                 var nupkgPath = Directory
                     .GetFiles(outputDir, "UtilityAi.Compass.WeatherModule.*.nupkg")
-                    .Single(path => !path.EndsWith(".snupkg", StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(path => !path.EndsWith(".snupkg", StringComparison.OrdinalIgnoreCase));
+                Assert.False(string.IsNullOrWhiteSpace(nupkgPath), "Expected weather module .nupkg output.");
                 using var archive = ZipFile.OpenRead(nupkgPath);
 
                 Assert.All(targetFrameworks, framework =>
@@ -58,11 +59,7 @@ public sealed class WeatherModulePackagingTests
             {
                 Directory.Delete(outputDir, recursive: true);
             }
-            catch (IOException)
-            {
-                // Best-effort test cleanup.
-            }
-            catch (UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 // Best-effort test cleanup.
             }

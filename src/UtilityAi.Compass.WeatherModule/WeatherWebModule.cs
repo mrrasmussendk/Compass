@@ -17,7 +17,10 @@ namespace UtilityAi.Compass.WeatherModule;
 [CompassCooldown("weather-web.current", secondsTtl: 15)]
 public sealed class WeatherWebModule : ICapabilityModule
 {
-    private static readonly HttpClient HttpClient = new();
+    private static readonly HttpClient HttpClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(8)
+    };
 
     public IEnumerable<Proposal> Propose(Runtime rt)
     {
@@ -94,11 +97,7 @@ public sealed class WeatherWebModule : ICapabilityModule
         {
             return $"I couldn't parse weather data for {location}.";
         }
-        catch (KeyNotFoundException)
-        {
-            return $"I couldn't parse weather data for {location}.";
-        }
-        catch (IndexOutOfRangeException)
+        catch (Exception ex) when (ex is KeyNotFoundException or IndexOutOfRangeException)
         {
             return $"I couldn't parse weather data for {location}.";
         }
