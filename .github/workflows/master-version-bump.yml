@@ -1,0 +1,84 @@
+name: master-version-bump
+
+on:
+  push:
+    branches: ["master"]
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump package versions
+        run: |
+          python <<'PY'
+          import re
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          projects = [
+              Path("src/UtilityAi.Compass.Cli/UtilityAi.Compass.Cli.csproj"),
+              Path("src/UtilityAi.Compass.WeatherModule/UtilityAi.Compass.WeatherModule.csproj"),
+          ]
+
+          for project in projects:
+              content = project.read_text(encoding="utf-8")
+              root = ET.fromstring(content)
+              version_element = root.find(".//Version")
+              if version_element is None or not version_element.text:
+                  raise ValueError(f"Could not find <Version> in {project}")
+
+              version_text = version_element.text.strip()
+              parts = version_text.split(".")
+              if len(parts) != 3 or not all(part.isdigit() for part in parts):
+                  raise ValueError(
+                      f"Invalid version format in {project}: expected major.minor.patch, got {version_text}"
+                  )
+
+              major, minor, patch = map(int, parts)
+              if patch < 9:
+                  patch += 1
+              else:
+                  patch = 0
+                  if minor < 9:
+                      minor += 1
+                  else:
+                      minor = 0
+                      major += 1
+
+              new_version = f"{major}.{minor}.{patch}"
+              print(f"{project}: {version_element.text} -> {new_version}")
+              updated = re.sub(
+                  r"(<Version>\s*)"
+                  + re.escape(version_element.text)
+                  + r"(\s*</Version>)",
+                  rf"\g<1>{new_version}\g<2>",
+                  content,
+                  count=1,
+              )
+              project.write_text(updated, encoding="utf-8")
+          PY
+
+      - name: Commit and push version bump
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet; then
+            echo "No version changes detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/UtilityAi.Compass.Cli/UtilityAi.Compass.Cli.csproj src/UtilityAi.Compass.WeatherModule/UtilityAi.Compass.WeatherModule.csproj
+          git commit -m "chore: bump package versions [skip ci]"
+          git push
