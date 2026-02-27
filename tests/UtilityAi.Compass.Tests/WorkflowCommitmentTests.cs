@@ -82,8 +82,8 @@ public class WorkflowCommitmentTests
         var scored = new List<(Proposal P, double Utility)> { (pWorkflow, 0.3), (pAskUser, 0.9) };
         var result = strategy.Select(scored, rt);
 
-        // Both should be allowed through (askuser is a system proposal)
-        Assert.True(result.Id == "askuser.clarify" || result.Id == "wf-deploy.step-build");
+        // askuser is a system proposal and should pass through the workflow commitment filter
+        Assert.Equal("askuser.clarify", result.Id);
     }
 
     [Fact]
