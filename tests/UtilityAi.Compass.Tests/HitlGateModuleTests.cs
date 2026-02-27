@@ -21,12 +21,15 @@ public class HitlGateModuleTests
         Assert.Equal("hitl.create-request", proposals[0].Id);
     }
 
-    [Fact]
-    public void Propose_DoesNotCreateHitlRequest_ForSocketDeployRequest()
+    [Theory]
+    [InlineData("allow deploy for a socket connection")]
+    [InlineData("allow deploy for a socket-connection")]
+    [InlineData("allow deploy for socket connections")]
+    public void Propose_DoesNotCreateHitlRequest_ForSocketDeployRequest(string requestText)
     {
         var module = new HitlGateModule(new NoopHumanDecisionChannel());
         var bus = new EventBus();
-        bus.Publish(new UserRequest("allow deploy for a socket connection"));
+        bus.Publish(new UserRequest(requestText));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         var proposals = module.Propose(rt).ToList();

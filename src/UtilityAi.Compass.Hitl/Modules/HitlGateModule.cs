@@ -64,7 +64,12 @@ public sealed class HitlGateModule : ICapabilityModule
     private static bool NeedsHumanApproval(UserRequest request)
     {
         var text = request.Text.ToLowerInvariant();
-        var isSocketDeployRequest = text.Contains("deploy") && text.Contains("socket connection");
-        return text.Contains("delete") || (text.Contains("deploy") && !isSocketDeployRequest) || text.Contains("override");
+        var hasDeploy = text.Contains("deploy");
+        var hasSocketConnectionPhrase =
+            text.Contains("socket connection") ||
+            text.Contains("socket connections") ||
+            text.Contains("socket-connection") ||
+            text.Contains("socket-connections");
+        return text.Contains("delete") || text.Contains("override") || (hasDeploy && !hasSocketConnectionPhrase);
     }
 }
