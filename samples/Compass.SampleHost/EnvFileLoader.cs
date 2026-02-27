@@ -24,7 +24,10 @@ public static class EnvFileLoader
     /// </summary>
     public static void Load(string? startDirectory = null)
     {
-        var path = FindFile(startDirectory ?? Directory.GetCurrentDirectory());
+        var path = FindFile([
+            startDirectory ?? Directory.GetCurrentDirectory(),
+            AppContext.BaseDirectory
+        ]);
         if (path is null)
             return;
 
@@ -43,6 +46,27 @@ public static class EnvFileLoader
     public static string? FindFile(string startDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(startDirectory);
+        return FindFileInAncestors(startDirectory);
+    }
+
+    public static string? FindFile(IEnumerable<string?> startDirectories)
+    {
+        ArgumentNullException.ThrowIfNull(startDirectories);
+        foreach (var startDirectory in startDirectories)
+        {
+            if (string.IsNullOrWhiteSpace(startDirectory))
+                continue;
+
+            var path = FindFileInAncestors(startDirectory);
+            if (path is not null)
+                return path;
+        }
+
+        return null;
+    }
+
+    private static string? FindFileInAncestors(string startDirectory)
+    {
         var dir = new DirectoryInfo(startDirectory);
         while (dir is not null)
         {

@@ -69,15 +69,15 @@ The interactive install script creates a `.env.compass` file with the required e
 
 ```bash
 ./scripts/install.sh
-source .env.compass
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
 .\scripts\install.ps1
-Get-Content .env.compass | ForEach-Object { Invoke-Expression $_ }
 ```
+
+The host auto-loads `.env.compass` at startup, so no manual sourcing step is required.
 
 The script will prompt you to:
 
