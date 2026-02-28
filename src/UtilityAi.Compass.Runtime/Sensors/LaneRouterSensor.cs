@@ -10,12 +10,23 @@ namespace UtilityAi.Compass.Runtime.Sensors;
 /// </summary>
 public sealed class LaneRouterSensor : ISensor
 {
+    /// <summary>
+    /// Minimum confidence required before routing potentially side-effectful intent directly to Execute.
+    /// </summary>
+    private const double ActionConfidenceThreshold = 0.75;
+
     /// <inheritdoc />
     public Task SenseAsync(UtilityAi.Utils.Runtime rt, CancellationToken ct)
     {
         if (rt.Bus.TryGet<LaneSelected>(out _)) return Task.CompletedTask;
 
         var goal = rt.Bus.GetOrDefault<GoalSelected>();
+        if (goal is { Goal: GoalTag.Execute or GoalTag.Approve, Confidence: < ActionConfidenceThreshold })
+        {
+            rt.Bus.Publish(new LaneSelected(Lane.Interpret));
+            return Task.CompletedTask;
+        }
+
         var lane = goal?.Goal switch
         {
             GoalTag.Stop => Lane.Safety,

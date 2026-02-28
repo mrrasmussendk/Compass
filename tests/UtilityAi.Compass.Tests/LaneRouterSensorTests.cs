@@ -8,15 +8,17 @@ namespace UtilityAi.Compass.Tests;
 public class LaneRouterSensorTests
 {
     [Theory]
-    [InlineData(GoalTag.Stop, Lane.Safety)]
-    [InlineData(GoalTag.Answer, Lane.Communicate)]
-    [InlineData(GoalTag.Execute, Lane.Execute)]
-    [InlineData(GoalTag.Clarify, Lane.Interpret)]
-    public async Task SenseAsync_MapsGoalToLane(GoalTag goal, Lane expectedLane)
+    [InlineData(GoalTag.Stop, 0.9, Lane.Safety)]
+    [InlineData(GoalTag.Answer, 0.9, Lane.Communicate)]
+    [InlineData(GoalTag.Execute, 0.9, Lane.Execute)]
+    [InlineData(GoalTag.Clarify, 0.9, Lane.Interpret)]
+    [InlineData(GoalTag.Execute, 0.5, Lane.Interpret)]
+    [InlineData(GoalTag.Approve, 0.5, Lane.Interpret)]
+    public async Task SenseAsync_MapsGoalToLane(GoalTag goal, double confidence, Lane expectedLane)
     {
         var sensor = new LaneRouterSensor();
         var bus = new EventBus();
-        bus.Publish(new GoalSelected(goal, 0.9));
+        bus.Publish(new GoalSelected(goal, confidence));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         await sensor.SenseAsync(rt, CancellationToken.None);
