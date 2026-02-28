@@ -139,7 +139,7 @@ dotnet build UtilityAi.Compass.sln
 ## How to Run the Compass CLI
 
 ```bash
-dotnet run --project src/UtilityAi.Compass.Cli
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
 ```
 
 If no Compass model setup exists, the host will attempt to launch the platform installer script automatically on startup.
@@ -147,19 +147,19 @@ If no Compass model setup exists, the host will attempt to launch the platform i
 For guided setup (model provider + deployment mode), run:
 
 ```bash
-dotnet run --project src/UtilityAi.Compass.Cli -- --setup
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --setup
 ```
 
 To show available CLI arguments:
 
 ```bash
-dotnet run --project src/UtilityAi.Compass.Cli -- --help
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --help
 ```
 
 To list currently installed plugin modules:
 
 ```bash
-dotnet run --project src/UtilityAi.Compass.Cli -- --list-modules
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --list-modules
 ```
 
 To install the CLI as a .NET tool:
@@ -188,18 +188,40 @@ Compass CLI started. Type a request (or 'quit' to exit):
 
 To load plugins, copy plugin DLLs into a `plugins/` folder next to the executable before running.
 
-You can also install modules with the host command:
+You can also manage modules with host commands:
 
 - CLI command: `/help`
 - CLI command: `/list-modules`
 - CLI command: `/install-module /absolute/path/MyPlugin.dll`
 - CLI command: `/install-module Package.Id@1.2.3`
 - CLI command: `/new-module MyPlugin [/absolute/output/path]`
-- Example: `/install-module UtilityAi.Compass.WeatherModule@1.0.0`
-- Startup args: `dotnet run --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3`
-- Startup args: `dotnet run --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin`
+- Example: `/install-module UtilityAi.Compass.WeatherModule@1.0.1`
+- Startup args: `dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3`
+- Startup args: `dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin`
 
 Installed modules are copied into the host `plugins/` folder and loaded after restarting the host.
+
+### Create a new module with the CLI
+
+Use the scaffold command to generate a starter plugin project:
+
+```bash
+compass --new-module MyPlugin
+# or
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin [/absolute/output/path]
+```
+
+This creates `<output-path>/MyPlugin/` with:
+
+- `MyPlugin.csproj` (net10.0 class library with `UtilityAi` reference)
+- `MyPluginModule.cs` (example `ICapabilityModule` proposal)
+
+Then build and install it:
+
+```bash
+dotnet build /absolute/output/path/MyPlugin
+compass --install-module /absolute/output/path/MyPlugin/bin/Debug/net10.0/MyPlugin.dll
+```
 
 If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the CLI switches to Discord mode and polls the configured channel for user messages.
 
