@@ -16,7 +16,7 @@ public class SqliteMemoryStoreTests
         var dbPath = Path.Combine(root, "memory.db");
         try
         {
-            var store = new SqliteMemoryStore($"Data Source={dbPath}");
+            var store = new SqliteMemoryStore($"Data Source={dbPath};Pooling=False");
             var now = DateTimeOffset.UtcNow;
 
             await store.StoreAsync(new TestFact("first"), now.AddSeconds(-1));
@@ -54,7 +54,7 @@ public class SqliteMemoryStoreTests
         var dbPath = Path.Combine(root, "memory.db");
         try
         {
-            var store = new SqliteMemoryStore($"Data Source={dbPath}");
+            var store = new SqliteMemoryStore($"Data Source={dbPath};Pooling=False");
             var now = DateTimeOffset.UtcNow;
 
             await store.StoreAsync(new TestFact("old"), now.AddMinutes(-10));
