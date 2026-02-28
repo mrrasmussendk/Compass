@@ -1,69 +1,109 @@
 using UtilityAi.Compass.Abstractions;
 using UtilityAi.Compass.Abstractions.Facts;
+using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Sensor;
-using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace UtilityAi.Compass.Runtime.Sensors;
 
 /// <summary>
-/// Keyword-based sensor that detects user intent from <see cref="UserRequest"/> text
+/// LLM-based sensor that detects user intent from <see cref="UserRequest"/> text
 /// and publishes a <see cref="GoalSelected"/> fact to the EventBus.
 /// </summary>
 public sealed class GoalRouterSensor : ISensor
 {
-    private static readonly ConcurrentDictionary<string, Regex> KeywordRegexCache = new(StringComparer.Ordinal);
+    private readonly IModelClient? _modelClient;
 
-    /// <summary>Heuristic keyword rules mapping text patterns to <see cref="GoalTag"/> values with confidence scores.</summary>
-    private static readonly (string[] Keywords, GoalTag Goal, double Confidence)[] Rules =
-    [
-        (["stop", "cancel", "abort", "quit", "halt"], GoalTag.Stop, 0.95),
-        (["approve", "confirm", "accept", "yes, proceed", "granted"], GoalTag.Approve, 0.90),
-        (["summarize", "summary", "tldr", "tl;dr", "brief"], GoalTag.Summarize, 0.85),
-        (["run", "execute", "perform", "apply", "deploy", "create", "write", "make"], GoalTag.Execute, 0.80),
-        (["clarify", "what do you mean", "explain", "rephrase"], GoalTag.Clarify, 0.80),
-        (["?", "how", "what", "why", "when", "who", "where"], GoalTag.Answer, 0.70),
-    ];
+    public GoalRouterSensor() { }
+
+    public GoalRouterSensor(IModelClient modelClient)
+    {
+        _modelClient = modelClient;
+    }
 
     /// <inheritdoc />
-    public Task SenseAsync(UtilityAi.Utils.Runtime rt, CancellationToken ct)
+    public async Task SenseAsync(UtilityAi.Utils.Runtime rt, CancellationToken ct)
     {
         if (rt.Bus.TryGet<GoalSelected>(out var existing) && existing.Confidence >= 0.85)
-            return Task.CompletedTask;
+            return;
 
         var request = rt.Bus.GetOrDefault<UserRequest>();
-        if (request is null) return Task.CompletedTask;
+        if (request is null)
+            return;
 
-        var text = request.Text.ToLowerInvariant();
-
-        (GoalTag Goal, double Confidence, string Keyword)? bestMatch = Rules
-            .SelectMany(rule => rule.Keywords, (rule, keyword) => (rule.Goal, rule.Confidence, keyword))
-            .Where(match => IsKeywordMatch(text, match.keyword))
-            .OrderByDescending(match => match.Confidence)
-            .Cast<(GoalTag Goal, double Confidence, string Keyword)?>()
-            .FirstOrDefault();
-
-        if (bestMatch is { } match)
+        var activeWorkflow = rt.Bus.GetOrDefault<ActiveWorkflow>();
+        var llmGoal = await ClassifyWithModelAsync(request.Text, activeWorkflow, ct);
+        if (llmGoal is { } match)
         {
-            rt.Bus.Publish(new GoalSelected(match.Goal, match.Confidence, "heuristic"));
-            return Task.CompletedTask;
+            rt.Bus.Publish(new GoalSelected(match.Goal, match.Confidence, "llm"));
+            return;
         }
 
         rt.Bus.Publish(new GoalSelected(GoalTag.Answer, 0.5, "default"));
-        return Task.CompletedTask;
     }
 
-    private static bool IsKeywordMatch(string text, string keyword)
+    private async Task<(GoalTag Goal, double Confidence)?> ClassifyWithModelAsync(
+        string requestText,
+        ActiveWorkflow? activeWorkflow,
+        CancellationToken ct)
     {
-        if (keyword == "?")
-            return text.Contains('?');
+        if (_modelClient is null)
+            return null;
 
-        var regex = KeywordRegexCache.GetOrAdd(
-            keyword,
-            static k => new Regex(
-                $@"(?<!\w){Regex.Escape(k)}(?!\w)",
-                RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.NonBacktracking));
+        var workflowContext = activeWorkflow is null
+            ? "none"
+            : $"{activeWorkflow.WorkflowId} ({activeWorkflow.Status})";
 
-        return regex.IsMatch(text);
+        var response = await _modelClient.GenerateAsync(
+            new ModelRequest
+            {
+                SystemMessage = """
+                                You classify request intent for UtilityAi Compass goal routing.
+                                Return strict JSON: {"goal":"Answer|Clarify|Summarize|Execute|Approve|Stop","confidence":0..1}.
+                                """,
+                Prompt = $"request: {requestText}\nactive_workflow: {workflowContext}",
+                Temperature = 0.0,
+                MaxTokens = 64
+            },
+            ct);
+
+        if (!TryParseGoalResponse(response.Text, out var goal, out var confidence))
+            return null;
+
+        return (goal, confidence);
+    }
+
+    private static bool TryParseGoalResponse(string text, out GoalTag goal, out double confidence)
+    {
+        goal = GoalTag.Answer;
+        confidence = 0;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            var root = doc.RootElement;
+            if (!root.TryGetProperty("goal", out var goalElement))
+                return false;
+
+            if (!Enum.TryParse(goalElement.GetString(), ignoreCase: true, out goal))
+                return false;
+
+            if (root.TryGetProperty("confidence", out var confidenceElement) &&
+                confidenceElement.ValueKind is JsonValueKind.Number &&
+                confidenceElement.TryGetDouble(out var parsed))
+            {
+                confidence = Math.Clamp(parsed, 0, 1);
+            }
+            else
+            {
+                confidence = 0.7;
+            }
+
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 }

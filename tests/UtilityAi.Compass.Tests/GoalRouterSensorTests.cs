@@ -1,21 +1,31 @@
 using UtilityAi.Compass.Abstractions;
 using UtilityAi.Utils;
 using UtilityAi.Compass.Abstractions.Facts;
+using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Compass.Runtime.Sensors;
 
 namespace UtilityAi.Compass.Tests;
 
 public class GoalRouterSensorTests
 {
-    [Theory]
-    [InlineData("please stop", GoalTag.Stop)]
-    [InlineData("summarize this", GoalTag.Summarize)]
-    [InlineData("what is this?", GoalTag.Answer)]
-    public async Task SenseAsync_ClassifiesGoalCorrectly(string text, GoalTag expectedGoal)
+    private sealed class StubModelClient(string response) : IModelClient
     {
-        var sensor = new GoalRouterSensor();
+        public Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken = default)
+            => Task.FromResult(response);
+
+        public Task<ModelResponse> GenerateAsync(ModelRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new ModelResponse { Text = response });
+    }
+
+    [Theory]
+    [InlineData("{\"goal\":\"Stop\",\"confidence\":0.95}", GoalTag.Stop)]
+    [InlineData("{\"goal\":\"Summarize\",\"confidence\":0.85}", GoalTag.Summarize)]
+    [InlineData("{\"goal\":\"Answer\",\"confidence\":0.70}", GoalTag.Answer)]
+    public async Task SenseAsync_ClassifiesGoalFromModelResponse(string modelResponse, GoalTag expectedGoal)
+    {
+        var sensor = new GoalRouterSensor(new StubModelClient(modelResponse));
         var bus = new EventBus();
-        bus.Publish(new UserRequest(text));
+        bus.Publish(new UserRequest("user prompt"));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         await sensor.SenseAsync(rt, CancellationToken.None);
@@ -26,7 +36,7 @@ public class GoalRouterSensorTests
     }
 
     [Fact]
-    public async Task SenseAsync_DefaultsToAnswer_WhenNoKeywordMatches()
+    public async Task SenseAsync_DefaultsToAnswer_WhenNoModelClientConfigured()
     {
         var sensor = new GoalRouterSensor();
         var bus = new EventBus();
@@ -41,11 +51,11 @@ public class GoalRouterSensorTests
     }
 
     [Fact]
-    public async Task SenseAsync_DoesNotMatchPartialWord_Stop()
+    public async Task SenseAsync_DefaultsToAnswer_WhenModelResponseIsInvalidJson()
     {
-        var sensor = new GoalRouterSensor();
+        var sensor = new GoalRouterSensor(new StubModelClient("not-json"));
         var bus = new EventBus();
-        bus.Publish(new UserRequest("the process has stopped already"));
+        bus.Publish(new UserRequest("please stop"));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         await sensor.SenseAsync(rt, CancellationToken.None);
@@ -56,33 +66,18 @@ public class GoalRouterSensorTests
     }
 
     [Fact]
-    public async Task SenseAsync_DoesNotMatchPartialWord_Execute()
+    public async Task SenseAsync_UsesDefaultConfidence_WhenModelOmitsConfidence()
     {
-        var sensor = new GoalRouterSensor();
+        var sensor = new GoalRouterSensor(new StubModelClient("{\"goal\":\"Execute\"}"));
         var bus = new EventBus();
-        bus.Publish(new UserRequest("undo that last step"));
+        bus.Publish(new UserRequest("run the workflow"));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         await sensor.SenseAsync(rt, CancellationToken.None);
 
         var goal = bus.GetOrDefault<GoalSelected>();
         Assert.NotNull(goal);
-        Assert.Equal(GoalTag.Answer, goal.Goal);
-    }
-
-    [Fact]
-    public async Task SenseAsync_PrefersHigherConfidenceMatch()
-    {
-        var sensor = new GoalRouterSensor();
-        var bus = new EventBus();
-        bus.Publish(new UserRequest("please summarize and then stop"));
-        var rt = new UtilityAi.Utils.Runtime(bus, 0);
-
-        await sensor.SenseAsync(rt, CancellationToken.None);
-
-        var goal = bus.GetOrDefault<GoalSelected>();
-        Assert.NotNull(goal);
-        Assert.Equal(GoalTag.Stop, goal.Goal);
-        Assert.Equal(0.95, goal.Confidence);
+        Assert.Equal(GoalTag.Execute, goal.Goal);
+        Assert.Equal(0.7, goal.Confidence);
     }
 }
