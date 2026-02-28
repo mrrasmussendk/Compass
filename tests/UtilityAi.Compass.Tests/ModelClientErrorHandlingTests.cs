@@ -73,7 +73,7 @@ public class ModelClientErrorHandlingTests
     }
 
     [Fact]
-    public async Task OpenAi_GenerateAsync_UsesMaxCompletionTokens()
+    public async Task OpenAi_GenerateAsync_DoesNotSendMaxTokensOrTemperature()
     {
         var successJson = """{"choices":[{"message":{"content":"Hi"}}]}""";
         var handler = new StubHandler(HttpStatusCode.OK, successJson);
@@ -81,12 +81,12 @@ public class ModelClientErrorHandlingTests
         var config = new ModelConfiguration(ModelProvider.OpenAi, "test-key", "test-model");
         var client = ModelClientFactory.Create(config, httpClient);
 
-        await client.GenerateAsync(new ModelRequest { Prompt = "Hello", MaxTokens = 100 }, CancellationToken.None);
+        await client.GenerateAsync(new ModelRequest { Prompt = "Hello", MaxTokens = 100, Temperature = 0.7 }, CancellationToken.None);
 
         Assert.NotNull(handler.LastRequestBody);
         using var doc = JsonDocument.Parse(handler.LastRequestBody);
-        Assert.True(doc.RootElement.TryGetProperty("max_completion_tokens", out var tokensProp));
-        Assert.Equal(100, tokensProp.GetInt32());
+        Assert.False(doc.RootElement.TryGetProperty("max_completion_tokens", out _));
         Assert.False(doc.RootElement.TryGetProperty("max_tokens", out _));
+        Assert.False(doc.RootElement.TryGetProperty("temperature", out _));
     }
 }
