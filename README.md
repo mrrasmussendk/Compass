@@ -1,255 +1,88 @@
-# UtilityAi.Compass — Multi-Purpose Bot Host
+# UtilityAi.Compass
 
-A modular "multi-purpose bot host" built on [mrrasmussendk/UtilityAi](https://github.com/mrrasmussendk/UtilityAi) (v1.6.5).  
-Allows many third-party DLLs to add actions/considerations/sensors without destabilising the agent by adding goal/lane routing and governance (cooldowns, conflicts, cost/risk penalties, hysteresis).
+**UtilityAi.Compass** is a modular bot host built on top of [UtilityAi](https://github.com/mrrasmussendk/UtilityAi).
+It helps you combine many built-in and third-party capabilities while keeping execution predictable through governance (routing, cooldowns, conflict checks, cost/risk penalties, and hysteresis).
 
----
+## Start Here
 
-## Request Flow
+### New to Compass?
+- Follow the installation guide: [docs/INSTALL.md](docs/INSTALL.md)
+- Build and run quickly (see [Quick Start](#quick-start))
+- Try the sample host in REPL mode
 
-Every user interaction follows a deterministic pipeline:
-
-```
-User Input
-  │
-  ▼
-┌──────────────────────────────────────┐
-│  1. Sensors publish facts            │
-│     • CorrelationSensor → unique ID  │
-│     • GoalRouterSensor  → GoalTag    │
-│     • LaneRouterSensor  → Lane       │
-│     • CliIntentSensor   → CliIntent  │
-│     • WorkflowStateSensor            │
-│     • ValidationStateSensor          │
-│     • GovernanceMemoryProjection     │
-└──────────────┬───────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────┐
-│  2. Modules propose actions          │
-│     (built-in + plugin modules)      │
-└──────────────┬───────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────┐
-│  3. Governance selects a winner      │
-│     (see "Governance Pipeline")      │
-└──────────────┬───────────────────────┘
-               │
-               ▼
-┌──────────────────────────────────────┐
-│  4. GovernanceFinalizerModule        │
-│     records execution history        │
-└──────────────────────────────────────┘
-```
-
-### Sensors
-
-| Sensor | Publishes | Purpose |
-|---|---|---|
-| `CorrelationSensor` | `CorrelationId` | Unique ID per tick for tracing |
-| `GoalRouterSensor` | `GoalSelected` | Detects intent — Answer, Clarify, Summarize, Execute, Approve, Stop — with model confidence and workflow context (`active_workflow`, `recent_step`, `set_variables`) |
-| `LaneRouterSensor` | `LaneSelected` | Maps goal to processing lane — Interpret, Plan, Execute, Communicate, Safety, Housekeeping — with low-confidence execute/approve fallback to `Interpret` |
-| `CliIntentSensor` | `CliIntent` | Detects Read / Write / Update verb and target route |
-| `WorkflowStateSensor` | `ActiveWorkflow`, `StepReady` | Projects active workflow run state from memory store |
-| `ValidationStateSensor` | `NeedsValidation`, `ValidationOutcome` | Requests and surfaces step/workflow validation results |
-| `GovernanceMemoryProjectionSensor` | `LastWinner`, `CooldownState` | Hysteresis tracking and cooldown projection |
-
-### Modules
-
-| Module | Role |
-|---|---|
-| `CliActionModule` | Proposes registered `ICliAction` instances when `CliIntent` matches |
-| `RoutingBootstrapModule` | Proposes a clarification prompt when `GoalSelected.Confidence < 0.4` |
-| `GovernanceFinalizerModule` | Records `ProposalExecutionRecord` and `LastWinner` to `IMemoryStore` after each tick |
-| `HitlGateModule` | Intercepts destructive requests and routes them through a human approval channel (see [Security](#security)) |
+### Extending Compass?
+- Read [Extension Model](#extension-model)
+- Scaffold a plugin with `--new-module`
+- Use SDK attributes to participate in governance
 
 ---
 
-## Security
+## Quick Start
 
-### Side-Effect Levels
-
-Every proposal can declare a `SideEffectLevel`:
-
-| Level | Meaning |
-|---|---|
-| `ReadOnly` | No state changes — safe to execute without approval |
-| `Write` | Creates or modifies data |
-| `Destructive` | Deletes data, deploys, or overrides — triggers HITL gate |
-
-The governance strategy applies heavier cost/risk penalties to proposals with higher side-effect levels.
-
-### Human-in-the-Loop (HITL) Safety Gate
-
-`HitlGateModule` prevents destructive operations from executing without human approval.
-
-**Trigger keywords:** `delete`, `override`, `deploy`
-
-**Flow:**
-
-1. `HitlGateModule` detects a destructive `UserRequest`.
-2. A `hitl.create-request` proposal is raised (utility 0.85).
-3. On selection the module publishes `HitlPending` and `HitlRequest`, then sends the request to `IHumanDecisionChannel`.
-4. A `hitl.wait-for-decision` proposal polls `IHumanDecisionChannel.TryReceiveDecisionAsync()`.
-5. Once the human responds:
-   - **Approved** → `HitlApproved` fact published; the original action may proceed.
-   - **Rejected** → `HitlRejected` fact published with a reason; the request is dropped.
-
-Plugins can integrate with HITL by checking for `HitlApproved` / `HitlRejected` facts on the EventBus before performing irreversible work.
-
-### Workflow Validation Pipeline
-
-Multi-step workflows support validation gates at both step and workflow level:
-
-1. After a step completes, the module may publish a `NeedsValidation` fact.
-2. `ValidationStateSensor` projects the pending validation and its result (`ValidationOutcome`).
-3. Possible outcomes: **Pass**, **FailRetryable**, **FailFatal**.
-4. On failure the system consults a `RepairType` directive:
-
-| RepairType | Behaviour |
-|---|---|
-| `RetryStep` | Re-execute the failed step |
-| `Replan` | Regenerate remaining workflow steps |
-| `SwitchWorkflow` | Transition to an alternative workflow |
-| `AskUser` | Request clarification from the user |
-| `Hitl` | Escalate to a human operator via the HITL gate |
-| `Abort` | Fail the workflow immediately |
-
-### Plugin Sandboxing
-
-Plugins are loaded via `PluginLoader` using `Assembly.LoadFrom()`. The host discovers only types implementing known contracts (`ICapabilityModule`, `ISensor`, `IOrchestrationSink`, `ICliAction`). Plugins run in the same process as the host; isolation is contract-based rather than process-based. All plugin proposals pass through the same governance pipeline (goal/lane filtering, cooldowns, conflict resolution, cost/risk penalties) as built-in modules.
-
----
-
-## How to Build
-
-Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download)
+Requirements:
+- [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download)
+- Git
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/mrrasmussendk/Compass.git
 cd Compass
 dotnet build UtilityAi.Compass.sln
+dotnet test UtilityAi.Compass.sln
+dotnet run --project samples/Compass.SampleHost
 ```
 
-> **Note**: Compass now consumes **UtilityAi v1.6.5** from NuGet (`UtilityAi` package), so no submodule initialization is required.
+You should see a prompt similar to:
 
----
-
-## How to Run the Compass CLI
-
-```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
-```
-
-If no Compass model setup exists, the host will attempt to launch the platform installer script automatically on startup.
-
-For guided setup (model provider + deployment mode), run:
-
-```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --setup
-```
-
-To show available CLI arguments:
-
-```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --help
-```
-
-To list currently installed plugin modules:
-
-```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --list-modules
-```
-
-To install the CLI as a .NET tool:
-
-```bash
-dotnet tool install --global UtilityAi.Compass.Cli
-```
-
-If installed as a .NET tool:
-
-```bash
-compass --setup
-compass --help
-compass --list-modules
-compass --new-module MyPlugin
-```
-
-A simple REPL will start:
-
-```
-Compass CLI started. Type a request (or 'quit' to exit):
+```text
+Compass SampleHost started. Type a request (or 'quit' to exit):
 > summarize this document
   Goal: Summarize (85%), Lane: Communicate
-> quit
 ```
 
-To load plugins, copy plugin DLLs into a `plugins/` folder next to the executable before running.
-
-You can also manage modules with host commands:
-
-- CLI command: `/help`
-- CLI command: `/list-modules`
-- CLI command: `/install-module /absolute/path/MyPlugin.dll`
-- CLI command: `/install-module Package.Id@1.2.3`
-- CLI command: `/new-module MyPlugin [/absolute/output/path]`
-- Example: `/install-module UtilityAi.Compass.WeatherModule@1.0.1`
-- Startup args: `dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3`
-- Startup args: `dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin`
-
-Installed modules are copied into the host `plugins/` folder and loaded after restarting the host.
-
-### Create a new module with the CLI
-
-Use the scaffold command to generate a starter plugin project:
+For guided provider setup (OpenAI / Anthropic / Gemini), run:
 
 ```bash
-compass --new-module MyPlugin
-# or
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin [/absolute/output/path]
+./scripts/install.sh
+# Windows PowerShell: .\scripts\install.ps1
 ```
-
-This creates `<output-path>/MyPlugin/` with:
-
-- `MyPlugin.csproj` (net10.0 class library with `UtilityAi` reference)
-- `MyPluginModule.cs` (example `ICapabilityModule` proposal)
-
-Then build and install it:
-
-```bash
-dotnet build /absolute/output/path/MyPlugin
-compass --install-module /absolute/output/path/MyPlugin/bin/Debug/net10.0/MyPlugin.dll
-```
-
-If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the CLI switches to Discord mode and polls the configured channel for user messages.
-
-### Built-in model provider integration
-
-`UtilityAi.Compass.Cli` includes a shared model client abstraction with provider adapters for:
-
-- OpenAI (`COMPASS_MODEL_PROVIDER=openai`, `OPENAI_API_KEY`)
-- Anthropic (`COMPASS_MODEL_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`)
-- Gemini (`COMPASS_MODEL_PROVIDER=gemini`, `GEMINI_API_KEY`)
-
-Optional:
-
-- `COMPASS_MODEL_NAME` overrides the default model name per provider.
-- `COMPASS_MODEL_MAX_TOKENS` sets Anthropic `max_tokens` (default `512`).
-- `DISCORD_POLL_INTERVAL_SECONDS` and `DISCORD_MESSAGE_LIMIT` tune Discord polling behavior.
-- `COMPASS_MEMORY_CONNECTION_STRING` sets the SQLite memory database (defaults to local `appdb/compass-memory.db` under the app base directory when unset).
-
-The sample `Compass.SamplePlugin.OpenAi` now also includes `SkillMarkdownModule`, which loads its system instructions from `skill.md`. Because it uses the shared `IModelClient` abstraction, the same module works with OpenAI, Anthropic, and Gemini.
 
 ---
 
-## How to Write a Plugin
+## What Compass Adds on Top of UtilityAi
 
-1. Create a .NET class library targeting **net10.0**.
-2. Add a project reference to `UtilityAi.Compass.PluginSdk` (or reference its DLL).
-3. Implement `ICapabilityModule` and/or `ISensor` from the UtilityAi framework.
-4. Decorate your module with Compass SDK attributes:
+Compass layers governance and hosting concerns on top of UtilityAi proposal selection:
+
+- **Goal routing**: classify user intent (`GoalTag`)
+- **Lane routing**: route work by processing lane (`Lane`)
+- **Governed selection**: conflicts, cooldowns, cost/risk penalties, hysteresis
+- **Plugin hosting**: load modules/sensors/CLI actions from external DLLs
+- **Safety controls**: human-in-the-loop gate for destructive actions
+
+### Request Pipeline
+
+```text
+UserRequest
+  -> Sensors publish facts (GoalSelected, LaneSelected, CliIntent, CooldownState...)
+  -> Modules propose actions (built-in + plugin)
+  -> CompassGovernedSelectionStrategy picks winner
+  -> GovernanceFinalizerModule stores execution history
+```
+
+---
+
+## Extension Model
+
+Compass is designed to be extended safely.
+
+### Plugin author checklist
+
+1. Create a `net10.0` class library.
+2. Reference `UtilityAi.Compass.PluginSdk`.
+3. Implement `ICapabilityModule` (and optionally `ISensor` / `ICliAction`).
+4. Decorate module classes with Compass attributes.
+5. Copy plugin output into the host `plugins/` folder (or install via CLI).
+
+### Example capability module
 
 ```csharp
 using UtilityAi.Capabilities;
@@ -269,91 +102,127 @@ public sealed class MyModule : ICapabilityModule
         yield return new Proposal(
             id: "my-domain.answer",
             cons: [new ConstantValue(0.7)],
-            act: _ => { /* do work */ return Task.CompletedTask; }
+            act: _ => Task.CompletedTask
         );
     }
 }
 ```
 
-5. Build and drop the DLL into the `plugins/` folder (see below).
+### Metadata attributes and why they matter
+
+| Attribute | Purpose in governance |
+|---|---|
+| `CompassCapability` | Stable capability identity + priority |
+| `CompassGoals` | Declares which goals a proposal should match |
+| `CompassLane` | Declares lane affinity for routing |
+| `CompassCost` | Adds estimated cost penalty |
+| `CompassRisk` | Adds risk penalty |
+| `CompassCooldown` | Prevents rapid repeated execution |
 
 ---
 
-## How to Drop DLLs into /plugins
+## Governance in One View
 
-1. Build your plugin: `dotnet publish -c Release`
-2. Copy the output DLL (and dependencies) to `<SampleHost-output>/plugins/`.
-3. Run the sample host — it will discover all `ICapabilityModule` and `ISensor` types automatically.
+`CompassGovernedSelectionStrategy` applies these stages each tick:
 
-The `PluginLoader` in `UtilityAi.Compass.PluginHost` uses `AssemblyLoadContext` to load assemblies from a folder path.
+1. **Workflow commitment** (stick to active workflow when required)
+2. **Goal/lane filtering** (with progressive relaxation)
+3. **Conflict resolution** (`ConflictIds`, `ConflictTags`)
+4. **Cooldown handling** (hard drop or penalty)
+5. **Effective score and hysteresis**
+
+Formula:
+
+```text
+effectiveScore = utility - (CostWeight * EstimatedCost) - (RiskWeight * RiskLevel)
+```
+
+If the previous winner is still competitive within stickiness bounds, Compass keeps it to reduce oscillation.
 
 ---
 
-## How Governance Works
+## Safety Model
 
-`CompassGovernedSelectionStrategy` processes every tick through a five-step pipeline:
+### Side-effect levels
 
-### 1. Workflow Commitment
+| Level | Meaning |
+|---|---|
+| `ReadOnly` | No persistent changes |
+| `Write` | Creates/modifies state |
+| `Destructive` | Deletes/overrides/deploys |
 
-When an `ActiveWorkflow` is running and has not expired its `StickinessUntilUtc`, only proposals belonging to that workflow — or system-level proposals (`askuser.*`, `validate.*`, `repair.*`) — are allowed through. All other proposals are filtered out.
+### Human-in-the-loop (HITL)
 
-### 2. Goal / Lane Routing
+`HitlGateModule` intercepts destructive intents (for example: `delete`, `override`, `deploy`) and routes them through `IHumanDecisionChannel` before allowing execution.
 
-Each tick the `GoalRouterSensor` publishes a `GoalSelected` fact using model-based classification from `UserRequest` plus workflow context (`ActiveWorkflow` and latest `StepResult`), and `LaneRouterSensor` publishes `LaneSelected` with confidence-aware safety fallback for side-effectful intents.
+---
 
-The strategy filters proposals to those matching the current goal + lane. Matching is progressively relaxed: goal + lane → goal only → lane only → untagged fallback.
+## CLI and Module Operations
 
-### 3. Conflict Resolution
+Run the Compass CLI:
 
-Proposals are evaluated in descending utility order. If a `ProposalMetadata` declares `ConflictIds` or `ConflictTags`, and a higher-utility proposal with one of those IDs or tags has already been chosen in the same tick, the conflicting proposal is dropped.
+```bash
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
+```
 
-### 4. Cooldowns
+Install as a global .NET tool (optional):
 
-If a proposal's `ProposalMetadata` has a `CooldownKeyTemplate` and `CooldownTtl`, the `GovernanceMemoryProjectionSensor` reads `ProposalExecutionRecord` entries from `InMemoryStore` and publishes `CooldownState` facts.  
-The selection strategy either **hard-drops** or **penalises** a proposal on cooldown, depending on `GovernanceConfig.HardDropOnCooldown`.
+```bash
+dotnet tool install --global UtilityAi.Compass.Cli
+```
 
-### 5. Cost / Risk Penalties & Hysteresis
+Common commands:
 
-Effective score = `utility − (CostWeight × EstimatedCost) − (RiskWeight × RiskLevel)`.
+```bash
+# setup and discovery
+compass --setup
+compass --help
+compass --list-modules
 
-After selecting the highest-scoring candidate, the strategy checks whether the previous winner (`LastWinner` fact from `InMemoryStore`) is still in the candidate list. If `lastWinner.EffectiveScore + StickinessBonus ≥ best.EffectiveScore − HysteresisEpsilon`, the previous winner is re-selected — preventing oscillation between similarly-scored proposals.
+# create/install modules
+compass --new-module MyPlugin
+compass --install-module /absolute/path/MyPlugin.dll
+compass --install-module Package.Id@1.2.3
+```
 
-### Configuration (`GovernanceConfig`)
+Equivalent in dev mode:
 
-| Parameter | Default | Description |
-|---|---|---|
-| `CostWeight` | 0.2 | Multiplier for `EstimatedCost` penalty |
-| `RiskWeight` | 0.2 | Multiplier for `RiskLevel` penalty |
-| `HysteresisEpsilon` | 0.05 | Minimum score delta required to switch winners |
-| `StickinessBonus` | 0.02 | Bonus added to the previous winner's score |
-| `HardDropOnCooldown` | false | When true, proposals on cooldown are removed; when false, penalised |
-| `CooldownPenalty` | 0.8 | Score reduction applied when soft-dropping a cooled-down proposal |
+```bash
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3
+```
 
 ---
 
 ## Solution Layout
 
-```
+```text
 UtilityAi.Compass.sln
 ├── src/
-│   ├── UtilityAi.Compass.Abstractions/    ← Enums, facts, interfaces
-│   ├── UtilityAi.Compass.Runtime/         ← Sensors, modules, strategy, DI
-│   ├── UtilityAi.Compass.PluginSdk/       ← Attributes + metadata provider
-│   ├── UtilityAi.Compass.PluginHost/      ← Plugin loader (folder + AssemblyLoadContext)
-│   └── UtilityAi.Compass.Hitl/            ← Human-in-the-loop gate (optional)
+│   ├── UtilityAi.Compass.Abstractions/     # Enums, facts, interfaces
+│   ├── UtilityAi.Compass.Runtime/          # Sensors, modules, strategy, DI
+│   ├── UtilityAi.Compass.PluginSdk/        # Attributes + metadata provider
+│   ├── UtilityAi.Compass.PluginHost/       # Plugin loader and DI integration
+│   ├── UtilityAi.Compass.Hitl/             # Human-in-the-loop module/facts
+│   ├── UtilityAi.Compass.StandardModules/  # Reusable built-in modules
+│   ├── UtilityAi.Compass.WeatherModule/    # Example/weather-oriented module
+│   └── UtilityAi.Compass.Cli/              # CLI host and module tooling
 ├── samples/
-│   ├── Compass.SampleHost/                ← Console REPL demo host
-│   └── Compass.SamplePlugin.Basic/        ← Example third-party plugin
+│   ├── Compass.SampleHost/                 # Console/Discord sample host
+│   ├── Compass.SamplePlugin.Basic/         # Minimal plugin sample
+│   └── Compass.SamplePlugin.OpenAi/        # Model-backed sample plugin
+├── docs/
+│   ├── README.md
+│   └── INSTALL.md
 └── tests/
-    └── UtilityAi.Compass.Tests/           ← xUnit tests
+    └── UtilityAi.Compass.Tests/
 ```
 
-## CI package build
+---
 
-GitHub Actions workflow `.github/workflows/build-pack.yml` builds/tests on Linux and Windows and packs a cross-platform .NET tool NuGet package for `UtilityAi.Compass.Cli`.
+## More Documentation
 
-GitHub Actions workflow `.github/workflows/master-version-bump.yml` runs only on pushes to `master` and bumps package versions using this repository's custom rollover policy:
+- [docs/README.md](docs/README.md) — concepts and project overview
+- [docs/INSTALL.md](docs/INSTALL.md) — installation and troubleshooting
 
-- `major.minor.patch` increments `patch` until `9`
-- `x.y.9` rolls to `x.(y+1).0`
-- `x.9.9` rolls to `(x+1).0.0`
+If you are building a plugin ecosystem, start with the sample plugin projects and follow the metadata conventions above so your modules remain predictable inside Compass governance.
