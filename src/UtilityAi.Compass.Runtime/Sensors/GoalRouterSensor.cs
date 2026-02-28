@@ -12,10 +12,20 @@ namespace UtilityAi.Compass.Runtime.Sensors;
 /// </summary>
 public sealed class GoalRouterSensor : ISensor
 {
+    private const double DefaultModelConfidence = 0.7;
+    private static readonly string GoalList = string.Join("|", Enum.GetNames<GoalTag>());
     private readonly IModelClient? _modelClient;
 
+    /// <summary>
+    /// Creates a goal router without an injected model client.
+    /// Classification will fall back to the default goal.
+    /// </summary>
     public GoalRouterSensor() { }
 
+    /// <summary>
+    /// Creates a goal router that classifies user intent with a model client.
+    /// </summary>
+    /// <param name="modelClient">Model client used for goal classification.</param>
     public GoalRouterSensor(IModelClient modelClient)
     {
         _modelClient = modelClient;
@@ -42,6 +52,13 @@ public sealed class GoalRouterSensor : ISensor
         rt.Bus.Publish(new GoalSelected(GoalTag.Answer, 0.5, "default"));
     }
 
+    /// <summary>
+    /// Attempts to classify a request into a <see cref="GoalTag"/> using the configured model.
+    /// </summary>
+    /// <param name="requestText">Incoming user request text.</param>
+    /// <param name="activeWorkflow">Optional active workflow context.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The classified goal/confidence tuple, or <see langword="null"/> when classification fails.</returns>
     private async Task<(GoalTag Goal, double Confidence)?> ClassifyWithModelAsync(
         string requestText,
         ActiveWorkflow? activeWorkflow,
@@ -57,10 +74,8 @@ public sealed class GoalRouterSensor : ISensor
         var response = await _modelClient.GenerateAsync(
             new ModelRequest
             {
-                SystemMessage = """
-                                You classify request intent for UtilityAi Compass goal routing.
-                                Return strict JSON: {"goal":"Answer|Clarify|Summarize|Execute|Approve|Stop","confidence":0..1}.
-                                """,
+                SystemMessage = $"You classify request intent for UtilityAi Compass goal routing.\n"
+                    + $"Return strict JSON: {{\"goal\":\"{GoalList}\",\"confidence\":0..1}}.",
                 Prompt = $"request: {requestText}\nactive_workflow: {workflowContext}",
                 Temperature = 0.0,
                 MaxTokens = 64
@@ -73,6 +88,13 @@ public sealed class GoalRouterSensor : ISensor
         return (goal, confidence);
     }
 
+    /// <summary>
+    /// Parses model output JSON into a typed goal classification.
+    /// </summary>
+    /// <param name="text">Raw model output text.</param>
+    /// <param name="goal">Parsed goal value when successful.</param>
+    /// <param name="confidence">Parsed confidence value when successful.</param>
+    /// <returns><see langword="true"/> when parsing succeeds; otherwise <see langword="false"/>.</returns>
     private static bool TryParseGoalResponse(string text, out GoalTag goal, out double confidence)
     {
         goal = GoalTag.Answer;
@@ -85,7 +107,11 @@ public sealed class GoalRouterSensor : ISensor
             if (!root.TryGetProperty("goal", out var goalElement))
                 return false;
 
-            if (!Enum.TryParse(goalElement.GetString(), ignoreCase: true, out goal))
+            string? goalName = goalElement.GetString();
+            if (string.IsNullOrWhiteSpace(goalName))
+                return false;
+
+            if (!Enum.TryParse(goalName, ignoreCase: true, out goal))
                 return false;
 
             if (root.TryGetProperty("confidence", out var confidenceElement) &&
@@ -96,7 +122,7 @@ public sealed class GoalRouterSensor : ISensor
             }
             else
             {
-                confidence = 0.7;
+                confidence = DefaultModelConfidence;
             }
 
             return true;

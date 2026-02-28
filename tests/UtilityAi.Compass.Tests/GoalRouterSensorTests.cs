@@ -8,13 +8,19 @@ namespace UtilityAi.Compass.Tests;
 
 public class GoalRouterSensorTests
 {
+    /// <summary>Test double for deterministic model responses.</summary>
     private sealed class StubModelClient(string response) : IModelClient
     {
+        public ModelRequest? LastRequest { get; private set; }
+
         public Task<string> GenerateAsync(string prompt, CancellationToken cancellationToken = default)
             => Task.FromResult(response);
 
         public Task<ModelResponse> GenerateAsync(ModelRequest request, CancellationToken cancellationToken = default)
-            => Task.FromResult(new ModelResponse { Text = response });
+        {
+            LastRequest = request;
+            return Task.FromResult(new ModelResponse { Text = response });
+        }
     }
 
     [Theory]
@@ -79,5 +85,25 @@ public class GoalRouterSensorTests
         Assert.NotNull(goal);
         Assert.Equal(GoalTag.Execute, goal.Goal);
         Assert.Equal(0.7, goal.Confidence);
+    }
+
+    [Fact]
+    public async Task SenseAsync_BuildsModelRequestWithWorkflowContext()
+    {
+        var model = new StubModelClient("{\"goal\":\"Answer\",\"confidence\":0.6}");
+        var sensor = new GoalRouterSensor(model);
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("what now"));
+        bus.Publish(new ActiveWorkflow("summarization", "run-1", null, WorkflowStatus.Active));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        await sensor.SenseAsync(rt, CancellationToken.None);
+
+        Assert.NotNull(model.LastRequest);
+        Assert.Equal(0.0, model.LastRequest.Temperature);
+        Assert.Equal(64, model.LastRequest.MaxTokens);
+        foreach (var goal in Enum.GetNames<GoalTag>())
+            Assert.Contains(goal, model.LastRequest.SystemMessage);
+        Assert.Contains("active_workflow: summarization (Active)", model.LastRequest.Prompt);
     }
 }
