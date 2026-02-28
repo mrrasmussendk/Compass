@@ -1,93 +1,234 @@
 # UtilityAi.Compass
 
-**UtilityAi.Compass** is a modular bot host built on top of [UtilityAi](https://github.com/mrrasmussendk/UtilityAi).
-It helps you combine many built-in and third-party capabilities while keeping execution predictable through governance (routing, cooldowns, conflict checks, cost/risk penalties, and hysteresis).
+**UtilityAi.Compass** is a governed host for UtilityAI-based assistants.
 
-## Start Here
+If you are evaluating Compass for practical use, there are two main workflows:
 
-### New to Compass?
-- Follow the installation guide: [docs/INSTALL.md](docs/INSTALL.md)
-- Build and run quickly (see [Quick Start](#quick-start))
-- Try the sample host in REPL mode
+1. **Use the CLI tool** to run Compass, scaffold modules, and install plugin packages.
+2. **Extend Compass** by writing your own capability modules, sensors, and optional CLI actions.
 
-### Extending Compass?
-- Read [Extension Model](#extension-model)
-- Scaffold a plugin with `--new-module`
-- Use SDK attributes to participate in governance
+This README is organized around those two workflows first.
 
 ---
 
-## Quick Start
+## Table of Contents
 
-Requirements:
+- [Who this is for](#who-this-is-for)
+- [Quick start (5 minutes)](#quick-start-5-minutes)
+- [CLI-first usage](#cli-first-usage)
+  - [Run Compass CLI](#run-compass-cli)
+  - [Command reference](#command-reference)
+  - [Interactive mode commands](#interactive-mode-commands)
+  - [Module installation and scaffold flows](#module-installation-and-scaffold-flows)
+- [Extension-first usage (plugins)](#extension-first-usage-plugins)
+  - [Plugin architecture at a glance](#plugin-architecture-at-a-glance)
+  - [Step-by-step: build your first capability module](#step-by-step-build-your-first-capability-module)
+  - [Governance metadata attributes](#governance-metadata-attributes)
+  - [Optional: add sensors and CLI actions](#optional-add-sensors-and-cli-actions)
+  - [Build and load plugin into Compass](#build-and-load-plugin-into-compass)
+- [How governance works when your module runs](#how-governance-works-when-your-module-runs)
+- [Safety and human-in-the-loop](#safety-and-human-in-the-loop)
+- [Repository layout](#repository-layout)
+- [Documentation map](#documentation-map)
+
+---
+
+## Who this is for
+
+### I want to **use Compass now**
+Start with:
+
+- [Quick start (5 minutes)](#quick-start-5-minutes)
+- [CLI-first usage](#cli-first-usage)
+
+### I want to **build extensions/plugins**
+Start with:
+
+- [Extension-first usage (plugins)](#extension-first-usage-plugins)
+- [docs/EXTENDING.md](docs/EXTENDING.md)
+
+### I want to **understand internals and contribute**
+Start with:
+
+- [How governance works when your module runs](#how-governance-works-when-your-module-runs)
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+
+---
+
+## Quick start (5 minutes)
+
+### Prerequisites
+
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download)
 - Git
+
+### Clone, build, test
 
 ```bash
 git clone https://github.com/mrrasmussendk/Compass.git
 cd Compass
 dotnet build UtilityAi.Compass.sln
 dotnet test UtilityAi.Compass.sln
-dotnet run --project samples/Compass.SampleHost
 ```
 
-You should see a prompt similar to:
-
-```text
-Compass SampleHost started. Type a request (or 'quit' to exit):
-> summarize this document
-  Goal: Summarize (85%), Lane: Communicate
-```
-
-For guided provider setup (OpenAI / Anthropic / Gemini), run:
+### Optional guided setup (model provider + deployment mode)
 
 ```bash
 ./scripts/install.sh
 # Windows PowerShell: .\scripts\install.ps1
 ```
 
----
+### Run the sample host (same core runtime used by the CLI tool)
 
-## What Compass Adds on Top of UtilityAi
+```bash
+dotnet run --project samples/Compass.SampleHost
+```
 
-Compass layers governance and hosting concerns on top of UtilityAi proposal selection:
-
-- **Goal routing**: classify user intent (`GoalTag`)
-- **Lane routing**: route work by processing lane (`Lane`)
-- **Governed selection**: conflicts, cooldowns, cost/risk penalties, hysteresis
-- **Plugin hosting**: load modules/sensors/CLI actions from external DLLs
-- **Safety controls**: human-in-the-loop gate for destructive actions
-
-### Request Pipeline
+Expected startup (wording may vary by build/version):
 
 ```text
-UserRequest
-  -> Sensors publish facts (GoalSelected, LaneSelected, CliIntent, CooldownState...)
-  -> Modules propose actions (built-in + plugin)
-  -> CompassGovernedSelectionStrategy picks winner
-  -> GovernanceFinalizerModule stores execution history
+... started. Type a request (or 'quit' to exit):
 ```
 
 ---
 
-## Extension Model
+## CLI-first usage
 
-Compass is designed to be extended safely.
+Compass ships as a CLI application (`compass`) and can also be executed directly via `dotnet run`.
 
-### Plugin author checklist
+### Run Compass CLI
 
-1. Create a `net10.0` class library.
-2. Reference `UtilityAi.Compass.PluginSdk`.
-3. Implement `ICapabilityModule` (and optionally `ISensor` / `ICliAction`).
-4. Decorate module classes with Compass attributes.
-5. Copy plugin output into the host `plugins/` folder (or install via CLI).
+#### Option A — run from source (repo clone)
 
-### Example capability module
+```bash
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
+```
+
+#### Option B — install as a global .NET tool
+
+```bash
+dotnet tool install --global UtilityAi.Compass.Cli
+compass --help
+```
+
+### Command reference
+
+The CLI supports these startup arguments:
+
+```text
+--help
+--setup
+--list-modules
+--install-module <path|package@version>
+--new-module <Name> [OutputPath]
+```
+
+#### `--help`
+Print available CLI arguments.
+
+#### `--setup`
+Runs the bundled installer script (`scripts/install.sh` or `scripts/install.ps1`) to configure provider settings and runtime environment.
+
+#### `--list-modules`
+Shows standard modules + plugin DLLs already installed in the runtime `plugins/` folder.
+
+#### `--install-module <path|package@version>`
+Installs a module from either:
+
+- local `.dll`
+- local `.nupkg`
+- NuGet package reference (`Package.Id@1.2.3`)
+
+Examples:
+
+```bash
+compass --install-module /absolute/path/MyPlugin.dll
+compass --install-module /absolute/path/MyPlugin.1.0.0.nupkg
+compass --install-module Package.Id@1.2.3
+```
+
+#### `--new-module <Name> [OutputPath]`
+Scaffolds a minimal module project directory.
+
+Examples:
+
+```bash
+compass --new-module MyPlugin
+compass --new-module MyPlugin /absolute/path/to/output
+```
+
+### Interactive mode commands
+
+When you start CLI with no startup argument, it enters interactive mode.
+
+In interactive mode, use:
+
+- `/help`
+- `/setup`
+- `/list-modules`
+- `/install-module <path|package@version>`
+- `/new-module <Name> [OutputPath]`
+
+You can also type plain natural-language requests (for example: "summarize this file") and Compass routes/executes the best proposal.
+
+### Module installation and scaffold flows
+
+#### Flow A: install an existing plugin
+
+1. Build or obtain plugin artifact.
+2. Run `compass --install-module ...`.
+3. Restart Compass CLI (new modules are loaded on startup).
+4. Run `compass --list-modules` to verify installation.
+
+#### Flow B: scaffold and iterate quickly
+
+1. Run `compass --new-module MyPlugin`.
+2. Open generated files and implement your logic.
+3. Build your module.
+4. Install module with `--install-module`.
+5. Restart CLI and test behavior.
+
+---
+
+## Extension-first usage (plugins)
+
+Compass is designed to be extended with third-party modules while keeping execution governed and predictable.
+
+### Plugin architecture at a glance
+
+Plugins can provide one or more of:
+
+- `ICapabilityModule` (primary action/proposal producer)
+- `ISensor` (publishes facts used for routing/governance)
+- `ICliAction` (discoverable CLI action endpoint)
+
+At startup, `PluginLoader` discovers plugin types and registers them into DI.
+
+### Step-by-step: build your first capability module
+
+#### 1) Create a class library
+
+```bash
+dotnet new classlib -f net10.0 -n MyCompassPlugin
+cd MyCompassPlugin
+```
+
+#### 2) Add dependencies
+
+For metadata-driven governance, add the Compass SDK package and UtilityAI runtime dependency used for proposals.
+
+```bash
+dotnet add package UtilityAi.Compass.PluginSdk
+dotnet add package UtilityAi
+```
+
+#### 3) Implement `ICapabilityModule`
 
 ```csharp
 using UtilityAi.Capabilities;
 using UtilityAi.Compass.Abstractions;
 using UtilityAi.Compass.PluginSdk.Attributes;
+using UtilityAi.Consideration.General;
 
 [CompassCapability("my-domain", priority: 5)]
 [CompassGoals(GoalTag.Answer, GoalTag.Summarize)]
@@ -102,101 +243,103 @@ public sealed class MyModule : ICapabilityModule
         yield return new Proposal(
             id: "my-domain.answer",
             cons: [new ConstantValue(0.7)],
-            act: _ => Task.CompletedTask // placeholder - replace with real work
+            act: _ => Task.CompletedTask
         );
     }
 }
 ```
 
-Replace the `act` delegate with your domain logic (API call, file operation, workflow step, etc.).
+#### 4) Build plugin
 
-### Metadata attributes and why they matter
+```bash
+dotnet build
+```
 
-| Attribute | Purpose in governance |
+### Governance metadata attributes
+
+| Attribute | What it controls |
 |---|---|
-| `CompassCapability` | Stable capability identity + priority |
-| `CompassGoals` | Declares which goals a proposal should match |
-| `CompassLane` | Declares lane affinity for routing |
-| `CompassCost` | Adds estimated cost penalty |
-| `CompassRisk` | Adds risk penalty |
-| `CompassCooldown` | Prevents rapid repeated execution |
+| `CompassCapability` | Capability domain identity and priority |
+| `CompassGoals` | Which `GoalTag` values this module should handle |
+| `CompassLane` | Lane affinity for routing |
+| `CompassCost` | Estimated cost penalty in scoring |
+| `CompassRisk` | Risk penalty in scoring |
+| `CompassCooldown` | Cooldown memory key + TTL |
+| `CompassConflicts` | Optional conflict IDs/tags against other proposals |
+
+### Optional: add sensors and CLI actions
+
+#### Add a sensor (`ISensor`)
+Use sensors to publish additional facts into the runtime bus. Facts can influence filtering, safety, cooldown behavior, or custom module logic.
+
+#### Add a CLI action (`ICliAction`)
+Use CLI actions when your plugin should expose explicit command-oriented behavior.
+
+```csharp
+using UtilityAi.Compass.Abstractions.CliAction;
+
+public sealed class ReadConfigAction : ICliAction
+{
+    public CliVerb Verb => CliVerb.Read;
+    public string Route => "config";
+    public string Description => "Read configuration values";
+
+    public Task<string> ExecuteAsync(string input, CancellationToken ct = default)
+        => Task.FromResult("Current config: ...");
+}
+```
+
+### Build and load plugin into Compass
+
+You can load your plugin in two supported ways:
+
+#### Option A — copy build output to `plugins/`
+
+Place plugin DLLs next to the running executable under a `plugins/` folder.
+
+#### Option B — install with CLI
+
+```bash
+compass --install-module /absolute/path/MyCompassPlugin.dll
+```
+
+Then restart Compass CLI.
 
 ---
 
-## Governance in One View
+## How governance works when your module runs
 
-`CompassGovernedSelectionStrategy` applies these stages each tick:
+`CompassGovernedSelectionStrategy` applies governance stages in order:
 
-1. **Workflow commitment** (stick to active workflow when required)
-2. **Goal/lane filtering** (with progressive relaxation)
-3. **Conflict resolution** (`ConflictIds`, `ConflictTags`)
-4. **Cooldown handling** (hard drop or penalty)
-5. **Effective score and hysteresis**
+1. Workflow commitment check
+2. Goal + lane filtering (progressive relaxation if strict match is missing)
+3. Conflict checks (`ConflictIds`, `ConflictTags`)
+4. Cooldown checks (drop or penalty)
+5. Effective score calculation + hysteresis
 
-Formula:
+Scoring formula:
 
 ```text
 effectiveScore = utility - (CostWeight * EstimatedCost) - (RiskWeight * RiskLevel)
 ```
 
-If the previous winner is still competitive within stickiness bounds, Compass keeps it to reduce oscillation.
+Hysteresis (stickiness) helps avoid rapid winner flipping when scores are close.
 
 ---
 
-## Safety Model
+## Safety and human-in-the-loop
 
-### Side-effect levels
+Compass supports side-effect awareness:
 
-| Level | Meaning |
-|---|---|
-| `ReadOnly` | No persistent changes |
-| `Write` | Creates/modifies state |
-| `Destructive` | Deletes/overrides/deploys |
+- `ReadOnly`
+- `Write`
+- `Destructive`
 
-### Human-in-the-loop (HITL)
-
-`HitlGateModule` intercepts destructive intents (for example: `delete`, `override`, `deploy`) and routes them through `IHumanDecisionChannel` before allowing execution.
+`HitlGateModule` can intercept destructive requests (for example: delete/override/deploy intent) and route them through a human approval channel before execution continues.
 
 ---
 
-## CLI and Module Operations
-
-Run the Compass CLI:
-
-```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
-```
-
-Install as a global .NET tool (optional):
-
-```bash
-dotnet tool install --global UtilityAi.Compass.Cli
-```
-
-Common commands:
-
-```bash
-# setup and discovery
-compass --setup
-compass --help
-compass --list-modules
-
-# create/install modules
-compass --new-module MyPlugin
-compass --install-module /absolute/path/MyPlugin.dll
-compass --install-module Package.Id@1.2.3
-```
-
-Equivalent in dev mode:
-
-```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3
-```
-
----
-
-## Solution Layout
+## Repository layout
 
 ```text
 UtilityAi.Compass.sln
@@ -206,28 +349,31 @@ UtilityAi.Compass.sln
 │   ├── UtilityAi.Compass.PluginSdk/        # Attributes + metadata provider
 │   ├── UtilityAi.Compass.PluginHost/       # Plugin loader and DI integration
 │   ├── UtilityAi.Compass.Hitl/             # Human-in-the-loop module/facts
-│   ├── UtilityAi.Compass.StandardModules/  # Reusable built-in modules
-│   ├── UtilityAi.Compass.WeatherModule/    # Example/weather-oriented module
-│   └── UtilityAi.Compass.Cli/              # CLI host and module tooling
+│   ├── UtilityAi.Compass.StandardModules/  # Built-in reusable modules
+│   ├── UtilityAi.Compass.WeatherModule/    # Example weather-oriented module
+│   └── UtilityAi.Compass.Cli/              # CLI host/tooling
 ├── samples/
 │   ├── Compass.SampleHost/                 # Console/Discord sample host
 │   ├── Compass.SamplePlugin.Basic/         # Minimal plugin sample
-│   └── Compass.SamplePlugin.OpenAi/        # Model-backed sample plugin
+│   └── Compass.SamplePlugin.OpenAi/        # Model-backed plugin sample
 ├── docs/
-│   ├── README.md
-│   └── INSTALL.md
+│   ├── INSTALL.md
+│   ├── USING.md
+│   ├── EXTENDING.md
+│   └── CONTRIBUTING.md
 └── tests/
     └── UtilityAi.Compass.Tests/
 ```
 
 ---
 
-## More Documentation
+## Documentation map
 
-- [docs/README.md](docs/README.md) — concepts and project overview
-- [docs/INSTALL.md](docs/INSTALL.md) — installation and troubleshooting
-- [docs/USING.md](docs/USING.md) — running Compass hosts
-- [docs/EXTENDING.md](docs/EXTENDING.md) — building Compass plugins
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — contributing to core Compass
+- [docs/INSTALL.md](docs/INSTALL.md) — full setup and troubleshooting
+- [docs/USING.md](docs/USING.md) — host runtime usage patterns
+- [docs/EXTENDING.md](docs/EXTENDING.md) — plugin author guide
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — contribution workflow
+- [docs/README.md](docs/README.md) — high-level docs index
 
-If you are building a plugin ecosystem, start with the sample plugin projects and follow the metadata conventions above so your modules remain predictable inside Compass governance.
+If your primary goal is adoption, start with CLI workflows.
+If your primary goal is product differentiation, start with extension workflows.
