@@ -127,13 +127,12 @@ Plugins are loaded via `PluginLoader` using `Assembly.LoadFrom()`. The host disc
 Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download)
 
 ```bash
-git clone <this-repo> --recurse-submodules
+git clone <this-repo>
 cd Compass
 dotnet build UtilityAi.Compass.sln
 ```
 
-> **Note**: The UtilityAi dependency is included as a git submodule at `vendor/UtilityAi` pinned to tag **v1.6.5**.  
-> If you cloned without `--recurse-submodules`, run `git submodule update --init --recursive`.
+> **Note**: Compass now consumes **UtilityAi v1.6.5** from NuGet (`UtilityAi` package), so no submodule initialization is required.
 
 ---
 
@@ -175,6 +174,7 @@ If installed as a .NET tool:
 compass --setup
 compass --help
 compass --list-modules
+compass --new-module MyPlugin
 ```
 
 A simple REPL will start:
@@ -194,8 +194,10 @@ You can also install modules with the host command:
 - CLI command: `/list-modules`
 - CLI command: `/install-module /absolute/path/MyPlugin.dll`
 - CLI command: `/install-module Package.Id@1.2.3`
+- CLI command: `/new-module MyPlugin [/absolute/output/path]`
 - Example: `/install-module UtilityAi.Compass.WeatherModule@1.0.0`
 - Startup args: `dotnet run --project src/UtilityAi.Compass.Cli -- --install-module Package.Id@1.2.3`
+- Startup args: `dotnet run --project src/UtilityAi.Compass.Cli -- --new-module MyPlugin`
 
 Installed modules are copied into the host `plugins/` folder and loaded after restarting the host.
 
@@ -311,7 +313,6 @@ After selecting the highest-scoring candidate, the strategy checks whether the p
 
 ```
 UtilityAi.Compass.sln
-├── vendor/UtilityAi/                    ← git submodule @ v1.6.5
 ├── src/
 │   ├── UtilityAi.Compass.Abstractions/    ← Enums, facts, interfaces
 │   ├── UtilityAi.Compass.Runtime/         ← Sensors, modules, strategy, DI

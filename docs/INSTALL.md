@@ -9,7 +9,7 @@ This guide walks you through installing and running **UtilityAi.Compass**.
 | Requirement | Details |
 |---|---|
 | [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download) | Build and run the solution |
-| [Git](https://git-scm.com/) | Clone the repository and initialise the submodule |
+| [Git](https://git-scm.com/) | Clone the repository |
 
 Verify both are installed:
 
@@ -22,17 +22,11 @@ git --version
 
 ## 1. Clone the Repository
 
-Clone with the `--recurse-submodules` flag so that the **UtilityAi** dependency (pinned to **v1.6.5** at `vendor/UtilityAi`) is fetched automatically:
+Clone the repository:
 
 ```bash
-git clone https://github.com/mrrasmussendk/Compass.git --recurse-submodules
+git clone https://github.com/mrrasmussendk/Compass.git
 cd Compass
-```
-
-If you already cloned without `--recurse-submodules`, initialise the submodule manually:
-
-```bash
-git submodule update --init --recursive
 ```
 
 ---
@@ -157,7 +151,6 @@ See the [root README](../README.md#how-to-write-a-plugin) for details on writing
 
 ```
 UtilityAi.Compass.sln
-├── vendor/UtilityAi/                    ← git submodule @ v1.6.5
 ├── src/
 │   ├── UtilityAi.Compass.Abstractions/  ← Enums, facts, interfaces
 │   ├── UtilityAi.Compass.Runtime/       ← Sensors, modules, strategy, DI
@@ -177,7 +170,7 @@ UtilityAi.Compass.sln
 
 | Problem | Fix |
 |---|---|
-| `vendor/UtilityAi` folder is empty or missing | Run `git submodule update --init --recursive` |
+| Build cannot restore UtilityAi | Ensure https://api.nuget.org/v3/index.json is reachable |
 | `dotnet: command not found` | Install the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download) and ensure it is on your `PATH` |
 | Build error about target framework `net10.0` | Confirm you have .NET **10** (not an older SDK) installed |
 | API key errors at runtime | Double-check the correct `*_API_KEY` variable is set for your chosen `COMPASS_MODEL_PROVIDER` |

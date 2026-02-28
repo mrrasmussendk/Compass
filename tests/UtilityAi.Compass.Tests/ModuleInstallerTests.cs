@@ -129,6 +129,47 @@ public class ModuleInstallerTests
         Assert.Equal(expected, moduleSpec);
     }
 
+    [Theory]
+    [InlineData("/new-module MyPlugin", "MyPlugin", null)]
+    [InlineData(" /new-module MyPlugin /tmp/modules ", "MyPlugin", "/tmp/modules")]
+    public void TryParseNewModuleCommand_ParsesExpectedFormat(string input, string expectedName, string? expectedPath)
+    {
+        var ok = ModuleInstaller.TryParseNewModuleCommand(input, out var moduleName, out var outputPath);
+
+        Assert.True(ok);
+        Assert.Equal(expectedName, moduleName);
+        if (expectedPath is not null)
+            Assert.Equal(expectedPath, outputPath);
+    }
+
+    [Fact]
+    public void ScaffoldNewModule_CreatesProjectAndExampleClass()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            var message = ModuleInstaller.ScaffoldNewModule("SamplePlugin", root);
+
+            Assert.Contains("Created module scaffold", message);
+            var modulePath = Path.Combine(root, "SamplePlugin");
+            var projectPath = Path.Combine(modulePath, "SamplePlugin.csproj");
+            var classPath = Path.Combine(modulePath, "SamplePluginModule.cs");
+            Assert.True(File.Exists(projectPath));
+            Assert.True(File.Exists(classPath));
+            Assert.Contains("PackageReference Include=\"UtilityAi\" Version=\"1.6.5\"", File.ReadAllText(projectPath));
+            var classContent = File.ReadAllText(classPath);
+            Assert.Contains("using UtilityAi.Capabilities;", classContent);
+            Assert.Contains("using UtilityAi.Consideration;", classContent);
+            Assert.Contains("public sealed class SamplePluginModule : ICapabilityModule", classContent);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public void ListInstalledModules_ReturnsEmpty_WhenFolderDoesNotExist()
     {
