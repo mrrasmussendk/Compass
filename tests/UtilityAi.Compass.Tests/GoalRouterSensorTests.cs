@@ -39,4 +39,50 @@ public class GoalRouterSensorTests
         Assert.NotNull(goal);
         Assert.Equal(GoalTag.Answer, goal.Goal);
     }
+
+    [Fact]
+    public async Task SenseAsync_DoesNotMatchPartialWord_Stop()
+    {
+        var sensor = new GoalRouterSensor();
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("the process has stopped already"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        await sensor.SenseAsync(rt, CancellationToken.None);
+
+        var goal = bus.GetOrDefault<GoalSelected>();
+        Assert.NotNull(goal);
+        Assert.Equal(GoalTag.Answer, goal.Goal);
+    }
+
+    [Fact]
+    public async Task SenseAsync_DoesNotMatchPartialWord_Execute()
+    {
+        var sensor = new GoalRouterSensor();
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("undo that last step"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        await sensor.SenseAsync(rt, CancellationToken.None);
+
+        var goal = bus.GetOrDefault<GoalSelected>();
+        Assert.NotNull(goal);
+        Assert.Equal(GoalTag.Answer, goal.Goal);
+    }
+
+    [Fact]
+    public async Task SenseAsync_PrefersHigherConfidenceMatch()
+    {
+        var sensor = new GoalRouterSensor();
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("please summarize and then stop"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        await sensor.SenseAsync(rt, CancellationToken.None);
+
+        var goal = bus.GetOrDefault<GoalSelected>();
+        Assert.NotNull(goal);
+        Assert.Equal(GoalTag.Stop, goal.Goal);
+        Assert.Equal(0.95, goal.Confidence);
+    }
 }

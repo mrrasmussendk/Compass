@@ -1,6 +1,7 @@
 using UtilityAi.Compass.Abstractions;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Sensor;
+using System.Text.RegularExpressions;
 
 namespace UtilityAi.Compass.Runtime.Sensors;
 
@@ -16,9 +17,9 @@ public sealed class GoalRouterSensor : ISensor
         (["stop", "cancel", "abort", "quit", "halt"], GoalTag.Stop, 0.95),
         (["approve", "confirm", "accept", "yes, proceed", "granted"], GoalTag.Approve, 0.90),
         (["summarize", "summary", "tldr", "tl;dr", "brief"], GoalTag.Summarize, 0.85),
-        (["run", "execute", "do ", "perform", "apply", "deploy", "create", "write", "make"], GoalTag.Execute, 0.80),
+        (["run", "execute", "do", "perform", "apply", "deploy", "create", "write", "make"], GoalTag.Execute, 0.80),
         (["clarify", "what do you mean", "explain", "rephrase"], GoalTag.Clarify, 0.80),
-        (["?", "how ", "what ", "why ", "when ", "who ", "where "], GoalTag.Answer, 0.70),
+        (["?", "how", "what", "why", "when", "who", "where"], GoalTag.Answer, 0.70),
     ];
 
     /// <inheritdoc />
@@ -32,16 +33,27 @@ public sealed class GoalRouterSensor : ISensor
 
         var text = request.Text.ToLowerInvariant();
 
-        foreach (var (keywords, goal, confidence) in Rules)
+        var bestMatch = Rules
+            .SelectMany(rule => rule.Keywords, (rule, keyword) => (rule.Goal, rule.Confidence, keyword))
+            .Where(match => IsKeywordMatch(text, match.keyword))
+            .OrderByDescending(match => match.Confidence)
+            .FirstOrDefault();
+
+        if (bestMatch.keyword is not null)
         {
-            if (keywords.Any(k => text.Contains(k)))
-            {
-                rt.Bus.Publish(new GoalSelected(goal, confidence, "heuristic"));
-                return Task.CompletedTask;
-            }
+            rt.Bus.Publish(new GoalSelected(bestMatch.Goal, bestMatch.Confidence, "heuristic"));
+            return Task.CompletedTask;
         }
 
         rt.Bus.Publish(new GoalSelected(GoalTag.Answer, 0.5, "default"));
         return Task.CompletedTask;
+    }
+
+    private static bool IsKeywordMatch(string text, string keyword)
+    {
+        if (keyword == "?")
+            return text.Contains('?');
+
+        return Regex.IsMatch(text, $@"(?<!\w){Regex.Escape(keyword)}(?!\w)");
     }
 }
