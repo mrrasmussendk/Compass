@@ -2,8 +2,12 @@ name: build-pack
 
 on:
   push:
-    branches: ["main", "master", "copilot/**"]
+    branches: ["main", "master"]
   pull_request:
+
+concurrency:
+  group: build-pack-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
