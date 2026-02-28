@@ -251,10 +251,17 @@ else
         }
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var (goal, lane, responseText) = await ProcessRequestAsync(input, cts.Token);
+        try
+        {
+            var (goal, lane, responseText) = await ProcessRequestAsync(input, cts.Token);
 
-        Console.WriteLine($"  Goal: {goal?.Goal} ({goal?.Confidence:P0}), Lane: {lane?.Lane}");
-        Console.WriteLine($"  Response: {responseText}");
+            Console.WriteLine($"  Goal: {goal?.Goal} ({goal?.Confidence:P0}), Lane: {lane?.Lane}");
+            Console.WriteLine($"  Response: {responseText}");
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"  Error: {ex.Message}");
+        }
     }
 }
 

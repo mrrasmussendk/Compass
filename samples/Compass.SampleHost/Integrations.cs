@@ -11,6 +11,15 @@ file static class IntegrationDefaults
     public const int DefaultDiscordPollIntervalSeconds = 2;
     public const int DefaultDiscordMessageLimit = 25;
     public const int MaxDiscordMessageLimit = 100;
+
+    public static async Task EnsureSuccessAsync(string provider, HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new HttpRequestException($"{provider} API error {(int)response.StatusCode} ({response.StatusCode}): {errorBody}");
+    }
 }
 
 public enum ModelProvider
@@ -107,7 +116,7 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
         request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await IntegrationDefaults.EnsureSuccessAsync("OpenAI", response, cancellationToken);
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
         var text = json.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()
@@ -149,7 +158,7 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
         request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await IntegrationDefaults.EnsureSuccessAsync("Anthropic", response, cancellationToken);
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
         var text = json.RootElement.GetProperty("content")[0].GetProperty("text").GetString()
@@ -195,7 +204,7 @@ file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpCl
         request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await IntegrationDefaults.EnsureSuccessAsync("Gemini", response, cancellationToken);
         var payload = await response.Content.ReadAsStringAsync(cancellationToken);
         using var json = JsonDocument.Parse(payload);
         var text = json.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString()
