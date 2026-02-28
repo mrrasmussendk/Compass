@@ -6,7 +6,7 @@ on:
   pull_request:
 
 concurrency:
-  group: build-pack-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: build-pack-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
