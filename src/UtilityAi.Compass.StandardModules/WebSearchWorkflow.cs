@@ -13,9 +13,9 @@ namespace UtilityAi.Compass.StandardModules;
 /// </summary>
 public sealed class WebSearchWorkflow : IWorkflowModule
 {
-    private readonly IModelClient _modelClient;
+    private readonly IModelClient? _modelClient;
 
-    public WebSearchWorkflow(IModelClient modelClient)
+    public WebSearchWorkflow(IModelClient? modelClient = null)
     {
         _modelClient = modelClient;
     }
@@ -44,6 +44,7 @@ public sealed class WebSearchWorkflow : IWorkflowModule
     /// <inheritdoc />
     public IEnumerable<Proposal> ProposeStart(UtilityAi.Utils.Runtime rt)
     {
+        if (_modelClient is null) yield break;
         var request = rt.Bus.GetOrDefault<UserRequest>();
         if (request is null) yield break;
 
