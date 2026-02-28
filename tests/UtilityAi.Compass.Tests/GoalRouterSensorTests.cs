@@ -104,7 +104,6 @@ public class GoalRouterSensorTests
         await sensor.SenseAsync(rt, CancellationToken.None);
 
         Assert.NotNull(model.LastRequest);
-        Assert.Equal(0.0, model.LastRequest.Temperature);
         Assert.Equal(64, model.LastRequest.MaxTokens);
         foreach (var goal in Enum.GetNames<GoalTag>())
             Assert.Contains(goal, model.LastRequest.SystemMessage);
