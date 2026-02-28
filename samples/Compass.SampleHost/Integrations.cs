@@ -109,7 +109,7 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
             ["messages"] = messages
         };
         if (modelRequest.MaxTokens.HasValue)
-            body["max_tokens"] = modelRequest.MaxTokens.Value;
+            body["max_completion_tokens"] = modelRequest.MaxTokens.Value;
         if (modelRequest.Temperature.HasValue)
             body["temperature"] = modelRequest.Temperature.Value;
 

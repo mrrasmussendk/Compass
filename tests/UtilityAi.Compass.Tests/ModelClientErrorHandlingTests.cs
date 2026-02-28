@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Compass.SampleHost;
 using UtilityAi.Compass.Abstractions.Interfaces;
 
@@ -8,13 +9,18 @@ public class ModelClientErrorHandlingTests
 {
     private sealed class StubHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
     {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        public string? LastRequestBody { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (request.Content is not null)
+                LastRequestBody = await request.Content.ReadAsStringAsync(cancellationToken);
+
             var response = new HttpResponseMessage(statusCode)
             {
                 Content = new StringContent(responseBody)
             };
-            return Task.FromResult(response);
+            return response;
         }
     }
 
@@ -64,5 +70,23 @@ public class ModelClientErrorHandlingTests
         var result = await client.GenerateAsync("Hello", CancellationToken.None);
 
         Assert.Equal("Hi there!", result);
+    }
+
+    [Fact]
+    public async Task OpenAi_GenerateAsync_UsesMaxCompletionTokens()
+    {
+        var successJson = """{"choices":[{"message":{"content":"Hi"}}]}""";
+        var handler = new StubHandler(HttpStatusCode.OK, successJson);
+        using var httpClient = new HttpClient(handler);
+        var config = new ModelConfiguration(ModelProvider.OpenAi, "test-key", "test-model");
+        var client = ModelClientFactory.Create(config, httpClient);
+
+        await client.GenerateAsync(new ModelRequest { Prompt = "Hello", MaxTokens = 100 }, CancellationToken.None);
+
+        Assert.NotNull(handler.LastRequestBody);
+        using var doc = JsonDocument.Parse(handler.LastRequestBody);
+        Assert.True(doc.RootElement.TryGetProperty("max_completion_tokens", out var tokensProp));
+        Assert.Equal(100, tokensProp.GetInt32());
+        Assert.False(doc.RootElement.TryGetProperty("max_tokens", out _));
     }
 }
