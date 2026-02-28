@@ -42,7 +42,8 @@ public sealed class GoalRouterSensor : ISensor
             return;
 
         var activeWorkflow = rt.Bus.GetOrDefault<ActiveWorkflow>();
-        var llmGoal = await ClassifyWithModelAsync(request.Text, activeWorkflow, ct);
+        var recentStep = rt.Bus.GetOrDefault<StepResult>();
+        var llmGoal = await ClassifyWithModelAsync(request.Text, activeWorkflow, recentStep, ct);
         if (llmGoal is { } match)
         {
             rt.Bus.Publish(new GoalSelected(match.Goal, match.Confidence, "llm"));
@@ -57,11 +58,13 @@ public sealed class GoalRouterSensor : ISensor
     /// </summary>
     /// <param name="requestText">Incoming user request text.</param>
     /// <param name="activeWorkflow">Optional active workflow context.</param>
+    /// <param name="recentStep">Optional recent step result context.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The classified goal/confidence tuple, or <see langword="null"/> when classification fails.</returns>
     private async Task<(GoalTag Goal, double Confidence)?> ClassifyWithModelAsync(
         string requestText,
         ActiveWorkflow? activeWorkflow,
+        StepResult? recentStep,
         CancellationToken ct)
     {
         if (_modelClient is null)
@@ -70,13 +73,19 @@ public sealed class GoalRouterSensor : ISensor
         var workflowContext = activeWorkflow is null
             ? "none"
             : $"{activeWorkflow.WorkflowId} ({activeWorkflow.Status})";
+        var stepContext = recentStep is null
+            ? "none"
+            : $"{recentStep.Outcome}: {recentStep.Message ?? "no-message"}";
+        var variableContext = recentStep?.OutputFacts is { Count: > 0 }
+            ? string.Join("|", recentStep.OutputFacts.Keys)
+            : "none";
 
         var response = await _modelClient.GenerateAsync(
             new ModelRequest
             {
                 SystemMessage = $"You classify request intent for UtilityAi Compass goal routing.\n"
                     + $"Return strict JSON: {{\"goal\":\"{GoalList}\",\"confidence\":0..1}}.",
-                Prompt = $"request: {requestText}\nactive_workflow: {workflowContext}",
+                Prompt = $"request: {requestText}\nactive_workflow: {workflowContext}\nrecent_step: {stepContext}\nset_variables: {variableContext}",
                 Temperature = 0.0,
                 MaxTokens = 64
             },

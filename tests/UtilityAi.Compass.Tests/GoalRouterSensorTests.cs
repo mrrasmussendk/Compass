@@ -95,6 +95,10 @@ public class GoalRouterSensorTests
         var bus = new EventBus();
         bus.Publish(new UserRequest("what now"));
         bus.Publish(new ActiveWorkflow("summarization", "run-1", null, WorkflowStatus.Active));
+        bus.Publish(new StepResult(
+            StepOutcome.Succeeded,
+            "Summary generated",
+            new Dictionary<string, object> { ["summary"] = "text", ["tokenCount"] = 123 }));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         await sensor.SenseAsync(rt, CancellationToken.None);
@@ -105,5 +109,7 @@ public class GoalRouterSensorTests
         foreach (var goal in Enum.GetNames<GoalTag>())
             Assert.Contains(goal, model.LastRequest.SystemMessage);
         Assert.Contains("active_workflow: summarization (Active)", model.LastRequest.Prompt);
+        Assert.Contains("recent_step: Succeeded: Summary generated", model.LastRequest.Prompt);
+        Assert.Contains("set_variables: summary|tokenCount", model.LastRequest.Prompt);
     }
 }
