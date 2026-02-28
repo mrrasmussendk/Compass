@@ -17,7 +17,7 @@ using UtilityAi.Sensor;
 using UtilityAi.Utils;
 
 // Auto-load .env.compass so the host works without manually sourcing the file.
-EnvFileLoader.Load();
+EnvFileLoader.Load(overwriteExisting: true);
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version>");
@@ -93,7 +93,7 @@ if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
     Console.WriteLine("No Compass setup found. Running installer...");
     if (ModuleInstaller.TryRunInstallScript())
     {
-        EnvFileLoader.Load();
+        EnvFileLoader.Load(overwriteExisting: true);
         ModelConfiguration.TryCreateFromEnvironment(out modelConfiguration);
     }
 }

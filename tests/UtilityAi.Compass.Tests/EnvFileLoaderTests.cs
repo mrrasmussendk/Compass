@@ -130,4 +130,25 @@ public class EnvFileLoaderTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Fact]
+    public void Load_OverwritesExistingVariables_WhenEnabled()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        var envFile = Path.Combine(dir, ".env.compass");
+        var uniqueKey = $"COMPASS_TEST_{Guid.NewGuid():N}";
+        File.WriteAllText(envFile, $"{uniqueKey}=file-value");
+        Environment.SetEnvironmentVariable(uniqueKey, "existing-value");
+        try
+        {
+            EnvFileLoader.Load(dir, overwriteExisting: true);
+            Assert.Equal("file-value", Environment.GetEnvironmentVariable(uniqueKey));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(uniqueKey, null);
+            Directory.Delete(dir, recursive: true);
+        }
+    }
 }
