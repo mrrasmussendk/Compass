@@ -75,8 +75,8 @@ public class CompassGovernedSelectionStrategyTests
     public void Select_AppliesSideEffectPenaltyFloors_WhenMetadataClaimsLowRiskAndCost()
     {
         var provider = new AttributeMetadataProvider();
-        provider.Register("read-safe", new ProposalMetadata("d", Lane.Communicate, [GoalTag.Answer], SideEffectLevel.ReadOnly, EstimatedCost: 0.0, RiskLevel: 0.0));
-        provider.Register("delete-data", new ProposalMetadata("d", Lane.Communicate, [GoalTag.Answer], SideEffectLevel.Destructive, EstimatedCost: 0.0, RiskLevel: 0.0));
+        provider.Register("read-safe", new ProposalMetadata("test-domain", Lane.Communicate, [GoalTag.Answer], SideEffectLevel.ReadOnly, EstimatedCost: 0.0, RiskLevel: 0.0));
+        provider.Register("delete-data", new ProposalMetadata("test-domain", Lane.Communicate, [GoalTag.Answer], SideEffectLevel.Destructive, EstimatedCost: 0.0, RiskLevel: 0.0));
 
         var strategy = CreateStrategy(provider);
         var bus = new EventBus();
