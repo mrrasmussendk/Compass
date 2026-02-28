@@ -99,11 +99,13 @@ if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
 }
 
 var builder = Host.CreateApplicationBuilder(args);
+var memoryConnectionString = Environment.GetEnvironmentVariable("COMPASS_MEMORY_CONNECTION_STRING");
 
 builder.Services.AddUtilityAiCompass(opts =>
 {
     opts.EnableGovernanceFinalizer = true;
     opts.EnableHitl = false;
+    opts.MemoryConnectionString = memoryConnectionString;
 });
 
 builder.Services.AddCompassStandardModules();

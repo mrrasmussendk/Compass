@@ -7,6 +7,12 @@ namespace UtilityAi.Compass.Runtime.DI;
 /// </summary>
 public sealed class CompassOptions
 {
+    /// <summary>
+    /// Gets or sets the SQLite connection string used for durable memory.
+    /// When not set, Compass uses a local <c>./appdb/compass-memory.db</c> file.
+    /// </summary>
+    public string? MemoryConnectionString { get; set; }
+
     /// <summary>Gets or sets the <see cref="Facts.GovernanceConfig"/> used by the governance strategy.</summary>
     public GovernanceConfig GovernanceConfig { get; set; } = new();
 

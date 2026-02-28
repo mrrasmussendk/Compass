@@ -214,6 +214,7 @@ Optional:
 - `COMPASS_MODEL_NAME` overrides the default model name per provider.
 - `COMPASS_MODEL_MAX_TOKENS` sets Anthropic `max_tokens` (default `512`).
 - `DISCORD_POLL_INTERVAL_SECONDS` and `DISCORD_MESSAGE_LIMIT` tune Discord polling behavior.
+- `COMPASS_MEMORY_CONNECTION_STRING` sets the SQLite memory database (defaults to local `./appdb/compass-memory.db` when unset).
 
 The sample `Compass.SamplePlugin.OpenAi` now also includes `SkillMarkdownModule`, which loads its system instructions from `skill.md`. Because it uses the shared `IModelClient` abstraction, the same module works with OpenAI, Anthropic, and Gemini.
 

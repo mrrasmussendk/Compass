@@ -4,6 +4,7 @@ using UtilityAi.Memory;
 using UtilityAi.Compass.Abstractions.CliAction;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
+using UtilityAi.Compass.Runtime.Memory;
 using UtilityAi.Compass.Runtime.Modules;
 using UtilityAi.Compass.Runtime.Sensors;
 using UtilityAi.Compass.Runtime.Strategy;
@@ -32,7 +33,13 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
         services.AddSingleton(options.GovernanceConfig);
-        services.AddSingleton<IMemoryStore, InMemoryStore>();
+        services.AddSingleton<IMemoryStore>(_ =>
+        {
+            var connectionString = string.IsNullOrWhiteSpace(options.MemoryConnectionString)
+                ? $"Data Source={Path.Combine(Directory.GetCurrentDirectory(), "appdb", "compass-memory.db")}"
+                : options.MemoryConnectionString;
+            return new SqliteMemoryStore(connectionString);
+        });
 
         services.AddSingleton<CorrelationSensor>();
         services.AddSingleton<ISensor>(sp => sp.GetRequiredService<CorrelationSensor>());
