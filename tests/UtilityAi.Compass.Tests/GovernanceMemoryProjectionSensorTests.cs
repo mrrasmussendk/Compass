@@ -16,7 +16,7 @@ public class GovernanceMemoryProjectionSensorTests
         var store = new InMemoryStore();
         var metadataProvider = new AttributeMetadataProvider();
         metadataProvider.Register("proposal.short-ttl",
-            new ProposalMetadata("test", Lane.Execute, [GoalTag.Execute], CooldownKeyTemplate: "proposal.short-ttl", CooldownTtl: TimeSpan.FromSeconds(5)));
+            new ProposalMetadata("short-ttl-domain", Lane.Execute, [GoalTag.Execute], CooldownKeyTemplate: "proposal.short-ttl", CooldownTtl: TimeSpan.FromSeconds(5)));
 
         await store.StoreAsync(
             new ProposalExecutionRecord("proposal.short-ttl", null, DateTimeOffset.UtcNow.AddSeconds(-7), 0.9),
@@ -55,5 +55,6 @@ public class GovernanceMemoryProjectionSensorTests
         Assert.Equal("proposal.unknown", cooldown.Key);
         Assert.True(cooldown.IsActive);
         Assert.NotNull(cooldown.Remaining);
+        Assert.InRange(cooldown.Remaining.Value.TotalSeconds, 20, 30);
     }
 }
