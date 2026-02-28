@@ -108,6 +108,8 @@ public sealed class MyModule : ICapabilityModule
 }
 ```
 
+Replace the `act` delegate with your domain logic (API call, file operation, workflow step, etc.).
+
 ### Metadata attributes and why they matter
 
 | Attribute | Purpose in governance |
