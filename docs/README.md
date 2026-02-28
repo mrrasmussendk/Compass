@@ -2,6 +2,13 @@
 
 A modular orchestration framework built on top of [UtilityAi](https://github.com/mrrasmussendk/UtilityAi) that adds governance, plugin hosting, goal routing, and human-in-the-loop support.
 
+## Documentation paths
+
+- **Using Compass**: [USING.md](USING.md)
+- **Extending Compass**: [EXTENDING.md](EXTENDING.md)
+- **Contributing to Compass**: [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Installation details**: [INSTALL.md](INSTALL.md)
+
 ## Installation
 
 See [INSTALL.md](INSTALL.md) for prerequisites, setup, and step-by-step installation instructions.
