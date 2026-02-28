@@ -84,10 +84,10 @@ dotnet test UtilityAi.Compass.sln
 dotnet run --project samples/Compass.SampleHost
 ```
 
-Expected startup:
+Expected startup (wording may vary by build/version):
 
 ```text
-Compass CLI started. Type a request (or 'quit' to exit):
+... started. Type a request (or 'quit' to exit):
 ```
 
 ---
@@ -169,7 +169,7 @@ In interactive mode, use:
 - `/install-module <path|package@version>`
 - `/new-module <Name> [OutputPath]`
 
-You can also type plain natural-language requests (for example: "summarize this file") and Compass routes/executed the best proposal.
+You can also type plain natural-language requests (for example: "summarize this file") and Compass routes/executes the best proposal.
 
 ### Module installation and scaffold flows
 
@@ -206,18 +206,23 @@ At startup, `PluginLoader` discovers plugin types and registers them into DI.
 
 ### Step-by-step: build your first capability module
 
-### 1) Create a class library
+#### 1) Create a class library
 
 ```bash
 dotnet new classlib -f net10.0 -n MyCompassPlugin
 cd MyCompassPlugin
 ```
 
-### 2) Add dependencies
+#### 2) Add dependencies
 
 For metadata-driven governance, add the Compass SDK package and UtilityAI runtime dependency used for proposals.
 
-### 3) Implement `ICapabilityModule`
+```bash
+dotnet add package UtilityAi.Compass.PluginSdk
+dotnet add package UtilityAi
+```
+
+#### 3) Implement `ICapabilityModule`
 
 ```csharp
 using UtilityAi.Capabilities;
@@ -244,7 +249,7 @@ public sealed class MyModule : ICapabilityModule
 }
 ```
 
-### 4) Build plugin
+#### 4) Build plugin
 
 ```bash
 dotnet build
