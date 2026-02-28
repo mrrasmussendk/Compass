@@ -20,7 +20,7 @@ using UtilityAi.Utils;
 EnvFileLoader.Load(overwriteExisting: true);
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
-void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version>");
+void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version>, /new-module <Name> [OutputPath]");
 void PrintInstalledModules()
 {
     var standardModules = new[]
@@ -55,6 +55,7 @@ if (startupArgs.Length >= 1 &&
     Console.WriteLine("  --setup");
     Console.WriteLine("  --list-modules");
     Console.WriteLine("  --install-module <path|package@version>");
+    Console.WriteLine("  --new-module <Name> [OutputPath]");
     return;
 }
 
@@ -73,6 +74,15 @@ if (startupArgs.Length >= 2 &&
     var installMessage = await ModuleInstaller.InstallAsync(startupArgs[1], pluginsPath);
     Console.WriteLine(installMessage);
     Console.WriteLine("Restart Compass CLI to load the new module.");
+    return;
+}
+
+if (startupArgs.Length >= 2 &&
+    (string.Equals(startupArgs[0], "--new-module", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "/new-module", StringComparison.OrdinalIgnoreCase)))
+{
+    var outputPath = startupArgs.Length >= 3 ? startupArgs[2] : Directory.GetCurrentDirectory();
+    Console.WriteLine(ModuleInstaller.ScaffoldNewModule(startupArgs[1], outputPath));
     return;
 }
 
@@ -231,6 +241,12 @@ else
             var installMessage = await ModuleInstaller.InstallAsync(moduleSpec, pluginsPath);
             Console.WriteLine($"  {installMessage}");
             Console.WriteLine("  Restart Compass CLI to load the new module.");
+            continue;
+        }
+
+        if (ModuleInstaller.TryParseNewModuleCommand(input, out var moduleName, out var outputPath))
+        {
+            Console.WriteLine($"  {ModuleInstaller.ScaffoldNewModule(moduleName, outputPath)}");
             continue;
         }
 

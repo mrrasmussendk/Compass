@@ -3,7 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\UtilityAi.Compass.PluginSdk\UtilityAi.Compass.PluginSdk.csproj" />
     <ProjectReference Include="..\UtilityAi.Compass.Abstractions\UtilityAi.Compass.Abstractions.csproj" />
-    <ProjectReference Include="..\..\vendor\UtilityAi\src\UtilityAi\UtilityAi.csproj" />
+    <PackageReference Include="UtilityAi" Version="1.6.5" />
   </ItemGroup>
 
   <PropertyGroup>
