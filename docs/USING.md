@@ -1,0 +1,38 @@
+# Using UtilityAi.Compass
+
+This guide is for running Compass as a host application.
+
+## 1) Install and configure
+
+Follow [INSTALL.md](INSTALL.md) for prerequisites, build/test, and provider setup.
+
+## 2) Run the sample host
+
+```bash
+dotnet run --project samples/Compass.SampleHost
+```
+
+## 3) Understand runtime behavior
+
+For each request, Compass:
+
+1. Uses sensors to classify intent (`GoalTag`) and routing (`Lane`)
+2. Collects proposals from built-in and plugin modules
+3. Applies governed selection (conflicts, cooldowns, cost/risk, hysteresis)
+4. Executes the winning proposal
+
+## 4) Use CLI tooling (optional)
+
+Run the CLI:
+
+```bash
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
+```
+
+Common commands:
+
+```bash
+compass --setup
+compass --list-modules
+compass --install-module /absolute/path/MyPlugin.dll
+```

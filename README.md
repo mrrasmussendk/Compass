@@ -226,5 +226,8 @@ UtilityAi.Compass.sln
 
 - [docs/README.md](docs/README.md) — concepts and project overview
 - [docs/INSTALL.md](docs/INSTALL.md) — installation and troubleshooting
+- [docs/USING.md](docs/USING.md) — running Compass hosts
+- [docs/EXTENDING.md](docs/EXTENDING.md) — building Compass plugins
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) — contributing to core Compass
 
 If you are building a plugin ecosystem, start with the sample plugin projects and follow the metadata conventions above so your modules remain predictable inside Compass governance.
