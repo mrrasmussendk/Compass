@@ -39,4 +39,18 @@ public class StandardModulesDiTests
 
         Assert.Same(services, result);
     }
+
+    [Fact]
+    public void AddCompassStandardModules_DoesNotThrow_WhenNoModelClientRegistered()
+    {
+        var services = new ServiceCollection();
+        services.AddCompassStandardModules();
+
+        var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<FileReadModule>());
+        Assert.NotNull(provider.GetRequiredService<FileCreationModule>());
+        Assert.NotNull(provider.GetRequiredService<SummarizationModule>());
+        Assert.NotNull(provider.GetRequiredService<WebSearchModule>());
+    }
 }

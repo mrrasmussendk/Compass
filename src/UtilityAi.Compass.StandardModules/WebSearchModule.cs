@@ -24,7 +24,7 @@ namespace UtilityAi.Compass.StandardModules;
 [CompassCooldown("web-search.query", secondsTtl: 10)]
 public sealed class WebSearchModule : ICapabilityModule
 {
-    private readonly IModelClient _modelClient;
+    private readonly IModelClient? _modelClient;
 
     /// <summary>Web search tool declared for the model request.</summary>
     public static readonly ModelTool WebSearchTool = new(
@@ -32,7 +32,7 @@ public sealed class WebSearchModule : ICapabilityModule
         "Search the web for real-time information",
         new Dictionary<string, string> { ["query"] = "string" });
 
-    public WebSearchModule(IModelClient modelClient)
+    public WebSearchModule(IModelClient? modelClient = null)
     {
         _modelClient = modelClient;
     }
@@ -40,6 +40,7 @@ public sealed class WebSearchModule : ICapabilityModule
     /// <inheritdoc />
     public IEnumerable<Proposal> Propose(Runtime rt)
     {
+        if (_modelClient is null) yield break;
         var request = rt.Bus.GetOrDefault<UserRequest>();
         if (request is null) yield break;
 

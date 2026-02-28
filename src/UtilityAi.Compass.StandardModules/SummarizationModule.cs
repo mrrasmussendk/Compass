@@ -22,9 +22,9 @@ namespace UtilityAi.Compass.StandardModules;
 [CompassRisk(0.0)]
 public sealed class SummarizationModule : ICapabilityModule
 {
-    private readonly IModelClient _modelClient;
+    private readonly IModelClient? _modelClient;
 
-    public SummarizationModule(IModelClient modelClient)
+    public SummarizationModule(IModelClient? modelClient = null)
     {
         _modelClient = modelClient;
     }
@@ -32,6 +32,7 @@ public sealed class SummarizationModule : ICapabilityModule
     /// <inheritdoc />
     public IEnumerable<Proposal> Propose(Runtime rt)
     {
+        if (_modelClient is null) yield break;
         var request = rt.Bus.GetOrDefault<UserRequest>();
         if (request is null) yield break;
 
