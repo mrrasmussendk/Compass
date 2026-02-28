@@ -56,6 +56,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<GovernanceMemoryProjectionSensor>(sp =>
             new GovernanceMemoryProjectionSensor(
                 sp.GetRequiredService<IMemoryStore>(),
+                sp.GetRequiredService<IProposalMetadataProvider>(),
                 options.TrackedCooldownKeys));
         services.AddSingleton<ISensor>(sp => sp.GetRequiredService<GovernanceMemoryProjectionSensor>());
 
