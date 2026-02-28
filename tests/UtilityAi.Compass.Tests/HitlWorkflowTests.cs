@@ -95,6 +95,21 @@ public class HitlWorkflowTests
     }
 
     [Fact]
+    public void ProposeStart_ReturnsProposal_ForExecuteLaneEvenWithoutRiskKeyword()
+    {
+        var wf = new HitlWorkflow(new NoopHumanDecisionChannel());
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("please proceed"));
+        bus.Publish(new LaneSelected(Lane.Execute));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var proposals = wf.ProposeStart(rt).ToList();
+
+        Assert.Single(proposals);
+        Assert.Equal("hitl.create-request", proposals[0].Id);
+    }
+
+    [Fact]
     public async Task ProposeStart_ActPublishesHitlFacts_WhenExecuted()
     {
         var wf = new HitlWorkflow(new NoopHumanDecisionChannel());

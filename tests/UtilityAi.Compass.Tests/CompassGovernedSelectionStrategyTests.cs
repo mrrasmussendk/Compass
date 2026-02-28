@@ -70,4 +70,24 @@ public class CompassGovernedSelectionStrategyTests
         Assert.Throws<InvalidOperationException>(() =>
             strategy.Select(Array.Empty<(Proposal P, double Utility)>(), rt));
     }
+
+    [Fact]
+    public void Select_AppliesSideEffectPenaltyFloors_WhenMetadataClaimsLowRiskAndCost()
+    {
+        var provider = new AttributeMetadataProvider();
+        provider.Register("read-safe", new ProposalMetadata("d", Lane.Communicate, [GoalTag.Answer], SideEffectLevel.ReadOnly, EstimatedCost: 0.0, RiskLevel: 0.0));
+        provider.Register("delete-data", new ProposalMetadata("d", Lane.Communicate, [GoalTag.Answer], SideEffectLevel.Destructive, EstimatedCost: 0.0, RiskLevel: 0.0));
+
+        var strategy = CreateStrategy(provider);
+        var bus = new EventBus();
+        bus.Publish(new GovernanceConfig(CostWeight: 1.0, RiskWeight: 1.0));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var safeProposal = new Proposal("read-safe", [new ConstantValue(0.6)], _ => Task.CompletedTask);
+        var destructiveProposal = new Proposal("delete-data", [new ConstantValue(0.9)], _ => Task.CompletedTask);
+        var scored = new List<(Proposal P, double Utility)> { (safeProposal, 0.6), (destructiveProposal, 0.9) };
+
+        var result = strategy.Select(scored, rt);
+        Assert.Equal("read-safe", result.Id);
+    }
 }
