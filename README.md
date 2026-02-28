@@ -3,6 +3,10 @@
 A modular "multi-purpose bot host" built on [mrrasmussendk/UtilityAi](https://github.com/mrrasmussendk/UtilityAi) (v1.6.5).  
 Allows many third-party DLLs to add actions/considerations/sensors without destabilising the agent by adding goal/lane routing and governance (cooldowns, conflicts, cost/risk penalties, hysteresis).
 
+## Wiki
+
+Project wiki-style documentation lives in [`/docs`](docs/), with a quick entry point in [`docs/README.md`](docs/README.md) and installation steps in [`docs/INSTALL.md`](docs/INSTALL.md).
+
 ---
 
 ## Request Flow
