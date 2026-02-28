@@ -48,8 +48,8 @@ User Input
 | Sensor | Publishes | Purpose |
 |---|---|---|
 | `CorrelationSensor` | `CorrelationId` | Unique ID per tick for tracing |
-| `GoalRouterSensor` | `GoalSelected` | Detects intent — Answer, Clarify, Summarize, Execute, Approve, Stop — with confidence score |
-| `LaneRouterSensor` | `LaneSelected` | Maps goal to processing lane — Interpret, Plan, Execute, Communicate, Safety, Housekeeping |
+| `GoalRouterSensor` | `GoalSelected` | Detects intent — Answer, Clarify, Summarize, Execute, Approve, Stop — with model confidence and workflow context (`active_workflow`, `recent_step`, `set_variables`) |
+| `LaneRouterSensor` | `LaneSelected` | Maps goal to processing lane — Interpret, Plan, Execute, Communicate, Safety, Housekeeping — with low-confidence execute/approve fallback to `Interpret` |
 | `CliIntentSensor` | `CliIntent` | Detects Read / Write / Update verb and target route |
 | `WorkflowStateSensor` | `ActiveWorkflow`, `StepReady` | Projects active workflow run state from memory store |
 | `ValidationStateSensor` | `NeedsValidation`, `ValidationOutcome` | Requests and surfaces step/workflow validation results |
@@ -274,7 +274,7 @@ When an `ActiveWorkflow` is running and has not expired its `StickinessUntilUtc`
 
 ### 2. Goal / Lane Routing
 
-Each tick the `GoalRouterSensor` publishes a `GoalSelected` fact and `LaneRouterSensor` publishes a `LaneSelected` fact based on heuristic keyword matching on the `UserRequest`.
+Each tick the `GoalRouterSensor` publishes a `GoalSelected` fact using model-based classification from `UserRequest` plus workflow context (`ActiveWorkflow` and latest `StepResult`), and `LaneRouterSensor` publishes `LaneSelected` with confidence-aware safety fallback for side-effectful intents.
 
 The strategy filters proposals to those matching the current goal + lane. Matching is progressively relaxed: goal + lane → goal only → lane only → untagged fallback.
 
@@ -315,13 +315,13 @@ UtilityAi.Compass.sln
 │   ├── UtilityAi.Compass.Abstractions/    ← Enums, facts, interfaces
 │   ├── UtilityAi.Compass.Runtime/         ← Sensors, modules, strategy, DI
 │   ├── UtilityAi.Compass.PluginSdk/       ← Attributes + metadata provider
-│   ├── UtilityAi.Compass.PluginHost/      ← Plugin loader (folder + AppDomain)
+│   ├── UtilityAi.Compass.PluginHost/      ← Plugin loader (folder + AssemblyLoadContext)
 │   └── UtilityAi.Compass.Hitl/            ← Human-in-the-loop gate (optional)
 ├── samples/
 │   ├── Compass.SampleHost/                ← Console REPL demo host
 │   └── Compass.SamplePlugin.Basic/        ← Example third-party plugin
 └── tests/
-    └── UtilityAi.Compass.Tests/           ← xUnit tests (17 tests)
+    └── UtilityAi.Compass.Tests/           ← xUnit tests
 ```
 
 ## CI package build
