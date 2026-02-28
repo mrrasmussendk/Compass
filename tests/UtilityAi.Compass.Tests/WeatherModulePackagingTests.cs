@@ -6,7 +6,7 @@ namespace UtilityAi.Compass.Tests;
 
 public sealed class WeatherModulePackagingTests
 {
-    [Fact]
+    [PackagingFact]
     public async Task DotnetPack_ProducesWeatherModuleDllForAllTargetFrameworks()
     {
         var repoRoot = FindRepoRoot();
