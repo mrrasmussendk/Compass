@@ -102,7 +102,7 @@ public sealed class MyModule : ICapabilityModule
         yield return new Proposal(
             id: "my-domain.answer",
             cons: [new ConstantValue(0.7)],
-            act: _ => Task.CompletedTask
+            act: _ => Task.CompletedTask // placeholder - replace with real work
         );
     }
 }
