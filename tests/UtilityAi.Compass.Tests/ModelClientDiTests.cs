@@ -90,7 +90,6 @@ public class ModelClientDiTests
         Assert.NotNull(stub.LastModelRequest);
         Assert.Equal("Tell me a joke", stub.LastModelRequest!.Prompt);
         Assert.Equal("You are a helpful assistant.", stub.LastModelRequest.SystemMessage);
-        Assert.Equal(0.7, stub.LastModelRequest.Temperature);
         Assert.Equal(512, stub.LastModelRequest.MaxTokens);
     }
 
@@ -109,7 +108,6 @@ public class ModelClientDiTests
             SystemMessage = "You are a helpful assistant",
             ModelHint = "gpt-4o",
             MaxTokens = 256,
-            Temperature = 0.7,
             Tools = tools
         };
 

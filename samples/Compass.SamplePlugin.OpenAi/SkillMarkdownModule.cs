@@ -39,7 +39,6 @@ public sealed class SkillMarkdownModule : ICapabilityModule
                     {
                         Prompt = request.Text,
                         SystemMessage = SkillPrompt.Value,
-                        Temperature = 0.7,
                         MaxTokens = 512
                     },
                     ct);

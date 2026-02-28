@@ -58,7 +58,6 @@ public sealed class SummarizationWorkflow : IWorkflowModule
                     {
                         Prompt = request.Text,
                         SystemMessage = "You are a summarization assistant. Provide a clear and concise summary of the content the user provides, including key points.",
-                        Temperature = 0.3,
                         MaxTokens = 256
                     },
                     ct);

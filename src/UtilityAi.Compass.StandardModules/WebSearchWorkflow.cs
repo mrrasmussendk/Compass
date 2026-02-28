@@ -58,7 +58,6 @@ public sealed class WebSearchWorkflow : IWorkflowModule
                     {
                         Prompt = request.Text,
                         SystemMessage = "You are a web search assistant. Provide a concise, factual answer to the user's query with sources.",
-                        Temperature = 0.3,
                         MaxTokens = 512,
                         Tools = [WebSearchModule.WebSearchTool]
                     },

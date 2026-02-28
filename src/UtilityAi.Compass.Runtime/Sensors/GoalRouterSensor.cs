@@ -86,7 +86,6 @@ public sealed class GoalRouterSensor : ISensor
                 SystemMessage = $"You classify request intent for UtilityAi Compass goal routing.\n"
                     + $"Return strict JSON: {{\"goal\":\"{GoalList}\",\"confidence\":0..1}}.",
                 Prompt = $"request: {requestText}\nactive_workflow: {workflowContext}\nrecent_step: {stepContext}\nset_variables: {variableContext}",
-                Temperature = 0.0,
                 MaxTokens = 64
             },
             ct);

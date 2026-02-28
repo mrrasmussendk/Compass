@@ -37,7 +37,6 @@ public sealed class OpenAiModule : ICapabilityModule
                     {
                         Prompt = request.Text,
                         SystemMessage = "You are a helpful assistant.",
-                        Temperature = 0.7,
                         MaxTokens = 512
                     },
                     ct);
