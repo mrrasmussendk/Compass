@@ -14,6 +14,7 @@ namespace UtilityAi.Compass.Hitl.Modules;
 /// </summary>
 public sealed class HitlWorkflow : IWorkflowModule
 {
+    private const double ActionConfidenceThreshold = 0.75;
     private readonly IHumanDecisionChannel _channel;
 
     /// <summary>Initializes a new instance of <see cref="HitlWorkflow"/>.</summary>
@@ -56,7 +57,7 @@ public sealed class HitlWorkflow : IWorkflowModule
         if (pending is not null) yield break;
 
         var request = rt.Bus.GetOrDefault<UserRequest>();
-        if (request is null || !NeedsHumanApproval(request)) yield break;
+        if (request is null || !NeedsHumanApproval(rt, request)) yield break;
 
         var requestId = Guid.NewGuid().ToString("N");
         yield return new Proposal(
@@ -108,8 +109,20 @@ public sealed class HitlWorkflow : IWorkflowModule
     public IEnumerable<Proposal> ProposeRepair(UtilityAi.Utils.Runtime rt, ActiveWorkflow active, RepairDirective directive) =>
         [];
 
-    private static bool NeedsHumanApproval(UserRequest request)
+    private static bool NeedsHumanApproval(UtilityAi.Utils.Runtime rt, UserRequest request)
     {
+        var lane = rt.Bus.GetOrDefault<LaneSelected>();
+        if (lane is { Lane: Lane.Execute or Lane.Safety })
+            return true;
+
+        var goal = rt.Bus.GetOrDefault<GoalSelected>();
+        if (goal is { Goal: GoalTag.Execute or GoalTag.Approve, Confidence: >= ActionConfidenceThreshold })
+            return true;
+
+        var intent = rt.Bus.GetOrDefault<CliIntent>();
+        if (intent is { Verb: CliVerb.Write or CliVerb.Update, Confidence: >= ActionConfidenceThreshold })
+            return true;
+
         var text = request.Text.ToLowerInvariant();
         var hasDeploy = text.Contains("deploy");
         var hasSocketConnectionPhrase =

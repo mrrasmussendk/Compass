@@ -64,7 +64,7 @@ public sealed class CompassGovernedSelectionStrategy : ISelectionStrategy
             {
                 var meta = c.Meta;
                 var penalty = meta is null ? 0.0
-                    : config.CostWeight * meta.EstimatedCost + config.RiskWeight * meta.RiskLevel;
+                    : CalculatePenalty(meta, config);
                 var effectiveScore = Math.Clamp(c.Utility - penalty, 0.0, 1.0);
                 return (c.P, EffectiveScore: effectiveScore, c.Meta);
             })
@@ -219,5 +219,27 @@ public sealed class CompassGovernedSelectionStrategy : ISelectionStrategy
                 return true;
         }
         return false;
+    }
+
+    private static double CalculatePenalty(ProposalMetadata meta, GovernanceConfig config)
+    {
+        var minCost = meta.SideEffects switch
+        {
+            SideEffectLevel.ReadOnly => 0.0,
+            SideEffectLevel.Write => 0.2,
+            SideEffectLevel.Destructive => 0.4,
+            _ => 0.0
+        };
+        var minRisk = meta.SideEffects switch
+        {
+            SideEffectLevel.ReadOnly => 0.0,
+            SideEffectLevel.Write => 0.35,
+            SideEffectLevel.Destructive => 0.7,
+            _ => 0.0
+        };
+
+        var trustedCost = Math.Clamp(Math.Max(meta.EstimatedCost, minCost), 0.0, 1.0);
+        var trustedRisk = Math.Clamp(Math.Max(meta.RiskLevel, minRisk), 0.0, 1.0);
+        return config.CostWeight * trustedCost + config.RiskWeight * trustedRisk;
     }
 }
