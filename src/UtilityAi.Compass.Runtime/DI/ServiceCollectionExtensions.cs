@@ -36,7 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMemoryStore>(_ =>
         {
             var connectionString = string.IsNullOrWhiteSpace(options.MemoryConnectionString)
-                ? $"Data Source={Path.Combine(Directory.GetCurrentDirectory(), "appdb", "compass-memory.db")}"
+                ? $"Data Source={Path.Combine(AppContext.BaseDirectory, "appdb", "compass-memory.db")}"
                 : options.MemoryConnectionString;
             return new SqliteMemoryStore(connectionString);
         });

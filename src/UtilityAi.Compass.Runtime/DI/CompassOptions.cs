@@ -9,7 +9,7 @@ public sealed class CompassOptions
 {
     /// <summary>
     /// Gets or sets the SQLite connection string used for durable memory.
-    /// When not set, Compass uses a local <c>./appdb/compass-memory.db</c> file.
+    /// When not set, Compass uses a local <c>appdb/compass-memory.db</c> file under the app base directory.
     /// </summary>
     public string? MemoryConnectionString { get; set; }
 

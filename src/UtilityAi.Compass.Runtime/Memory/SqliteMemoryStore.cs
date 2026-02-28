@@ -9,6 +9,7 @@ namespace UtilityAi.Compass.Runtime.Memory;
 /// </summary>
 public sealed class SqliteMemoryStore : IMemoryStore
 {
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
     private readonly string _connectionString;
 
     /// <summary>
@@ -45,7 +46,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
             """;
         command.Parameters.AddWithValue("$typeKey", GetTypeKey<T>());
         command.Parameters.AddWithValue("$timestampUnixMs", timestamp.ToUnixTimeMilliseconds());
-        command.Parameters.AddWithValue("$payloadJson", JsonSerializer.Serialize(fact));
+        command.Parameters.AddWithValue("$payloadJson", JsonSerializer.Serialize(fact, SerializerOptions));
         await command.ExecuteNonQueryAsync(ct);
     }
 
@@ -58,19 +59,31 @@ public sealed class SqliteMemoryStore : IMemoryStore
         var after = query.TimeWindow.HasValue ? DateTimeOffset.UtcNow - query.TimeWindow.Value : query.After;
         var before = query.TimeWindow.HasValue ? (DateTimeOffset?)null : query.Before;
         var maxResults = Math.Max(query.MaxResults, 0);
-        var orderBy = query.SortOrder == SortOrder.NewestFirst ? "DESC" : "ASC";
+        var commandText = query.SortOrder switch
+        {
+            SortOrder.NewestFirst => """
+                SELECT PayloadJson, TimestampUnixMs
+                FROM CompassMemoryEntries
+                WHERE TypeKey = $typeKey
+                  AND ($afterUnixMs IS NULL OR TimestampUnixMs >= $afterUnixMs)
+                  AND ($beforeUnixMs IS NULL OR TimestampUnixMs <= $beforeUnixMs)
+                ORDER BY TimestampUnixMs DESC
+                LIMIT $maxResults;
+                """,
+            _ => """
+                SELECT PayloadJson, TimestampUnixMs
+                FROM CompassMemoryEntries
+                WHERE TypeKey = $typeKey
+                  AND ($afterUnixMs IS NULL OR TimestampUnixMs >= $afterUnixMs)
+                  AND ($beforeUnixMs IS NULL OR TimestampUnixMs <= $beforeUnixMs)
+                ORDER BY TimestampUnixMs ASC
+                LIMIT $maxResults;
+                """
+        };
 
         await using var connection = await OpenAsync(ct);
         await using var command = connection.CreateCommand();
-        command.CommandText = $"""
-            SELECT PayloadJson, TimestampUnixMs
-            FROM CompassMemoryEntries
-            WHERE TypeKey = $typeKey
-              AND ($afterUnixMs IS NULL OR TimestampUnixMs >= $afterUnixMs)
-              AND ($beforeUnixMs IS NULL OR TimestampUnixMs <= $beforeUnixMs)
-            ORDER BY TimestampUnixMs {orderBy}
-            LIMIT $maxResults;
-            """;
+        command.CommandText = commandText;
         command.Parameters.AddWithValue("$typeKey", GetTypeKey<T>());
         command.Parameters.AddWithValue("$afterUnixMs", after?.ToUnixTimeMilliseconds() ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("$beforeUnixMs", before?.ToUnixTimeMilliseconds() ?? (object)DBNull.Value);
@@ -81,7 +94,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
         while (await reader.ReadAsync(ct))
         {
             var json = reader.GetString(0);
-            var fact = JsonSerializer.Deserialize<T>(json);
+            var fact = JsonSerializer.Deserialize<T>(json, SerializerOptions);
             if (fact is null)
                 continue;
 
@@ -119,7 +132,7 @@ public sealed class SqliteMemoryStore : IMemoryStore
         await command.ExecuteNonQueryAsync(ct);
     }
 
-    private static string GetTypeKey<T>() => typeof(T).AssemblyQualifiedName ?? typeof(T).FullName ?? typeof(T).Name;
+    private static string GetTypeKey<T>() => typeof(T).AssemblyQualifiedName ?? throw new InvalidOperationException("Type key could not be resolved.");
 
     private async Task<SqliteConnection> OpenAsync(CancellationToken ct)
     {
