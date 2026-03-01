@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
+using System.Text.Json;
 using UtilityAi.Capabilities;
 
 namespace Compass.SampleHost;
@@ -10,6 +11,13 @@ namespace Compass.SampleHost;
 public static class ModuleInstaller
 {
     private static readonly HttpClient _httpClient = new();
+    private const string ManifestFileName = "compass-manifest.json";
+
+    public sealed record ModuleInstallResult(bool Success, string Message)
+    {
+        public static ModuleInstallResult FromSuccess(string message) => new(true, message);
+        public static ModuleInstallResult FromFailure(string message) => new(false, message);
+    }
 
     public static bool TryRunInstallScript()
     {
@@ -33,20 +41,31 @@ public static class ModuleInstaller
         return process.ExitCode == 0;
     }
 
-    public static async Task<string> InstallAsync(string moduleSpec, string pluginsPath, CancellationToken cancellationToken = default)
+    public static async Task<string> InstallAsync(
+        string moduleSpec,
+        string pluginsPath,
+        bool allowUnsigned = false,
+        CancellationToken cancellationToken = default) =>
+        (await InstallWithResultAsync(moduleSpec, pluginsPath, allowUnsigned, cancellationToken)).Message;
+
+    public static async Task<ModuleInstallResult> InstallWithResultAsync(
+        string moduleSpec,
+        string pluginsPath,
+        bool allowUnsigned = false,
+        CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(pluginsPath);
 
         if (File.Exists(moduleSpec))
-            return InstallFromFile(moduleSpec, pluginsPath);
+            return InstallFromFile(moduleSpec, pluginsPath, allowUnsigned);
 
         if (!TryParsePackageReference(moduleSpec, out var packageId, out var packageVersion))
-            return "Module install failed: provide a .dll/.nupkg path or NuGet reference in the form PackageId@Version.";
+            return ModuleInstallResult.FromFailure("Module install failed: provide a .dll/.nupkg path or NuGet reference in the form PackageId@Version.");
 
         var downloadUrl = $"https://api.nuget.org/v3-flatcontainer/{packageId.ToLowerInvariant()}/{packageVersion.ToLowerInvariant()}/{packageId.ToLowerInvariant()}.{packageVersion.ToLowerInvariant()}.nupkg";
         using var response = await _httpClient.GetAsync(downloadUrl, cancellationToken);
         if (!response.IsSuccessStatusCode)
-            return $"Module install failed: could not download '{packageId}@{packageVersion}' (HTTP {(int)response.StatusCode}).";
+            return ModuleInstallResult.FromFailure($"Module install failed: could not download '{packageId}@{packageVersion}' (HTTP {(int)response.StatusCode}).");
 
         var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid().ToString("N")}.nupkg");
         await using (var tempFile = File.Create(tempPath))
@@ -54,7 +73,7 @@ public static class ModuleInstaller
 
         try
         {
-            return InstallFromNupkg(tempPath, pluginsPath, packageId);
+            return InstallFromNupkg(tempPath, pluginsPath, packageId, allowUnsigned);
         }
         finally
         {
@@ -81,8 +100,12 @@ public static class ModuleInstaller
     }
 
     public static bool TryParseInstallCommand(string input, out string moduleSpec)
+        => TryParseInstallCommand(input, out moduleSpec, out _);
+
+    public static bool TryParseInstallCommand(string input, out string moduleSpec, out bool allowUnsigned)
     {
         moduleSpec = string.Empty;
+        allowUnsigned = false;
         if (string.IsNullOrWhiteSpace(input))
             return false;
 
@@ -90,7 +113,20 @@ public static class ModuleInstaller
         if (!input.TrimStart().StartsWith(command, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        moduleSpec = input.TrimStart()[command.Length..].Trim();
+        var args = input.TrimStart()[command.Length..]
+            .Split(' ', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        foreach (var arg in args)
+        {
+            if (string.Equals(arg, "--allow-unsigned", StringComparison.OrdinalIgnoreCase))
+            {
+                allowUnsigned = true;
+                continue;
+            }
+
+            if (moduleSpec.Length == 0)
+                moduleSpec = arg;
+        }
+
         return moduleSpec.Length > 0;
     }
 
@@ -199,28 +235,65 @@ public static class ModuleInstaller
         return $"Created module scaffold at '{moduleDirectory}'. Build it with 'dotnet build'.";
     }
 
-    private static string InstallFromFile(string filePath, string pluginsPath)
+    public static async Task<ModuleInspectionReport> InspectAsync(string moduleSpec, CancellationToken cancellationToken = default)
+    {
+        if (File.Exists(moduleSpec))
+            return await InspectFileAsync(moduleSpec, cancellationToken);
+
+        if (!TryParsePackageReference(moduleSpec, out var packageId, out var packageVersion))
+            return ModuleInspectionReport.Error(moduleSpec, "Inspection failed: provide a .dll/.nupkg path or NuGet reference in the form PackageId@Version.");
+
+        var downloadUrl = $"https://api.nuget.org/v3-flatcontainer/{packageId.ToLowerInvariant()}/{packageVersion.ToLowerInvariant()}/{packageId.ToLowerInvariant()}.{packageVersion.ToLowerInvariant()}.nupkg";
+        using var response = await _httpClient.GetAsync(downloadUrl, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return ModuleInspectionReport.Error(moduleSpec, $"Inspection failed: could not download '{packageId}@{packageVersion}' (HTTP {(int)response.StatusCode}).");
+
+        var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.nupkg");
+        await using (var tempFile = File.Create(tempPath))
+            await response.Content.CopyToAsync(tempFile, cancellationToken);
+
+        try
+        {
+            return await InspectFileAsync(tempPath, cancellationToken, moduleSpec);
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+                File.Delete(tempPath);
+        }
+    }
+
+    private static ModuleInstallResult InstallFromFile(string filePath, string pluginsPath, bool allowUnsigned)
     {
         var extension = Path.GetExtension(filePath);
         if (extension.Equals(".dll", StringComparison.OrdinalIgnoreCase))
         {
             if (!TryValidateModuleAssembly(filePath, out var validationError))
-                return validationError;
+                return ModuleInstallResult.FromFailure(validationError);
+            var fileDirectory = Path.GetDirectoryName(filePath);
+            if (string.IsNullOrWhiteSpace(fileDirectory))
+                return ModuleInstallResult.FromFailure($"Module install failed: could not resolve directory for '{Path.GetFileName(filePath)}'.");
+            if (!TryLoadManifest(fileDirectory, out _, out var manifestError))
+                return ModuleInstallResult.FromFailure(manifestError);
+            if (!allowUnsigned && !IsSignedAssembly(filePath))
+                return ModuleInstallResult.FromFailure($"Module install failed: '{Path.GetFileName(filePath)}' is unsigned. Re-run with --allow-unsigned to override.");
 
             var destination = Path.Combine(pluginsPath, Path.GetFileName(filePath));
             File.Copy(filePath, destination, overwrite: true);
-            return $"Installed module DLL: {Path.GetFileName(filePath)}";
+            return ModuleInstallResult.FromSuccess($"Installed module DLL: {Path.GetFileName(filePath)}");
         }
 
         if (extension.Equals(".nupkg", StringComparison.OrdinalIgnoreCase))
-            return InstallFromNupkg(filePath, pluginsPath);
+            return InstallFromNupkg(filePath, pluginsPath, allowUnsigned: allowUnsigned);
 
-        return "Module install failed: only .dll and .nupkg files are supported.";
+        return ModuleInstallResult.FromFailure("Module install failed: only .dll and .nupkg files are supported.");
     }
 
-    private static string InstallFromNupkg(string nupkgPath, string pluginsPath, string? packageId = null)
+    private static ModuleInstallResult InstallFromNupkg(string nupkgPath, string pluginsPath, string? packageId = null, bool allowUnsigned = false)
     {
         using var archive = ZipFile.OpenRead(nupkgPath);
+        if (!TryLoadManifest(archive, out _, out var manifestError))
+            return ModuleInstallResult.FromFailure(manifestError);
         var copiedFiles = new List<string>();
         var hasUtilityAiModule = false;
 
@@ -242,20 +315,26 @@ public static class ModuleInstaller
             copiedFiles.Add(destination);
             if (!hasUtilityAiModule && TryValidateModuleAssembly(destination, out _))
                 hasUtilityAiModule = true;
+            if (!allowUnsigned && !IsSignedAssembly(destination))
+            {
+                foreach (var file in copiedFiles.Where(File.Exists))
+                    File.Delete(file);
+                return ModuleInstallResult.FromFailure($"Module install failed: '{fileName}' is unsigned. Re-run with --allow-unsigned to override.");
+            }
         }
 
         if (copiedFiles.Count == 0)
-            return $"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain compatible .dll files in lib/ or runtimes/*/lib/.";
+            return ModuleInstallResult.FromFailure($"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain compatible .dll files in lib/ or runtimes/*/lib/.");
 
         if (!hasUtilityAiModule)
         {
             foreach (var file in copiedFiles.Where(File.Exists))
                 File.Delete(file);
 
-            return $"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain a compatible UtilityAI module assembly.";
+            return ModuleInstallResult.FromFailure($"Module install failed: package '{packageId ?? Path.GetFileName(nupkgPath)}' does not contain a compatible UtilityAI module assembly.");
         }
 
-        return $"Installed {copiedFiles.Count} module assembly file(s) from '{packageId ?? Path.GetFileName(nupkgPath)}'.";
+        return ModuleInstallResult.FromSuccess($"Installed {copiedFiles.Count} module assembly file(s) from '{packageId ?? Path.GetFileName(nupkgPath)}'.");
     }
 
     private static bool IsPluginAssemblyEntry(ZipArchiveEntry entry)
@@ -371,6 +450,208 @@ public static class ModuleInstaller
         return type.GetInterfaces()
             .Any(i => i.FullName == typeof(ICapabilityModule).FullName);
     }
+
+    private static bool IsSignedAssembly(string assemblyPath)
+    {
+        try
+        {
+            var name = AssemblyName.GetAssemblyName(assemblyPath);
+            return name.GetPublicKeyToken() is { Length: > 0 };
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryLoadManifest(string directoryPath, out ModulePermissionManifest? manifest, out string error)
+    {
+        var manifestPath = Path.Combine(directoryPath, ManifestFileName);
+        if (!File.Exists(manifestPath))
+        {
+            manifest = null;
+            error = $"Module install failed: missing required manifest '{ManifestFileName}'.";
+            return false;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(manifestPath);
+            var parsed = JsonSerializer.Deserialize<ModulePermissionManifest>(stream, JsonDefaults);
+            if (parsed is null)
+            {
+                manifest = null;
+                error = $"Module install failed: manifest '{ManifestFileName}' is empty or invalid.";
+                return false;
+            }
+            if (parsed.Capabilities.Count == 0)
+            {
+                manifest = null;
+                error = $"Module install failed: manifest '{ManifestFileName}' must declare at least one capability.";
+                return false;
+            }
+
+            manifest = parsed;
+            error = string.Empty;
+            return true;
+        }
+        catch (JsonException)
+        {
+            manifest = null;
+            error = $"Module install failed: invalid JSON in '{ManifestFileName}'.";
+            return false;
+        }
+    }
+
+    private static bool TryLoadManifest(ZipArchive archive, out ModulePermissionManifest? manifest, out string error)
+    {
+        var entry = archive.Entries.FirstOrDefault(e =>
+            e.FullName.Equals(ManifestFileName, StringComparison.OrdinalIgnoreCase));
+        if (entry is null)
+        {
+            manifest = null;
+            error = $"Module install failed: package is missing required manifest '{ManifestFileName}'.";
+            return false;
+        }
+
+        try
+        {
+            using var reader = new StreamReader(entry.Open(), Encoding.UTF8, leaveOpen: false);
+            var parsed = JsonSerializer.Deserialize<ModulePermissionManifest>(reader.ReadToEnd(), JsonDefaults);
+            if (parsed is null)
+            {
+                manifest = null;
+                error = $"Module install failed: package manifest '{ManifestFileName}' is empty or invalid.";
+                return false;
+            }
+            if (parsed.Capabilities.Count == 0)
+            {
+                manifest = null;
+                error = $"Module install failed: package manifest '{ManifestFileName}' must declare at least one capability.";
+                return false;
+            }
+
+            manifest = parsed;
+            error = string.Empty;
+            return true;
+        }
+        catch (JsonException)
+        {
+            manifest = null;
+            error = $"Module install failed: package contains invalid JSON in '{ManifestFileName}'.";
+            return false;
+        }
+    }
+
+    private static readonly JsonSerializerOptions JsonDefaults = new(JsonSerializerDefaults.Web);
+
+    private static async Task<ModuleInspectionReport> InspectFileAsync(string filePath, CancellationToken cancellationToken, string? displayName = null)
+    {
+        var extension = Path.GetExtension(filePath);
+        if (extension.Equals(".dll", StringComparison.OrdinalIgnoreCase))
+        {
+            var findings = new List<string>();
+            var hasModule = TryValidateModuleAssembly(filePath, out var error);
+            if (!hasModule)
+                findings.Add(error);
+            var signed = IsSignedAssembly(filePath);
+            if (!signed)
+                findings.Add("Assembly is unsigned.");
+
+            ModulePermissionManifest? manifest = null;
+            var fileDirectory = Path.GetDirectoryName(filePath);
+            var hasManifest = !string.IsNullOrWhiteSpace(fileDirectory)
+                && TryLoadManifest(fileDirectory, out manifest, out _);
+            if (!hasManifest)
+                findings.Add($"Missing required manifest '{ManifestFileName}'.");
+
+            return new ModuleInspectionReport(
+                displayName ?? filePath,
+                hasModule,
+                signed,
+                hasManifest,
+                manifest?.Capabilities ?? [],
+                manifest?.Permissions ?? [],
+                findings,
+                $"Module inspection complete for {Path.GetFileName(filePath)}.");
+        }
+
+        if (extension.Equals(".nupkg", StringComparison.OrdinalIgnoreCase))
+        {
+            using var archive = ZipFile.OpenRead(filePath);
+            cancellationToken.ThrowIfCancellationRequested();
+            var findings = new List<string>();
+            var compatibleEntries = archive.Entries.Where(IsPluginAssemblyEntry).Where(e => IsCompatibleTargetFramework(e.FullName)).ToList();
+            var hasModule = false;
+            var signed = true;
+
+            foreach (var entry in compatibleEntries)
+            {
+                var tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.dll");
+                try
+                {
+                    await using (var source = entry.Open())
+                    await using (var target = File.Create(tempPath))
+                        await source.CopyToAsync(target, cancellationToken);
+
+                    hasModule |= TryValidateModuleAssembly(tempPath, out _);
+                    signed &= IsSignedAssembly(tempPath);
+                }
+                finally
+                {
+                    if (File.Exists(tempPath))
+                        File.Delete(tempPath);
+                }
+            }
+
+            if (!hasModule)
+                findings.Add("No compatible UtilityAI module assembly found.");
+            if (!signed)
+                findings.Add("One or more assemblies are unsigned.");
+
+            var hasManifest = TryLoadManifest(archive, out var manifest, out _);
+            if (!hasManifest)
+                findings.Add($"Missing required manifest '{ManifestFileName}'.");
+
+            return new ModuleInspectionReport(
+                displayName ?? filePath,
+                hasModule,
+                signed,
+                hasManifest,
+                manifest?.Capabilities ?? [],
+                manifest?.Permissions ?? [],
+                findings,
+                $"Module inspection complete for {Path.GetFileName(filePath)}.");
+        }
+
+        return ModuleInspectionReport.Error(displayName ?? filePath, "Inspection failed: only .dll and .nupkg files are supported.");
+    }
+
+    public sealed record ModuleInspectionReport(
+        string Module,
+        bool HasUtilityAiModule,
+        bool IsSigned,
+        bool HasManifest,
+        IReadOnlyList<string> Capabilities,
+        IReadOnlyList<string> Permissions,
+        IReadOnlyList<string> Findings,
+        string Summary)
+    {
+        public static ModuleInspectionReport Error(string module, string summary) =>
+            new(module, false, false, false, [], [], [summary], summary);
+    }
+
+    private sealed record ModulePermissionManifest(
+        string Publisher,
+        string Version,
+        IReadOnlyList<string> Capabilities,
+        IReadOnlyList<string> Permissions,
+        string SideEffectLevel,
+        string? IntegrityHash = null,
+        IReadOnlyList<string>? NetworkEgressDomains = null,
+        IReadOnlyList<string>? FileAccessScopes = null,
+        IReadOnlyList<string>? RequiredSecrets = null);
+
 
     private static string SanitizeIdentifier(string value)
     {

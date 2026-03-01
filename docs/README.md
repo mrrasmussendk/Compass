@@ -8,6 +8,10 @@ A modular orchestration framework built on top of [UtilityAi](https://github.com
 - **Extending Compass**: [EXTENDING.md](EXTENDING.md)
 - **Contributing to Compass**: [CONTRIBUTING.md](CONTRIBUTING.md)
 - **Installation details**: [INSTALL.md](INSTALL.md)
+- **Governance pipeline**: [GOVERNANCE.md](GOVERNANCE.md)
+- **Policy reference**: [POLICY.md](POLICY.md)
+- **Security model**: [SECURITY.md](SECURITY.md)
+- **Operations guide**: [OPERATIONS.md](OPERATIONS.md)
 
 ## Installation
 
