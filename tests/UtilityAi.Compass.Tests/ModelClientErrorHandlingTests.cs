@@ -62,7 +62,7 @@ public class ModelClientErrorHandlingTests
     [Fact]
     public async Task GenerateAsync_Succeeds_WhenApiReturns200()
     {
-        var successJson = """{"choices":[{"message":{"content":"Hi there!"}}]}""";
+        var successJson = """{"output_text":"Hi there!"}""";
         using var httpClient = new HttpClient(new StubHandler(HttpStatusCode.OK, successJson));
         var config = new ModelConfiguration(ModelProvider.OpenAi, "test-key", "test-model");
         var client = ModelClientFactory.Create(config, httpClient);
@@ -73,18 +73,36 @@ public class ModelClientErrorHandlingTests
     }
 
     [Fact]
-    public async Task OpenAi_GenerateAsync_DoesNotSendMaxTokensOrTemperature()
+    public async Task OpenAi_GenerateAsync_ParsesResponsesApiOutputArray()
     {
-        var successJson = """{"choices":[{"message":{"content":"Hi"}}]}""";
+        var successJson = """{"output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Hello from Responses API","annotations":[]}]}]}""";
+        using var httpClient = new HttpClient(new StubHandler(HttpStatusCode.OK, successJson));
+        var config = new ModelConfiguration(ModelProvider.OpenAi, "test-key", "test-model");
+        var client = ModelClientFactory.Create(config, httpClient);
+
+        var result = await client.GenerateAsync("Hello", CancellationToken.None);
+
+        Assert.Equal("Hello from Responses API", result);
+    }
+
+    [Fact]
+    public async Task OpenAi_GenerateAsync_SendsInputAndInstructions()
+    {
+        var successJson = """{"output_text":"Hi"}""";
         var handler = new StubHandler(HttpStatusCode.OK, successJson);
         using var httpClient = new HttpClient(handler);
         var config = new ModelConfiguration(ModelProvider.OpenAi, "test-key", "test-model");
         var client = ModelClientFactory.Create(config, httpClient);
 
-        await client.GenerateAsync(new ModelRequest { Prompt = "Hello", MaxTokens = 100, Temperature = 0.7 }, CancellationToken.None);
+        await client.GenerateAsync(new ModelRequest { Prompt = "Hello", SystemMessage = "Be helpful", MaxTokens = 100, Temperature = 0.7 }, CancellationToken.None);
 
         Assert.NotNull(handler.LastRequestBody);
         using var doc = JsonDocument.Parse(handler.LastRequestBody);
+        Assert.True(doc.RootElement.TryGetProperty("input", out var input));
+        Assert.Equal("Hello", input.GetString());
+        Assert.True(doc.RootElement.TryGetProperty("instructions", out var instructions));
+        Assert.Equal("Be helpful", instructions.GetString());
+        Assert.False(doc.RootElement.TryGetProperty("messages", out _));
         Assert.False(doc.RootElement.TryGetProperty("max_completion_tokens", out _));
         Assert.False(doc.RootElement.TryGetProperty("max_tokens", out _));
         Assert.False(doc.RootElement.TryGetProperty("temperature", out _));
