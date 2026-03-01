@@ -20,7 +20,7 @@ jobs:
           script: |
             const [owner, repo] = process.env.TARGET_REPOSITORY.split('/');
             if (!owner || !repo) {
-              core.setFailed('vars.AGENT_REPOSITORY must be in the format "owner/repo".');
+              core.setFailed('AGENT_REPOSITORY must be in the format "owner/repo".');
               return;
             }
 
