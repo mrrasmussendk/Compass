@@ -133,7 +133,7 @@ public sealed class CompoundRequestModule : ICapabilityModule
                 foreach (var item in array.EnumerateArray())
                 {
                     var filename = item.TryGetProperty("filename", out var fn) ? fn.GetString() : null;
-                    var content = item.TryGetProperty("content", out var ct2) ? ct2.GetString() : null;
+                    var content = item.TryGetProperty("content", out var contentElement) ? contentElement.GetString() : null;
                     if (!string.IsNullOrEmpty(filename) && content is not null)
                         result.Add((filename, content));
                 }
@@ -141,16 +141,20 @@ public sealed class CompoundRequestModule : ICapabilityModule
         }
         catch
         {
-            // LLM response wasn't valid JSON; fall back to the existing parser
+            // LLM response wasn't valid JSON; fall back to the existing regex-based parser.
+            // Silently handling the exception is acceptable here because the LLM output format
+            // is not guaranteed, and the fallback parser provides a best-effort extraction.
             try
             {
                 var (path, content) = FileCreationModule.ParseFileRequest(requestText);
+                // "output.txt" is the default fallback filename from ParseFileRequest
+                // when no path could be extracted - skip it to avoid creating unintended files.
                 if (!string.IsNullOrEmpty(path) && path != "output.txt")
                     result.Add((path, content));
             }
             catch
             {
-                // Could not extract file operations
+                // Fallback parser also failed; no file operations could be extracted.
             }
         }
 
@@ -159,14 +163,22 @@ public sealed class CompoundRequestModule : ICapabilityModule
 
     /// <summary>
     /// Executes a list of file operations, returning human-readable result messages.
+    /// Only relative paths without directory traversal are allowed; absolute paths and
+    /// paths containing ".." are rejected to prevent writing to unintended locations.
     /// </summary>
-    internal static List<string> ExecuteFileOperations(List<(string Filename, string Content)> fileOps)
+    public static List<string> ExecuteFileOperations(List<(string Filename, string Content)> fileOps)
     {
         var results = new List<string>();
         foreach (var (filename, content) in fileOps)
         {
             try
             {
+                if (Path.IsPathRooted(filename) || filename.Contains(".."))
+                {
+                    results.Add($"Skipped '{filename}': only relative paths without directory traversal are allowed.");
+                    continue;
+                }
+
                 var directory = Path.GetDirectoryName(filename);
                 if (!string.IsNullOrEmpty(directory))
                     Directory.CreateDirectory(directory);

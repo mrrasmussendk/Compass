@@ -104,9 +104,7 @@ public class CompoundRequestModuleTests
     [Fact]
     public async Task Handle_CreatesFileAndResponds_WhenLlmExtractsFileOps()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-        Directory.CreateDirectory(tempDir);
-        var filePath = Path.Combine(tempDir, "u.txt");
+        var fileName = $"test-compound-{Guid.NewGuid()}.txt";
 
         try
         {
@@ -116,8 +114,8 @@ public class CompoundRequestModuleTests
                 callCount++;
                 if (callCount == 1)
                 {
-                    // First call: extract file operations
-                    return $"[{{\"filename\": \"{filePath.Replace("\\", "\\\\")}\", \"content\": \"gold\"}}]";
+                    // First call: extract file operations (relative path only)
+                    return $"[{{\"filename\": \"{fileName}\", \"content\": \"gold\"}}]";
                 }
                 // Second call: conversational response
                 return "The colors of the rainbow are red, orange, yellow, green, blue, indigo, and violet.";
@@ -133,18 +131,19 @@ public class CompoundRequestModuleTests
             await proposals[0].Act(CancellationToken.None);
 
             // Verify file was created
-            Assert.True(File.Exists(filePath));
-            Assert.Equal("gold", File.ReadAllText(filePath));
+            Assert.True(File.Exists(fileName));
+            Assert.Equal("gold", File.ReadAllText(fileName));
 
             // Verify response contains both file creation confirmation and answer
             var response = bus.GetOrDefault<AiResponse>();
             Assert.NotNull(response);
-            Assert.Contains("u.txt", response.Text);
+            Assert.Contains(fileName, response.Text);
             Assert.Contains("rainbow", response.Text, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {
-            Directory.Delete(tempDir, true);
+            if (File.Exists(fileName))
+                File.Delete(fileName);
         }
     }
 
@@ -209,5 +208,18 @@ public class CompoundRequestModuleTests
         var proposals = module.Propose(rt).ToList();
         Assert.Single(proposals);
         Assert.True(proposals[0].Utility(rt) > 0);
+    }
+
+    [Theory]
+    [InlineData("/etc/passwd")]
+    [InlineData("../../../sensitive.txt")]
+    [InlineData("sub/../../../escape.txt")]
+    public void ExecuteFileOperations_RejectsPathTraversal(string maliciousPath)
+    {
+        var results = CompoundRequestModule.ExecuteFileOperations([(maliciousPath, "evil")]);
+
+        Assert.Single(results);
+        Assert.Contains("Skipped", results[0]);
+        Assert.Contains("only relative paths", results[0]);
     }
 }
