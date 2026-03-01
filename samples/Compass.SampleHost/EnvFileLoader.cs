@@ -10,11 +10,13 @@ namespace Compass.SampleHost;
 ///   <item><c>$env:KEY='VALUE'</c> (PowerShell / install.ps1)</item>
 /// </list>
 /// Existing environment variables are not overwritten by default, allowing callers
-/// to override individual values via the shell when needed.
+/// to override individual values via the shell when needed. If <c>COMPASS_PROFILE</c>
+/// is set, an additional <c>.env.compass.&lt;profile&gt;</c> file is loaded after the base file.
 /// </summary>
 public static class EnvFileLoader
 {
     private const string FileName = ".env.compass";
+    private const string ProfileVariableName = "COMPASS_PROFILE";
 
     /// <summary>
     /// Searches for <c>.env.compass</c> starting from <paramref name="startDirectory"/>
@@ -24,22 +26,56 @@ public static class EnvFileLoader
     /// </summary>
     public static void Load(string? startDirectory = null, bool overwriteExisting = false)
     {
-        var path = FindFile([
+        var searchDirectories = new[]
+        {
             startDirectory ?? Directory.GetCurrentDirectory(),
             AppContext.BaseDirectory
-        ]);
+        };
+        var path = FindFile(searchDirectories);
         if (path is null)
             return;
 
-        foreach (var rawLine in File.ReadAllLines(path))
+        // Tracks variables set during this Load invocation so base and profile files
+        // can layer values while still respecting externally supplied environment values.
+        var keysLoadedByLoader = new HashSet<string>(StringComparer.Ordinal);
+        LoadFile(path, overwriteExisting, keysLoadedByLoader);
+
+        var profile = Environment.GetEnvironmentVariable(ProfileVariableName)?.Trim();
+        if (string.IsNullOrWhiteSpace(profile))
+            return;
+
+        var profilePath = FindFile(searchDirectories, $"{FileName}.{profile}");
+        if (profilePath is null || string.Equals(profilePath, path, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        LoadFile(profilePath, overwriteExisting, keysLoadedByLoader);
+    }
+
+    private static void LoadFile(string path, bool overwriteExisting, ISet<string> keysLoadedByLoader)
+    {
+        foreach (var rawLine in File.ReadLines(path))
         {
             var (key, value) = ParseLine(rawLine);
             if (key is null)
                 continue;
 
-            if (overwriteExisting || Environment.GetEnvironmentVariable(key) is null)
+            if (ShouldSetVariable(key, overwriteExisting, keysLoadedByLoader))
+            {
                 Environment.SetEnvironmentVariable(key, value);
+                keysLoadedByLoader.Add(key);
+            }
         }
+    }
+
+    private static bool ShouldSetVariable(string key, bool overwriteExisting, ISet<string> keysLoadedByLoader)
+    {
+        if (overwriteExisting)
+            return true;
+
+        if (keysLoadedByLoader.Contains(key))
+            return true;
+
+        return Environment.GetEnvironmentVariable(key) is null;
     }
 
     public static string? FindFile(string startDirectory)
@@ -50,13 +86,18 @@ public static class EnvFileLoader
 
     public static string? FindFile(IEnumerable<string?> startDirectories)
     {
+        return FindFile(startDirectories, FileName);
+    }
+
+    private static string? FindFile(IEnumerable<string?> startDirectories, string fileName)
+    {
         ArgumentNullException.ThrowIfNull(startDirectories);
         foreach (var startDirectory in startDirectories)
         {
             if (string.IsNullOrWhiteSpace(startDirectory))
                 continue;
 
-            var path = FindFileInAncestors(startDirectory);
+            var path = FindFileInAncestors(startDirectory, fileName);
             if (path is not null)
                 return path;
         }
@@ -65,11 +106,14 @@ public static class EnvFileLoader
     }
 
     private static string? FindFileInAncestors(string startDirectory)
+        => FindFileInAncestors(startDirectory, FileName);
+
+    private static string? FindFileInAncestors(string startDirectory, string fileName)
     {
         var dir = new DirectoryInfo(startDirectory);
         while (dir is not null)
         {
-            var candidate = Path.Combine(dir.FullName, FileName);
+            var candidate = Path.Combine(dir.FullName, fileName);
             if (File.Exists(candidate))
                 return candidate;
             dir = dir.Parent;

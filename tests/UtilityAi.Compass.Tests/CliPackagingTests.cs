@@ -148,14 +148,20 @@ public sealed class CliPackagingTests
             Assert.NotNull(process);
             using (process)
             {
+                const string createOrUpdateProfileSelection = "1";
+                const string devProfileSelection = "1";
                 const string openAiProviderSelection = "1";
                 const string apiKey = "test-key";
                 const string localConsoleDeploymentSelection = "1";
+                const string localStorageSelection = "1";
 
+                await process.StandardInput.WriteLineAsync(createOrUpdateProfileSelection);
+                await process.StandardInput.WriteLineAsync(devProfileSelection);
                 await process.StandardInput.WriteLineAsync(openAiProviderSelection);
                 await process.StandardInput.WriteLineAsync(apiKey);
                 await process.StandardInput.WriteLineAsync(string.Empty);
                 await process.StandardInput.WriteLineAsync(localConsoleDeploymentSelection);
+                await process.StandardInput.WriteLineAsync(localStorageSelection);
                 process.StandardInput.Close();
 
                 var outputTask = process.StandardOutput.ReadToEndAsync();
@@ -167,9 +173,50 @@ public sealed class CliPackagingTests
 
                 Assert.True(process.ExitCode == 0, $"compass --setup failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
                 Assert.Contains("Configuration saved to:", output);
+                Assert.Contains("Profile configuration saved to:", output);
                 Assert.Contains("Run: compass", output);
                 Assert.DoesNotContain("UtilityAi.Compass.sln", output, StringComparison.Ordinal);
                 Assert.DoesNotContain("OpenAI samples enabled.", output, StringComparison.Ordinal);
+            }
+
+            process = Process.Start(new ProcessStartInfo
+            {
+                FileName = toolCommandPath,
+                Arguments = "--setup",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            });
+
+            Assert.NotNull(process);
+            using (process)
+            {
+                const string createOrUpdateProfileSelection = "1";
+                const string devProfileSelection = "1";
+                const string openAiProviderSelection = "1";
+                const string localConsoleDeploymentSelection = "1";
+                const string localStorageSelection = "1";
+
+                await process.StandardInput.WriteLineAsync(createOrUpdateProfileSelection);
+                await process.StandardInput.WriteLineAsync(devProfileSelection);
+                await process.StandardInput.WriteLineAsync(openAiProviderSelection);
+                await process.StandardInput.WriteLineAsync(string.Empty);
+                await process.StandardInput.WriteLineAsync(string.Empty);
+                await process.StandardInput.WriteLineAsync(localConsoleDeploymentSelection);
+                await process.StandardInput.WriteLineAsync(localStorageSelection);
+                process.StandardInput.Close();
+
+                var outputTask = process.StandardOutput.ReadToEndAsync();
+                var errorTask = process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                var output = await outputTask;
+                var error = await errorTask;
+
+                Assert.True(process.ExitCode == 0, $"compass --setup (cached key) failed with exit code {process.ExitCode}{Environment.NewLine}{output}{Environment.NewLine}{error}");
+                Assert.Contains("Configuration saved to:", output);
+                Assert.Contains("Profile configuration saved to:", output);
             }
         }
         finally
