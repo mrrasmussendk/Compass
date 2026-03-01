@@ -26,13 +26,25 @@ public sealed class FileReadModule : ICapabilityModule
         var request = rt.Bus.GetOrDefault<UserRequest>();
         if (request is null) yield break;
 
+        var path = ExtractFilePath(request.Text);
+        
+        // Only propose if the request looks like a file read operation
+        var looksLikeFileRequest = 
+            request.Text.Contains("read", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Contains("show", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Contains("open", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Contains("cat", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Contains("file", StringComparison.OrdinalIgnoreCase) ||
+            (path.Contains('.') || path.Contains(Path.DirectorySeparatorChar) || 
+             path.Contains(Path.AltDirectorySeparatorChar));
+
+        if (!looksLikeFileRequest) yield break;
+
         yield return new Proposal(
             id: "file-read.read",
             cons: [new ConstantValue(0.7)],
             act: _ =>
             {
-                var path = ExtractFilePath(request.Text);
-
                 if (!File.Exists(path))
                 {
                     rt.Bus.Publish(new AiResponse($"File not found: {path}"));

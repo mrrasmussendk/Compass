@@ -45,7 +45,7 @@ function Get-CachedValue {
 
         $value = $null
         if ($line -match "^\s*export\s+$escapedName=(.*)$") { $value = $Matches[1] }
-        elseif ($line -match "^\s*\$env:$escapedName=(.*)$") { $value = $Matches[1] }
+        elseif ($line -match "^\s*\`$env:$escapedName=(.*)$") { $value = $Matches[1] }
         elseif ($line -match "^\s*$escapedName=(.*)$") { $value = $Matches[1] }
         else { continue }
 

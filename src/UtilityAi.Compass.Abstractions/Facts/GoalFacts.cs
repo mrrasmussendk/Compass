@@ -23,3 +23,9 @@ public sealed record UserRequest(string Text, string? UserId = null);
 /// <param name="Text">The generated response text.</param>
 /// <param name="CorrelationId">Optional correlation identifier linking this response to its originating tick.</param>
 public sealed record AiResponse(string Text, string? CorrelationId = null);
+
+/// <summary>Fact indicating the user request contains multiple sub-goals requiring sequential execution.</summary>
+/// <param name="OriginalRequest">The full user request text.</param>
+/// <param name="EstimatedSteps">Estimated number of actions needed to fulfill the request.</param>
+/// <param name="IsCompound">Whether the request contains multiple distinct intents.</param>
+public sealed record MultiStepRequest(string OriginalRequest, int EstimatedSteps, bool IsCompound);

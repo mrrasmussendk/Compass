@@ -36,6 +36,16 @@ public sealed class SummarizationModule : ICapabilityModule
         var request = rt.Bus.GetOrDefault<UserRequest>();
         if (request is null) yield break;
 
+        // Only propose if the request explicitly asks for summarization or contains substantial content
+        var looksLikeSummarizationRequest =
+            request.Text.Contains("summarize", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Contains("summary", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Contains("tl;dr", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Contains("sum up", StringComparison.OrdinalIgnoreCase) ||
+            request.Text.Split(new[] { ' ', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length > 50;
+
+        if (!looksLikeSummarizationRequest) yield break;
+
         yield return new Proposal(
             id: "summarization.summarize",
             cons: [new ConstantValue(0.85)],

@@ -44,11 +44,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CorrelationSensor>();
         services.AddSingleton<ISensor>(sp => sp.GetRequiredService<CorrelationSensor>());
 
-        services.AddSingleton<GoalRouterSensor>();
+        services.AddSingleton<GoalRouterSensor>(sp =>
+        {
+            var modelClient = sp.GetService<IModelClient>();
+            var memoryStore = sp.GetRequiredService<IMemoryStore>();
+            return modelClient is not null 
+                ? new GoalRouterSensor(modelClient, memoryStore)
+                : new GoalRouterSensor();
+        });
         services.AddSingleton<ISensor>(sp => sp.GetRequiredService<GoalRouterSensor>());
-
-        services.AddSingleton<LaneRouterSensor>();
-        services.AddSingleton<ISensor>(sp => sp.GetRequiredService<LaneRouterSensor>());
 
         services.AddSingleton<CliIntentSensor>();
         services.AddSingleton<ISensor>(sp => sp.GetRequiredService<CliIntentSensor>());
@@ -74,6 +78,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CliActionModule>(sp =>
             new CliActionModule(sp.GetServices<ICliAction>()));
         services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<CliActionModule>());
+
+        services.AddSingleton<WorkflowOrchestratorModule>(sp =>
+            new WorkflowOrchestratorModule(sp.GetServices<IWorkflowModule>()));
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<WorkflowOrchestratorModule>());
 
         if (options.EnableGovernanceFinalizer)
         {

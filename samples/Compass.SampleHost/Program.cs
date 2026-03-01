@@ -12,8 +12,10 @@ using UtilityAi.Compass.PluginHost;
 using UtilityAi.Compass.PluginSdk.Attributes;
 using UtilityAi.Compass.PluginSdk.MetadataProvider;
 using UtilityAi.Compass.Runtime.DI;
+using UtilityAi.Compass.Runtime.Modules;
 using UtilityAi.Compass.Runtime.Sensors;
 using UtilityAi.Compass.StandardModules.DI;
+using UtilityAi.Consideration;
 using UtilityAi.Orchestration;
 using UtilityAi.Sensor;
 using UtilityAi.Utils;
@@ -64,6 +66,7 @@ void PrintInstalledModules()
 {
     var standardModules = new[]
     {
+        nameof(UtilityAi.Compass.StandardModules.ConversationModule),
         nameof(UtilityAi.Compass.StandardModules.FileReadModule),
         nameof(UtilityAi.Compass.StandardModules.FileCreationModule),
         nameof(UtilityAi.Compass.StandardModules.SummarizationModule),
@@ -351,7 +354,13 @@ builder.Services.AddUtilityAiCompass(opts =>
 builder.Services.AddCompassStandardModules();
 
 builder.Services.AddSingleton<AttributeMetadataProvider>();
-builder.Services.AddSingleton<IProposalMetadataProvider>(sp => sp.GetRequiredService<AttributeMetadataProvider>());
+builder.Services.AddSingleton<WorkflowMetadataProvider>(sp =>
+    new WorkflowMetadataProvider(sp.GetServices<IWorkflowModule>()));
+builder.Services.AddSingleton<IProposalMetadataProvider>(sp =>
+    new CompositeMetadataProvider([
+        sp.GetRequiredService<WorkflowMetadataProvider>(),
+        sp.GetRequiredService<AttributeMetadataProvider>()
+    ]));
 
 // Register the host-level model client so plugins receive it via DI.
 // The concrete provider (OpenAI, Anthropic, Gemini) is chosen by env config.
@@ -398,19 +407,53 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
     foreach (var module in host.Services.GetServices<ICapabilityModule>())
         requestOrchestrator.AddModule(module);
 
-    await requestOrchestrator.RunAsync(maxTicks: 1, cancellationToken);
+    // Allow multiple ticks for workflow orchestration
+    // Tick 1: Sensors detect multi-step, simple modules propose
+    // Tick 2+: Workflow modules propose and execute steps
+    await requestOrchestrator.RunAsync(maxTicks: 10, cancellationToken);
 
     var goal = bus.GetOrDefault<GoalSelected>();
     var lane = bus.GetOrDefault<LaneSelected>();
     var response = bus.GetOrDefault<AiResponse>();
+    
+    string responseText;
     if (response is not null)
-        return (goal, lane, response.Text);
+    {
+        responseText = response.Text;
+    }
+    else if (modelClient is null)
+    {
+        responseText = "No model configured. Run 'compass --setup' or scripts/install.sh (Linux/macOS) / scripts/install.ps1 (Windows).";
+    }
+    else
+    {
+        // Fallback: use model client directly
+        responseText = await modelClient.GenerateAsync(input, cancellationToken);
+    }
 
-    if (modelClient is null)
-        return (goal, lane, "No model configured. Run 'compass --setup' or scripts/install.sh (Linux/macOS) / scripts/install.ps1 (Windows).");
+    // Store conversation turn in memory for context-aware future requests
+    var memoryStore = host.Services.GetService<IMemoryStore>();
+    if (memoryStore is not null && !string.IsNullOrWhiteSpace(responseText))
+    {
+        await memoryStore.StoreAsync(
+            new ConversationTurn
+            {
+                UserMessage = input,
+                AssistantResponse = responseText
+            },
+            DateTimeOffset.UtcNow,
+            cancellationToken);
+        
+        // Performance optimization: Keep only recent conversation history
+        // Prune turns older than 1 hour to prevent unbounded growth
+        var count = await memoryStore.CountAsync<ConversationTurn>(cancellationToken);
+        if (count > 50) // If more than 50 turns, prune old ones
+        {
+            await memoryStore.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
+        }
+    }
 
-    var modelResponse = await modelClient.GenerateAsync(input, cancellationToken);
-    return (goal, lane, modelResponse);
+    return (goal, lane, responseText);
 }
 
 var discordToken = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
@@ -438,6 +481,19 @@ else
     PrintCommands();
     if (modelConfiguration is not null)
         Console.WriteLine($"Model provider configured: {modelConfiguration.Provider} ({modelConfiguration.Model})");
+
+    // Clear conversation history on startup for fresh sessions
+    var memoryStore = host.Services.GetService<IMemoryStore>();
+    if (memoryStore is not null)
+    {
+        var existingCount = await memoryStore.CountAsync<ConversationTurn>();
+        if (existingCount > 0)
+        {
+            // Clear old conversation turns by pruning everything older than 1 second
+            await memoryStore.PruneAsync(TimeSpan.FromSeconds(1));
+            Console.WriteLine($"[Cleared {existingCount} previous conversation turns]");
+        }
+    }
 
     while (true)
     {
@@ -485,7 +541,8 @@ else
         {
             var (goal, lane, responseText) = await ProcessRequestAsync(input, cts.Token);
 
-            Console.WriteLine($"  Goal: {goal?.Goal} ({goal?.Confidence:P0}), Lane: {lane?.Lane}");
+            var laneInfo = lane is not null ? $"Lane: {lane.Lane}" : "Lane: (from module)";
+            Console.WriteLine($"  Goal: {goal?.Goal} ({goal?.Confidence:P0}), {laneInfo}");
             Console.WriteLine($"  Response: {responseText}");
         }
         catch (HttpRequestException ex)
