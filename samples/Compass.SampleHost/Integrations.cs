@@ -133,12 +133,12 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
                 {
                     foreach (var contentItem in contentArray.EnumerateArray())
                     {
-                        if (contentItem.TryGetProperty("type", out var ct) && ct.GetString() == "output_text" &&
-                            contentItem.TryGetProperty("text", out var t))
+                        if (contentItem.TryGetProperty("type", out var contentType) && contentType.GetString() == "output_text" &&
+                            contentItem.TryGetProperty("text", out var textElement))
                         {
-                            var s = t.GetString();
-                            if (!string.IsNullOrEmpty(s))
-                                texts.Add(s);
+                            var textValue = textElement.GetString();
+                            if (!string.IsNullOrEmpty(textValue))
+                                texts.Add(textValue);
                         }
                     }
                 }
