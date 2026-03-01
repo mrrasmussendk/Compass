@@ -23,10 +23,11 @@ public class ModuleInstallerTests
         var pluginDll = Path.Combine(root, "sample-plugin.dll");
         var pluginsDir = Path.Combine(root, "plugins");
         File.Copy(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location, pluginDll, overwrite: true);
+        await File.WriteAllTextAsync(Path.Combine(root, "compass-manifest.json"), ValidManifestJson);
 
         try
         {
-            var message = await ModuleInstaller.InstallAsync(pluginDll, pluginsDir);
+            var message = await ModuleInstaller.InstallAsync(pluginDll, pluginsDir, allowUnsigned: true);
 
             Assert.Contains("Installed module DLL", message);
             Assert.True(File.Exists(Path.Combine(pluginsDir, "sample-plugin.dll")));
@@ -51,11 +52,15 @@ public class ModuleInstallerTests
             await using (var stream = libEntry.Open())
             await using (var source = File.OpenRead(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location))
                 await source.CopyToAsync(stream);
+            var manifestEntry = archive.CreateEntry("compass-manifest.json");
+            await using var manifestStream = manifestEntry.Open();
+            await using var manifestWriter = new StreamWriter(manifestStream);
+            await manifestWriter.WriteAsync(ValidManifestJson);
         }
 
         try
         {
-            var message = await ModuleInstaller.InstallAsync(nupkgPath, pluginsDir);
+            var message = await ModuleInstaller.InstallAsync(nupkgPath, pluginsDir, allowUnsigned: true);
 
             Assert.Contains("Installed 1 module assembly file", message);
             Assert.True(File.Exists(Path.Combine(pluginsDir, "example.plugin.dll")));
@@ -100,9 +105,13 @@ public class ModuleInstallerTests
         using (var archive = ZipFile.Open(nupkgPath, ZipArchiveMode.Create))
         {
             var libEntry = archive.CreateEntry("lib/net11.0/example.plugin.dll");
-            await using var stream = libEntry.Open();
-            await using var writer = new StreamWriter(stream);
-            await writer.WriteAsync("fake");
+            await using (var stream = libEntry.Open())
+            await using (var writer = new StreamWriter(stream))
+                await writer.WriteAsync("fake");
+            var manifestEntry = archive.CreateEntry("compass-manifest.json");
+            await using (var manifestStream = manifestEntry.Open())
+            await using (var manifestWriter = new StreamWriter(manifestStream))
+                await manifestWriter.WriteAsync(ValidManifestJson);
         }
 
         try
@@ -128,6 +137,68 @@ public class ModuleInstallerTests
         Assert.True(ok);
         Assert.Equal(expected, moduleSpec);
     }
+
+    [Fact]
+    public void TryParseInstallCommand_ParsesAllowUnsignedFlag()
+    {
+        var ok = ModuleInstaller.TryParseInstallCommand("/install-module /tmp/plugin.dll --allow-unsigned", out var moduleSpec, out var allowUnsigned);
+
+        Assert.True(ok);
+        Assert.Equal("/tmp/plugin.dll", moduleSpec);
+        Assert.True(allowUnsigned);
+    }
+
+    [Fact]
+    public async Task InstallAsync_RejectsMissingManifest()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var pluginDll = Path.Combine(root, "sample-plugin.dll");
+        var pluginsDir = Path.Combine(root, "plugins");
+        File.Copy(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location, pluginDll, overwrite: true);
+
+        try
+        {
+            var message = await ModuleInstaller.InstallAsync(pluginDll, pluginsDir, allowUnsigned: true);
+            Assert.Contains("missing required manifest", message, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InspectAsync_ReportsManifestAndModuleFindings()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var pluginDll = Path.Combine(root, "sample-plugin.dll");
+        File.Copy(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location, pluginDll, overwrite: true);
+        await File.WriteAllTextAsync(Path.Combine(root, "compass-manifest.json"), ValidManifestJson);
+
+        try
+        {
+            var report = await ModuleInstaller.InspectAsync(pluginDll);
+            Assert.True(report.HasUtilityAiModule);
+            Assert.True(report.HasManifest);
+            Assert.Contains("sample.read", report.Capabilities);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private const string ValidManifestJson = """
+        {
+          "publisher": "tests",
+          "version": "1.0.0",
+          "capabilities": [ "sample.read" ],
+          "permissions": [ "files.read" ],
+          "sideEffectLevel": "ReadOnly"
+        }
+        """;
 
     [Theory]
     [InlineData("/new-module MyPlugin", "MyPlugin", null)]
