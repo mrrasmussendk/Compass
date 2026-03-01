@@ -35,7 +35,7 @@ public class ModelClientErrorHandlingTests
         var config = new ModelConfiguration(provider, "test-key", "test-model");
         var client = ModelClientFactory.Create(config, httpClient);
 
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => client.GenerateAsync("Hello", CancellationToken.None));
 
         Assert.Contains("400", ex.Message);
@@ -52,7 +52,7 @@ public class ModelClientErrorHandlingTests
         var config = new ModelConfiguration(provider, "bad-key", "test-model");
         var client = ModelClientFactory.Create(config, httpClient);
 
-        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => client.GenerateAsync("Hello", CancellationToken.None));
 
         Assert.Contains(expectedName, ex.Message);
