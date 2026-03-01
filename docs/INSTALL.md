@@ -57,7 +57,7 @@ dotnet test --filter "FullyQualifiedName~CompassGovernedSelectionStrategyTests"
 
 ## 4. Configure — Guided Setup (Recommended)
 
-The interactive install script creates a `.env.compass` file with the required environment variables.
+The interactive installer is the easiest way to configure Compass. It supports named profiles and safe re-runs.
 
 **Linux / macOS:**
 
@@ -71,16 +71,54 @@ The interactive install script creates a `.env.compass` file with the required e
 .\scripts\install.ps1
 ```
 
-The host auto-loads `.env.compass` at startup, so no manual sourcing step is required.
+The host auto-loads `.env.compass` at startup, so no manual `source` step is required.
 
-The script will prompt you to:
+### What setup creates
 
-1. **Select a model provider** — OpenAI, Anthropic, or Gemini.
-2. **Enter your API key** for the chosen provider.
-3. **Choose a model name** (or accept the default).
-4. **Select a deployment mode** — local console or Discord channel.
+- `.env.compass.<profile>` for profile-specific values
+- `.env.compass` with `COMPASS_PROFILE=<profile>` to define the active profile
 
-If you select Discord, you will also be prompted for `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID`.
+Supported profiles:
+
+- `dev`
+- `personal`
+- `team`
+- `prod`
+
+### Setup flow (step-by-step)
+
+1. **Choose onboarding action**
+   - Create/update profile configuration
+   - Switch active profile
+2. **Choose profile** (`dev/personal/team/prod`)
+3. **Choose model provider** (OpenAI, Anthropic, Gemini)
+4. **Enter provider API key**
+   - If re-running setup for an existing profile, you can leave this blank to reuse the cached key already saved in that profile file.
+5. **Choose model name** (or accept provider default)
+6. **Choose deployment mode**
+   - Local console
+   - Discord channel
+7. **Choose storage mode**
+   - Default local SQLite: `Data Source=appdb/compass-memory.db`
+   - Third-party connection string
+
+If you select Discord, setup requires both `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID`.
+
+### Quick profile switch (non-interactive)
+
+Linux/macOS:
+
+```bash
+./scripts/install.sh dev
+./scripts/install.sh team
+```
+
+Windows PowerShell:
+
+```powershell
+.\scripts\install.ps1 -Profile dev
+.\scripts\install.ps1 -Profile team
+```
 
 ---
 
@@ -90,12 +128,14 @@ If you prefer to set environment variables yourself, export the following before
 
 | Variable | Required | Description |
 |---|---|---|
+| `COMPASS_PROFILE` | Recommended | Active profile name (`dev`, `personal`, `team`, `prod`) used to select `.env.compass.<profile>` |
 | `COMPASS_MODEL_PROVIDER` | Yes | `openai`, `anthropic`, or `gemini` |
 | `OPENAI_API_KEY` | When provider is `openai` | OpenAI API key |
 | `ANTHROPIC_API_KEY` | When provider is `anthropic` | Anthropic API key |
 | `GEMINI_API_KEY` | When provider is `gemini` | Gemini API key |
 | `COMPASS_MODEL_NAME` | No | Overrides the default model name per provider |
 | `COMPASS_MODEL_MAX_TOKENS` | No | Sets Anthropic `max_tokens` (default `512`) |
+| `COMPASS_MEMORY_CONNECTION_STRING` | No | Memory/persistence connection string (guided setup default: SQLite file connection) |
 | `DISCORD_BOT_TOKEN` | No | Enables Discord mode |
 | `DISCORD_CHANNEL_ID` | No | Target Discord channel (requires `DISCORD_BOT_TOKEN`) |
 | `DISCORD_POLL_INTERVAL_SECONDS` | No | Tune Discord polling interval |
@@ -106,6 +146,7 @@ Example (Linux / macOS):
 ```bash
 export COMPASS_MODEL_PROVIDER=openai
 export OPENAI_API_KEY=sk-...
+export COMPASS_MEMORY_CONNECTION_STRING="Data Source=appdb/compass-memory.db"
 dotnet run --project samples/Compass.SampleHost
 ```
 
@@ -173,5 +214,6 @@ UtilityAi.Compass.sln
 | Build cannot restore UtilityAi | Ensure https://api.nuget.org/v3/index.json is reachable |
 | `dotnet: command not found` | Install the [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download) and ensure it is on your `PATH` |
 | Build error about target framework `net10.0` | Confirm you have .NET **10** (not an older SDK) installed |
-| API key errors at runtime | Double-check the correct `*_API_KEY` variable is set for your chosen `COMPASS_MODEL_PROVIDER` |
+| API key errors at runtime | Double-check the correct `*_API_KEY` variable is set for your chosen `COMPASS_MODEL_PROVIDER`; re-run setup and press Enter on key prompt to reuse cached key for existing profile |
+| Wrong profile loaded | Confirm `.env.compass` contains `COMPASS_PROFILE=<name>` and that `.env.compass.<name>` exists |
 | Plugins not discovered | Ensure the DLLs are in a `plugins/` folder next to the running executable |

@@ -15,7 +15,7 @@ This README is organized around those two workflows first.
 git clone https://github.com/mrrasmussendk/Compass.git && cd Compass && dotnet run --project samples/Compass.SampleHost
 ```
 
-**Database/local DB:** none required by default. Compass keeps routing/governance state in runtime memory; plugins can add their own persistence if needed.
+**Database/local DB:** no external database required. Guided setup defaults to local SQLite file memory (`Data Source=appdb/compass-memory.db`) unless you choose a third-party connection string.
 
 ---
 
@@ -67,12 +67,19 @@ dotnet build UtilityAi.Compass.sln
 dotnet test UtilityAi.Compass.sln
 ```
 
-### Optional guided setup (model provider + deployment mode)
+### Optional guided setup (recommended)
 
 ```bash
 ./scripts/install.sh
 # Windows PowerShell: .\scripts\install.ps1
 ```
+
+Guided setup is profile-aware (`dev`, `personal`, `team`, `prod`) and writes:
+
+- `.env.compass.<profile>` for profile-specific settings
+- `.env.compass` with `COMPASS_PROFILE=<profile>` to mark the active profile
+
+On repeated setup runs, you can press Enter on the API key prompt to reuse the cached key already stored for that profile.
 
 ### Run the sample host (same core runtime used by the CLI tool)
 
@@ -123,7 +130,17 @@ The CLI supports these startup arguments:
 Print available CLI arguments.
 
 #### `--setup`
-Runs the bundled installer script (`scripts/install.sh` or `scripts/install.ps1`) to configure provider settings and runtime environment.
+Runs the bundled installer script (`scripts/install.sh` or `scripts/install.ps1`) for interactive onboarding.
+
+Setup flow:
+
+1. Choose onboarding action (create/update profile or switch active profile).
+2. Choose profile (`dev`, `personal`, `team`, `prod`).
+3. Choose model provider (OpenAI / Anthropic / Gemini).
+4. Enter API key (or leave blank to reuse cached key for that profile).
+5. Enter model name (or accept default).
+6. Choose deployment mode (local console or Discord).
+7. Choose storage mode (default local SQLite or custom connection string).
 
 #### `--list-modules`
 Shows standard modules + plugin DLLs already installed in the runtime `plugins/` folder.
