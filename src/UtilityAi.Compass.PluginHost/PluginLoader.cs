@@ -131,14 +131,15 @@ public sealed class PluginLoader : IPluginDiscovery
     private static IEnumerable<Type> GetConcreteTypes<T>(Assembly assembly)
     {
         var interfaceType = typeof(T);
+        bool Matches(Type t) => t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t);
         try
         {
             return assembly.GetTypes()
-                .Where(t => t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t));
+                .Where(Matches);
         }
         catch (ReflectionTypeLoadException ex)
         {
-            return ex.Types.Where(t => t is not null && t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t)).Cast<Type>();
+            return ex.Types.Where(t => t is not null && Matches(t)).Cast<Type>();
         }
     }
 }
