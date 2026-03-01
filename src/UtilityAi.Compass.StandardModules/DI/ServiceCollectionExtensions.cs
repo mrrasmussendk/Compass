@@ -12,7 +12,7 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Registers all built-in Compass standard modules and their workflow equivalents:
     /// <see cref="FileReadModule"/>, <see cref="FileCreationModule"/>,
-    /// <see cref="SummarizationModule"/>, <see cref="WebSearchModule"/>,
+    /// <see cref="SummarizationModule"/>, <see cref="WebSearchModule"/>, <see cref="GmailModule"/>,
     /// <see cref="FileReadWorkflow"/>, <see cref="FileCreationWorkflow"/>,
     /// <see cref="SummarizationWorkflow"/>, and <see cref="WebSearchWorkflow"/>.
     /// </summary>
@@ -37,6 +37,9 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<WebSearchModule>();
         services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<WebSearchModule>());
+
+        services.AddSingleton<GmailModule>();
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<GmailModule>());
 
         services.AddSingleton<IWorkflowModule, FileReadWorkflow>();
         services.AddSingleton<IWorkflowModule, FileCreationWorkflow>();

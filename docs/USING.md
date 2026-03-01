@@ -36,3 +36,10 @@ compass --setup
 compass --list-modules
 compass --install-module /absolute/path/MyPlugin.dll
 ```
+
+If a plugin manifest includes `requiredSecrets`, Compass prompts for missing values during interactive install and fails installation when a required value is not supplied.
+
+Example Gmail prompts you can try in the sample host:
+
+- `read my gmail inbox for unread messages`
+- `draft a reply to the latest gmail message`

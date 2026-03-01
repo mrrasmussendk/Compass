@@ -24,6 +24,42 @@ EnvFileLoader.Load(overwriteExisting: true);
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 const int MaxAuditRecords = 100;
 void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath]");
+string? PromptForSecret(string secretName)
+{
+    Console.Write($"Missing required secret '{secretName}'. Enter value (blank will fail install): ");
+    var value = ReadSecretFromConsole();
+    Console.WriteLine();
+    return value;
+}
+
+static string ReadSecretFromConsole()
+{
+    if (Console.IsInputRedirected)
+        return Console.ReadLine() ?? string.Empty;
+
+    var buffer = new List<char>();
+    while (true)
+    {
+        var key = Console.ReadKey(intercept: true);
+        if (key.Key == ConsoleKey.Enter)
+            return new string(buffer.ToArray());
+
+        if (key.Key == ConsoleKey.Backspace)
+        {
+            if (buffer.Count == 0)
+                continue;
+            buffer.RemoveAt(buffer.Count - 1);
+            Console.Write("\b \b");
+            continue;
+        }
+
+        if (!char.IsControl(key.KeyChar))
+        {
+            buffer.Add(key.KeyChar);
+            Console.Write('*');
+        }
+    }
+}
 void PrintInstalledModules()
 {
     var standardModules = new[]
@@ -31,7 +67,8 @@ void PrintInstalledModules()
         nameof(UtilityAi.Compass.StandardModules.FileReadModule),
         nameof(UtilityAi.Compass.StandardModules.FileCreationModule),
         nameof(UtilityAi.Compass.StandardModules.SummarizationModule),
-        nameof(UtilityAi.Compass.StandardModules.WebSearchModule)
+        nameof(UtilityAi.Compass.StandardModules.WebSearchModule),
+        nameof(UtilityAi.Compass.StandardModules.GmailModule)
     };
 
     Console.WriteLine($"Standard modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", standardModules)}");
@@ -112,7 +149,7 @@ if (startupArgs.Length >= 2 &&
      string.Equals(startupArgs[0], "/install-module", StringComparison.OrdinalIgnoreCase)))
 {
     var allowUnsigned = startupArgs.Any(a => string.Equals(a, "--allow-unsigned", StringComparison.OrdinalIgnoreCase));
-    var installResult = await ModuleInstaller.InstallWithResultAsync(startupArgs[1], pluginsPath, allowUnsigned);
+    var installResult = await ModuleInstaller.InstallWithResultAsync(startupArgs[1], pluginsPath, allowUnsigned, PromptForSecret);
     Console.WriteLine(installResult.Message);
     if (!installResult.Success)
         Environment.ExitCode = 1;
@@ -428,7 +465,7 @@ else
 
         if (ModuleInstaller.TryParseInstallCommand(input, out var moduleSpec, out var allowUnsigned))
         {
-            var installResult = await ModuleInstaller.InstallWithResultAsync(moduleSpec, pluginsPath, allowUnsigned);
+            var installResult = await ModuleInstaller.InstallWithResultAsync(moduleSpec, pluginsPath, allowUnsigned, PromptForSecret);
             Console.WriteLine($"  {installResult.Message}");
             Console.WriteLine("  Restart Compass CLI to load the new module.");
             continue;

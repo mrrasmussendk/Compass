@@ -179,6 +179,123 @@ public class ModuleInstallerTests
     }
 
     [Fact]
+    public async Task InstallWithResultAsync_Fails_WhenRequiredSecretIsMissing()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var pluginDll = Path.Combine(root, "sample-plugin.dll");
+        var pluginsDir = Path.Combine(root, "plugins");
+        var secretName = $"COMPASS_TEST_SECRET_{Guid.NewGuid():N}";
+        File.Copy(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location, pluginDll, overwrite: true);
+        await File.WriteAllTextAsync(Path.Combine(root, "compass-manifest.json"), $$"""
+            {
+              "publisher": "tests",
+              "version": "1.0.0",
+              "capabilities": [ "sample.read" ],
+              "permissions": [ "files.read" ],
+              "sideEffectLevel": "ReadOnly",
+              "requiredSecrets": [ "{{secretName}}" ]
+            }
+            """);
+
+        var originalValue = Environment.GetEnvironmentVariable(secretName);
+        Environment.SetEnvironmentVariable(secretName, null);
+        try
+        {
+            var result = await ModuleInstaller.InstallWithResultAsync(pluginDll, pluginsDir, allowUnsigned: true, secretPrompt: _ => null);
+            Assert.False(result.Success);
+            Assert.Contains($"required secret '{secretName}' was not provided", result.Message);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(secretName, originalValue);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InstallWithResultAsync_FailsWithEnvironmentGuidance_WhenPromptUnavailable()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var pluginDll = Path.Combine(root, "sample-plugin.dll");
+        var pluginsDir = Path.Combine(root, "plugins");
+        var secretName = $"COMPASS_TEST_SECRET_{Guid.NewGuid():N}";
+        File.Copy(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location, pluginDll, overwrite: true);
+        await File.WriteAllTextAsync(Path.Combine(root, "compass-manifest.json"), $$"""
+            {
+              "publisher": "tests",
+              "version": "1.0.0",
+              "capabilities": [ "sample.read" ],
+              "permissions": [ "files.read" ],
+              "sideEffectLevel": "ReadOnly",
+              "requiredSecrets": [ "{{secretName}}" ]
+            }
+            """);
+
+        var originalValue = Environment.GetEnvironmentVariable(secretName);
+        Environment.SetEnvironmentVariable(secretName, null);
+        try
+        {
+            var result = await ModuleInstaller.InstallWithResultAsync(pluginDll, pluginsDir, allowUnsigned: true);
+            Assert.False(result.Success);
+            Assert.Contains("Set it as an environment variable before installation", result.Message);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(secretName, originalValue);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task InstallWithResultAsync_UsesPromptedSecret_WhenRequiredSecretMissing()
+    {
+        var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var pluginDll = Path.Combine(root, "sample-plugin.dll");
+        var pluginsDir = Path.Combine(root, "plugins");
+        var secretName = $"COMPASS_TEST_SECRET_{Guid.NewGuid():N}";
+        var prompted = false;
+        File.Copy(typeof(UtilityAi.Compass.StandardModules.FileReadModule).Assembly.Location, pluginDll, overwrite: true);
+        await File.WriteAllTextAsync(Path.Combine(root, "compass-manifest.json"), $$"""
+            {
+              "publisher": "tests",
+              "version": "1.0.0",
+              "capabilities": [ "sample.read" ],
+              "permissions": [ "files.read" ],
+              "sideEffectLevel": "ReadOnly",
+              "requiredSecrets": [ "{{secretName}}" ]
+            }
+            """);
+
+        var originalValue = Environment.GetEnvironmentVariable(secretName);
+        Environment.SetEnvironmentVariable(secretName, null);
+        try
+        {
+            var result = await ModuleInstaller.InstallWithResultAsync(
+                pluginDll,
+                pluginsDir,
+                allowUnsigned: true,
+                secretPrompt: name =>
+                {
+                    prompted = true;
+                    return name == secretName ? "secret-value" : null;
+                });
+
+            Assert.True(result.Success);
+            Assert.True(prompted);
+            Assert.Equal("secret-value", Environment.GetEnvironmentVariable(secretName));
+            Assert.True(File.Exists(Path.Combine(pluginsDir, "sample-plugin.dll")));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(secretName, originalValue);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task InspectAsync_ReportsManifestAndModuleFindings()
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

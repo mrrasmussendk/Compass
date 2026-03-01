@@ -44,11 +44,15 @@ Inspection reports include:
 - `.dll` install:
   - must contain a UtilityAI module type
   - manifest must exist next to the dll
+  - any `requiredSecrets` must already be set or entered at install prompt
   - must be signed unless `--allow-unsigned` is passed
 - `.nupkg` install:
   - must contain compatible lib/runtimes assemblies
   - package root must contain `compass-manifest.json`
+  - any `requiredSecrets` must already be set or entered at install prompt
   - assemblies must be signed unless `--allow-unsigned` is passed
+
+Secrets entered at install prompt are only set for the current Compass process.
 
 ## Threat model highlights
 

@@ -45,19 +45,21 @@ public static class ModuleInstaller
         string moduleSpec,
         string pluginsPath,
         bool allowUnsigned = false,
+        Func<string, string?>? secretPrompt = null,
         CancellationToken cancellationToken = default) =>
-        (await InstallWithResultAsync(moduleSpec, pluginsPath, allowUnsigned, cancellationToken)).Message;
+        (await InstallWithResultAsync(moduleSpec, pluginsPath, allowUnsigned, secretPrompt, cancellationToken)).Message;
 
     public static async Task<ModuleInstallResult> InstallWithResultAsync(
         string moduleSpec,
         string pluginsPath,
         bool allowUnsigned = false,
+        Func<string, string?>? secretPrompt = null,
         CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(pluginsPath);
 
         if (File.Exists(moduleSpec))
-            return InstallFromFile(moduleSpec, pluginsPath, allowUnsigned);
+            return InstallFromFile(moduleSpec, pluginsPath, allowUnsigned, secretPrompt);
 
         if (!TryParsePackageReference(moduleSpec, out var packageId, out var packageVersion))
             return ModuleInstallResult.FromFailure("Module install failed: provide a .dll/.nupkg path or NuGet reference in the form PackageId@Version.");
@@ -73,7 +75,7 @@ public static class ModuleInstaller
 
         try
         {
-            return InstallFromNupkg(tempPath, pluginsPath, packageId, allowUnsigned);
+            return InstallFromNupkg(tempPath, pluginsPath, packageId, allowUnsigned, secretPrompt);
         }
         finally
         {
@@ -263,7 +265,7 @@ public static class ModuleInstaller
         }
     }
 
-    private static ModuleInstallResult InstallFromFile(string filePath, string pluginsPath, bool allowUnsigned)
+    private static ModuleInstallResult InstallFromFile(string filePath, string pluginsPath, bool allowUnsigned, Func<string, string?>? secretPrompt = null)
     {
         var extension = Path.GetExtension(filePath);
         if (extension.Equals(".dll", StringComparison.OrdinalIgnoreCase))
@@ -273,8 +275,10 @@ public static class ModuleInstaller
             var fileDirectory = Path.GetDirectoryName(filePath);
             if (string.IsNullOrWhiteSpace(fileDirectory))
                 return ModuleInstallResult.FromFailure($"Module install failed: could not resolve directory for '{Path.GetFileName(filePath)}'.");
-            if (!TryLoadManifest(fileDirectory, out _, out var manifestError))
+            if (!TryLoadManifest(fileDirectory, out var manifest, out var manifestError))
                 return ModuleInstallResult.FromFailure(manifestError);
+            if (manifest is not null && !TryResolveRequiredSecrets(manifest, secretPrompt, out var secretError))
+                return ModuleInstallResult.FromFailure(secretError);
             if (!allowUnsigned && !IsSignedAssembly(filePath))
                 return ModuleInstallResult.FromFailure($"Module install failed: '{Path.GetFileName(filePath)}' is unsigned. Re-run with --allow-unsigned to override.");
 
@@ -284,16 +288,18 @@ public static class ModuleInstaller
         }
 
         if (extension.Equals(".nupkg", StringComparison.OrdinalIgnoreCase))
-            return InstallFromNupkg(filePath, pluginsPath, allowUnsigned: allowUnsigned);
+            return InstallFromNupkg(filePath, pluginsPath, allowUnsigned: allowUnsigned, secretPrompt: secretPrompt);
 
         return ModuleInstallResult.FromFailure("Module install failed: only .dll and .nupkg files are supported.");
     }
 
-    private static ModuleInstallResult InstallFromNupkg(string nupkgPath, string pluginsPath, string? packageId = null, bool allowUnsigned = false)
+    private static ModuleInstallResult InstallFromNupkg(string nupkgPath, string pluginsPath, string? packageId = null, bool allowUnsigned = false, Func<string, string?>? secretPrompt = null)
     {
         using var archive = ZipFile.OpenRead(nupkgPath);
-        if (!TryLoadManifest(archive, out _, out var manifestError))
+        if (!TryLoadManifest(archive, out var manifest, out var manifestError))
             return ModuleInstallResult.FromFailure(manifestError);
+        if (manifest is not null && !TryResolveRequiredSecrets(manifest, secretPrompt, out var secretError))
+            return ModuleInstallResult.FromFailure(secretError);
         var copiedFiles = new List<string>();
         var hasUtilityAiModule = false;
 
@@ -335,6 +341,39 @@ public static class ModuleInstaller
         }
 
         return ModuleInstallResult.FromSuccess($"Installed {copiedFiles.Count} module assembly file(s) from '{packageId ?? Path.GetFileName(nupkgPath)}'.");
+    }
+
+    private static bool TryResolveRequiredSecrets(
+        ModulePermissionManifest manifest,
+        Func<string, string?>? secretPrompt,
+        out string error)
+    {
+        foreach (var secretName in manifest.RequiredSecrets ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(secretName))
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(secretName)))
+                continue;
+
+            if (secretPrompt is null)
+            {
+                error = $"Module install failed: required secret '{secretName}' is missing. Set it as an environment variable before installation.";
+                return false;
+            }
+
+            var provided = secretPrompt(secretName);
+            if (string.IsNullOrWhiteSpace(provided))
+            {
+                error = $"Module install failed: required secret '{secretName}' was not provided.";
+                return false;
+            }
+
+            Environment.SetEnvironmentVariable(secretName, provided);
+        }
+
+        error = string.Empty;
+        return true;
     }
 
     private static bool IsPluginAssemblyEntry(ZipArchiveEntry entry)
