@@ -19,6 +19,35 @@ normalize_profile() {
   esac
 }
 
+read_cached_value() {
+  local key="$1"
+  local file_path="$2"
+  [[ -f "$file_path" ]] || return 0
+
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    local value=""
+    if [[ "$line" =~ ^[[:space:]]*export[[:space:]]+$key=(.*)$ ]]; then
+      value="${BASH_REMATCH[1]}"
+    elif [[ "$line" =~ ^[[:space:]]*[$]env:${key}=(.*)$ ]]; then
+      value="${BASH_REMATCH[1]}"
+    elif [[ "$line" =~ ^[[:space:]]*${key}=(.*)$ ]]; then
+      value="${BASH_REMATCH[1]}"
+    else
+      continue
+    fi
+
+    if [[ ${#value} -ge 2 ]]; then
+      if [[ ( "${value:0:1}" == "'" && "${value: -1}" == "'" ) || ( "${value:0:1}" == "\"" && "${value: -1}" == "\"" ) ]]; then
+        value="${value:1:${#value}-2}"
+      fi
+    fi
+
+    printf '%s' "$value"
+    return 0
+  done < "$file_path"
+}
+
 write_active_profile() {
   local profile_name="$1"
   {
@@ -89,6 +118,9 @@ case "$provider_choice" in
 esac
 
 read -r -p "Enter ${key_name}: " api_key
+if [[ -z "${api_key}" ]]; then
+  api_key="$(read_cached_value "$key_name" "$profile_env_file")"
+fi
 if [[ -z "${api_key}" ]]; then
   echo "${key_name} is required."
   exit 1

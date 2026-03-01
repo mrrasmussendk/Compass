@@ -31,6 +31,39 @@ function Resolve-ProfileName {
     }
 }
 
+function Get-CachedValue {
+    param(
+        [string]$Name,
+        [string]$Path
+    )
+
+    if (-not (Test-Path $Path)) { return $null }
+
+    $escapedName = [regex]::Escape($Name)
+    foreach ($line in Get-Content -Path $Path) {
+        if ($line -match "^\s*#") { continue }
+
+        $value = $null
+        if ($line -match "^\s*export\s+$escapedName=(.*)$") { $value = $Matches[1] }
+        elseif ($line -match "^\s*\$env:$escapedName=(.*)$") { $value = $Matches[1] }
+        elseif ($line -match "^\s*$escapedName=(.*)$") { $value = $Matches[1] }
+        else { continue }
+
+        $value = $value.Trim()
+        if ($value.Length -ge 2) {
+            $first = $value.Substring(0, 1)
+            $last = $value.Substring($value.Length - 1, 1)
+            if (($first -eq "'" -and $last -eq "'") -or ($first -eq '"' -and $last -eq '"')) {
+                $value = $value.Substring(1, $value.Length - 2)
+            }
+        }
+
+        return $value
+    }
+
+    return $null
+}
+
 function Set-ActiveProfile {
     param([string]$Name)
     @(
@@ -98,6 +131,7 @@ switch ($providerChoice) {
 
 $apiKey = Read-Host "Enter $keyName"
 $apiKey = $apiKey.Trim()
+if ([string]::IsNullOrWhiteSpace($apiKey)) { $apiKey = Get-CachedValue -Name $keyName -Path $ProfileEnvFile }
 if ([string]::IsNullOrWhiteSpace($apiKey)) { throw "$keyName is required." }
 $selectedModel = Read-Host "Enter model name [$defaultModel]"
 if ([string]::IsNullOrWhiteSpace($selectedModel)) { $selectedModel = $defaultModel }
