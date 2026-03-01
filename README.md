@@ -9,6 +9,14 @@ If you are evaluating Compass for practical use, there are two main workflows:
 
 This README is organized around those two workflows first.
 
+**Try it now (30 seconds):**
+
+```bash
+git clone https://github.com/mrrasmussendk/Compass.git && cd Compass && dotnet run --project samples/Compass.SampleHost
+```
+
+**Database/local DB:** none required by default. Compass keeps routing/governance state in runtime memory; plugins can add their own persistence if needed.
+
 ---
 
 ## Table of Contents
@@ -35,23 +43,11 @@ This README is organized around those two workflows first.
 
 ## Who this is for
 
-### I want to **use Compass now**
-Start with:
-
-- [Quick start (5 minutes)](#quick-start-5-minutes)
-- [CLI-first usage](#cli-first-usage)
-
-### I want to **build extensions/plugins**
-Start with:
-
-- [Extension-first usage (plugins)](#extension-first-usage-plugins)
-- [docs/EXTENDING.md](docs/EXTENDING.md)
-
-### I want to **understand internals and contribute**
-Start with:
-
-- [How governance works when your module runs](#how-governance-works-when-your-module-runs)
-- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
+| Your goal | Start here |
+|---|---|
+| **Use Compass now** | [Quick start (5 minutes)](#quick-start-5-minutes) → [CLI-first usage](#cli-first-usage) |
+| **Build extensions/plugins** | [Extension-first usage (plugins)](#extension-first-usage-plugins) → [docs/EXTENDING.md](docs/EXTENDING.md) |
+| **Understand internals/contribute** | [How governance works when your module runs](#how-governance-works-when-your-module-runs) → [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) |
 
 ---
 
