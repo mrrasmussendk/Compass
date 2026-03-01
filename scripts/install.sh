@@ -101,6 +101,10 @@ echo "Select deployment mode:"
 echo "  1) Local console"
 echo "  2) Discord channel"
 read -r -p "> " deploy_choice
+if [[ "$deploy_choice" != "1" && "$deploy_choice" != "2" ]]; then
+  echo "Invalid deployment choice"
+  exit 1
+fi
 
 echo
 echo "Select memory storage:"

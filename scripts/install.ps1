@@ -107,6 +107,7 @@ Write-Host 'Select deployment mode:'
 Write-Host '  1) Local console'
 Write-Host '  2) Discord channel'
 $deployChoice = Read-Host '>'
+if ($deployChoice -ne '1' -and $deployChoice -ne '2') { throw 'Invalid deployment choice' }
 
 Write-Host ''
 Write-Host 'Select memory storage:'

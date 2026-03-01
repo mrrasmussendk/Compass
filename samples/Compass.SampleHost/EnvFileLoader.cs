@@ -53,7 +53,7 @@ public static class EnvFileLoader
 
     private static void LoadFile(string path, bool overwriteExisting, ISet<string> keysLoadedByLoader)
     {
-        foreach (var rawLine in File.ReadAllLines(path))
+        foreach (var rawLine in File.ReadLines(path))
         {
             var (key, value) = ParseLine(rawLine);
             if (key is null)
