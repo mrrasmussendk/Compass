@@ -83,17 +83,22 @@ public sealed class SchedulerService : IDisposable
 
         var now = DateTimeOffset.UtcNow;
 
+        // Fetch all runs once to avoid N+1 queries.
+        var allRuns = await _store.RecallAsync<ScheduledJobRun>(
+            new MemoryQuery { MaxResults = 1000, SortOrder = SortOrder.NewestFirst }, ct);
+        var latestRunByJob = new Dictionary<string, ScheduledJobRun>();
+        foreach (var run in allRuns)
+        {
+            latestRunByJob.TryAdd(run.Fact.JobId, run.Fact);
+        }
+
         foreach (var job in latestJobs.Values)
         {
             if (!job.Enabled) continue;
 
-            var runs = await _store.RecallAsync<ScheduledJobRun>(
-                new MemoryQuery { MaxResults = 100, SortOrder = SortOrder.NewestFirst }, ct);
-
-            var lastRun = runs.FirstOrDefault(r => r.Fact.JobId == job.JobId);
-            if (lastRun is not null)
+            if (latestRunByJob.TryGetValue(job.JobId, out var lastRun))
             {
-                var elapsed = now - lastRun.Fact.ExecutedAt;
+                var elapsed = now - lastRun.ExecutedAt;
                 if (elapsed < TimeSpan.FromSeconds(job.IntervalSeconds))
                     continue;
             }

@@ -17,11 +17,15 @@ public class SchedulerServiceTests
 
         await service.ExecuteDueJobsAsync(CancellationToken.None);
 
-        // Give the fire-and-forget task a moment to complete.
-        await Task.Delay(2000);
-
-        var runs = await store.RecallAsync<ScheduledJobRun>(
-            new MemoryQuery { MaxResults = 10, SortOrder = SortOrder.NewestFirst });
+        // Poll until the fire-and-forget task completes.
+        IReadOnlyList<TimestampedMemory<ScheduledJobRun>> runs = [];
+        for (var i = 0; i < 20; i++)
+        {
+            await Task.Delay(100);
+            runs = await store.RecallAsync<ScheduledJobRun>(
+                new MemoryQuery { MaxResults = 10, SortOrder = SortOrder.NewestFirst });
+            if (runs.Count > 0) break;
+        }
 
         Assert.Single(runs);
         Assert.Equal("job-echo", runs[0].Fact.JobId);
