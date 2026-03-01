@@ -32,30 +32,31 @@ public enum ModelProvider
 public sealed record ModelConfiguration(ModelProvider Provider, string ApiKey, string Model)
 {
     public static bool TryCreateFromEnvironment(out ModelConfiguration? configuration)
+        => TryCreateFromEnvironment(out configuration, out _);
+
+    public static bool TryCreateFromEnvironment(out ModelConfiguration? configuration, out string? error)
     {
         var providerText = Environment.GetEnvironmentVariable("COMPASS_MODEL_PROVIDER");
         if (!TryParseProvider(providerText, out var provider))
         {
             configuration = null;
+            error = "Unsupported COMPASS_MODEL_PROVIDER. Supported values: openai, anthropic, gemini.";
             return false;
         }
 
-        var (apiKeyVariable, defaultModel) = provider switch
-        {
-            ModelProvider.Anthropic => ("ANTHROPIC_API_KEY", "claude-3-5-haiku-latest"),
-            ModelProvider.Gemini => ("GEMINI_API_KEY", "gemini-2.0-flash"),
-            _ => ("OPENAI_API_KEY", "gpt-4o-mini")
-        };
+        var (apiKeyVariable, defaultModel) = GetProviderDefaults(provider);
 
         var apiKey = Environment.GetEnvironmentVariable(apiKeyVariable);
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             configuration = null;
+            error = $"Missing required API key environment variable: {apiKeyVariable}.";
             return false;
         }
 
         var model = Environment.GetEnvironmentVariable("COMPASS_MODEL_NAME");
         configuration = new ModelConfiguration(provider, apiKey, string.IsNullOrWhiteSpace(model) ? defaultModel : model);
+        error = null;
         return true;
     }
 
@@ -65,23 +66,40 @@ public sealed record ModelConfiguration(ModelProvider Provider, string ApiKey, s
         if (string.IsNullOrWhiteSpace(value))
             return true;
 
-        return value.Trim().ToLowerInvariant() switch
+        var normalizedProvider = value.Trim().ToLowerInvariant();
+        switch (normalizedProvider)
         {
-            "openai" => true,
-            "anthropic" => (provider = ModelProvider.Anthropic) == ModelProvider.Anthropic,
-            "gemini" => (provider = ModelProvider.Gemini) == ModelProvider.Gemini,
-            _ => false
-        };
+            case "openai":
+                provider = ModelProvider.OpenAi;
+                return true;
+            case "anthropic":
+                provider = ModelProvider.Anthropic;
+                return true;
+            case "gemini":
+                provider = ModelProvider.Gemini;
+                return true;
+            default:
+                return false;
+        }
     }
+
+    private static (string ApiKeyVariable, string DefaultModel) GetProviderDefaults(ModelProvider provider) => provider switch
+    {
+        ModelProvider.OpenAi => ("OPENAI_API_KEY", "gpt-4o-mini"),
+        ModelProvider.Anthropic => ("ANTHROPIC_API_KEY", "claude-3-5-haiku-latest"),
+        ModelProvider.Gemini => ("GEMINI_API_KEY", "gemini-2.0-flash"),
+        _ => throw new NotSupportedException($"Unsupported model provider: {provider}.")
+    };
 }
 
 public static class ModelClientFactory
 {
     public static IModelClient Create(ModelConfiguration configuration, HttpClient httpClient) => configuration.Provider switch
     {
+        ModelProvider.OpenAi => new OpenAiModelClient(configuration, httpClient),
         ModelProvider.Anthropic => new AnthropicModelClient(configuration, httpClient),
         ModelProvider.Gemini => new GeminiModelClient(configuration, httpClient),
-        _ => new OpenAiModelClient(configuration, httpClient)
+        _ => throw new NotSupportedException($"Unsupported model provider: {configuration.Provider}.")
     };
 }
 

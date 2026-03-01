@@ -323,7 +323,8 @@ if (startupArgs.Length >= 1 &&
     return;
 }
 
-if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
+string? modelConfigurationError = null;
+if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration, out modelConfigurationError) &&
     EnvFileLoader.FindFile([Directory.GetCurrentDirectory(), AppContext.BaseDirectory]) is null &&
     !Console.IsInputRedirected)
 {
@@ -331,9 +332,11 @@ if (!ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration) &&
     if (ModuleInstaller.TryRunInstallScript())
     {
         EnvFileLoader.Load(overwriteExisting: true);
-        ModelConfiguration.TryCreateFromEnvironment(out modelConfiguration);
+        ModelConfiguration.TryCreateFromEnvironment(out modelConfiguration, out modelConfigurationError);
     }
 }
+if (modelConfiguration is null && !string.IsNullOrWhiteSpace(modelConfigurationError))
+    Console.WriteLine($"Model configuration warning: {modelConfigurationError}");
 
 var builder = Host.CreateApplicationBuilder(args);
 var memoryConnectionString = Environment.GetEnvironmentVariable("COMPASS_MEMORY_CONNECTION_STRING");
@@ -486,6 +489,10 @@ else
             Console.WriteLine($"  Response: {responseText}");
         }
         catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"  Error: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
         {
             Console.WriteLine($"  Error: {ex.Message}");
         }

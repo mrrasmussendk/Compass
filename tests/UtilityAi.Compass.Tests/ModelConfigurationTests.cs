@@ -50,4 +50,24 @@ public class ModelConfigurationTests
             Environment.SetEnvironmentVariable("COMPASS_MODEL_NAME", priorModel);
         }
     }
+
+    [Fact]
+    public void TryCreateFromEnvironment_ReturnsError_ForUnknownProvider()
+    {
+        var priorProvider = Environment.GetEnvironmentVariable("COMPASS_MODEL_PROVIDER");
+        try
+        {
+            Environment.SetEnvironmentVariable("COMPASS_MODEL_PROVIDER", "unknown-provider");
+
+            var ok = ModelConfiguration.TryCreateFromEnvironment(out var config, out var error);
+
+            Assert.False(ok);
+            Assert.Null(config);
+            Assert.Contains("Unsupported COMPASS_MODEL_PROVIDER", error);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("COMPASS_MODEL_PROVIDER", priorProvider);
+        }
+    }
 }

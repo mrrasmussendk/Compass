@@ -32,7 +32,8 @@ public sealed class PluginLoader : IPluginDiscovery
                 var assembly = Assembly.LoadFrom(dll);
                 _assemblies.Add(assembly);
             }
-            catch { /* skip invalid assemblies */ }
+            catch (BadImageFormatException) { /* skip invalid assemblies */ }
+            catch (FileLoadException) { /* skip load failures for optional plugins */ }
         }
     }
 
@@ -117,7 +118,9 @@ public sealed class PluginLoader : IPluginDiscovery
                 {
                     instance = (T?)Activator.CreateInstance(type);
                 }
-                catch { /* skip types that can't be default-constructed */ }
+                catch (MissingMethodException) { /* skip types that can't be default-constructed */ }
+                catch (MemberAccessException) { /* skip inaccessible constructors */ }
+                catch (TargetInvocationException) { /* skip constructors that throw */ }
 
                 if (instance is not null)
                     yield return instance;
@@ -133,6 +136,9 @@ public sealed class PluginLoader : IPluginDiscovery
             return assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t));
         }
-        catch { return Enumerable.Empty<Type>(); }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(t => t is not null && t.IsClass && !t.IsAbstract && interfaceType.IsAssignableFrom(t)).Cast<Type>();
+        }
     }
 }
