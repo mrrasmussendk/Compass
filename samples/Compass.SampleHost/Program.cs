@@ -112,8 +112,10 @@ if (startupArgs.Length >= 2 &&
      string.Equals(startupArgs[0], "/install-module", StringComparison.OrdinalIgnoreCase)))
 {
     var allowUnsigned = startupArgs.Any(a => string.Equals(a, "--allow-unsigned", StringComparison.OrdinalIgnoreCase));
-    var installMessage = await ModuleInstaller.InstallAsync(startupArgs[1], pluginsPath, allowUnsigned);
-    Console.WriteLine(installMessage);
+    var installResult = await ModuleInstaller.InstallWithResultAsync(startupArgs[1], pluginsPath, allowUnsigned);
+    Console.WriteLine(installResult.Message);
+    if (!installResult.Success)
+        Environment.ExitCode = 1;
     Console.WriteLine("Restart Compass CLI to load the new module.");
     return;
 }
@@ -426,8 +428,8 @@ else
 
         if (ModuleInstaller.TryParseInstallCommand(input, out var moduleSpec, out var allowUnsigned))
         {
-            var installMessage = await ModuleInstaller.InstallAsync(moduleSpec, pluginsPath, allowUnsigned);
-            Console.WriteLine($"  {installMessage}");
+            var installResult = await ModuleInstaller.InstallWithResultAsync(moduleSpec, pluginsPath, allowUnsigned);
+            Console.WriteLine($"  {installResult.Message}");
             Console.WriteLine("  Restart Compass CLI to load the new module.");
             continue;
         }
