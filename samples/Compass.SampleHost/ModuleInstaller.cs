@@ -356,7 +356,13 @@ public static class ModuleInstaller
             if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(secretName)))
                 continue;
 
-            var provided = secretPrompt?.Invoke(secretName);
+            if (secretPrompt is null)
+            {
+                error = $"Module install failed: required secret '{secretName}' is missing. Set it as an environment variable before installation.";
+                return false;
+            }
+
+            var provided = secretPrompt(secretName);
             if (string.IsNullOrWhiteSpace(provided))
             {
                 error = $"Module install failed: required secret '{secretName}' was not provided.";

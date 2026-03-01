@@ -52,6 +52,8 @@ Inspection reports include:
   - any `requiredSecrets` must already be set or entered at install prompt
   - assemblies must be signed unless `--allow-unsigned` is passed
 
+Secrets entered at install prompt are only set for the current Compass process.
+
 ## Threat model highlights
 
 - Untrusted plugin binaries are treated as high risk.

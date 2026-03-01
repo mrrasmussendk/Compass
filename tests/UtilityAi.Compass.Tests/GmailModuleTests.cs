@@ -57,7 +57,7 @@ public class GmailModuleTests
         Assert.Equal(2, stub.LastRequest.Tools.Count);
         Assert.Contains(stub.LastRequest.Tools, t => t.Name == "gmail_read_messages");
         Assert.Contains(stub.LastRequest.Tools, t => t.Name == "gmail_create_draft");
-        Assert.Contains("gmail.compose", string.Join(',', GmailModule.RequiredGoogleScopes));
+        Assert.Contains("https://www.googleapis.com/auth/gmail.compose", GmailModule.RequiredGoogleScopes);
         Assert.Equal("draft prepared", bus.GetOrDefault<AiResponse>()?.Text);
     }
 }

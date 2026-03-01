@@ -71,8 +71,7 @@ public sealed class GmailModule : ICapabilityModule
 
     private static bool IsGmailRequest(string text)
         => text.Contains("gmail", StringComparison.OrdinalIgnoreCase)
-           || text.Contains("inbox", StringComparison.OrdinalIgnoreCase)
-           || text.Contains("email", StringComparison.OrdinalIgnoreCase)
-           || text.Contains("draft", StringComparison.OrdinalIgnoreCase)
-           || text.Contains("reply", StringComparison.OrdinalIgnoreCase);
+           || text.Contains("email inbox", StringComparison.OrdinalIgnoreCase)
+           || text.Contains("email draft", StringComparison.OrdinalIgnoreCase)
+           || text.Contains("email reply", StringComparison.OrdinalIgnoreCase);
 }
