@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env.compass"
-DEFAULT_SQLITE_CONNECTION="Data Source=appdb/compass-memory.db"
+DEFAULT_SQLITE_FILE_CONNECTION="Data Source=appdb/compass-memory.db"
 HAS_SOURCE_LAYOUT="false"
 if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/samples/Compass.SampleHost" ]]; then
   HAS_SOURCE_LAYOUT="true"
@@ -110,7 +110,7 @@ read -r -p "> " storage_choice
 
 case "$storage_choice" in
   1|"")
-    memory_connection="$DEFAULT_SQLITE_CONNECTION"
+    memory_connection="$DEFAULT_SQLITE_FILE_CONNECTION"
     ;;
   2)
     read -r -p "Enter COMPASS_MEMORY_CONNECTION_STRING: " memory_connection
@@ -146,11 +146,6 @@ if [[ "$deploy_choice" == "2" ]]; then
 fi
 
 write_active_profile "$profile"
-
-if [[ -z "${memory_connection}" ]]; then
-  echo "COMPASS_MEMORY_CONNECTION_STRING is required."
-  exit 1
-fi
 
 cat <<EOF
 

@@ -35,8 +35,10 @@ public static class EnvFileLoader
         if (path is null)
             return;
 
-        var keysLoadedFromBaseFile = new HashSet<string>(StringComparer.Ordinal);
-        LoadFile(path, overwriteExisting, keysLoadedFromBaseFile);
+        // Tracks variables set during this Load invocation so base and profile files
+        // can layer values while still respecting externally supplied environment values.
+        var keysLoadedByLoader = new HashSet<string>(StringComparer.Ordinal);
+        LoadFile(path, overwriteExisting, keysLoadedByLoader);
 
         var profile = Environment.GetEnvironmentVariable(ProfileVariableName)?.Trim();
         if (string.IsNullOrWhiteSpace(profile))
@@ -46,10 +48,10 @@ public static class EnvFileLoader
         if (profilePath is null || string.Equals(profilePath, path, StringComparison.OrdinalIgnoreCase))
             return;
 
-        LoadFile(profilePath, overwriteExisting, keysLoadedFromBaseFile);
+        LoadFile(profilePath, overwriteExisting, keysLoadedByLoader);
     }
 
-    private static void LoadFile(string path, bool overwriteExisting, ISet<string> keysLoadedFromBaseFile)
+    private static void LoadFile(string path, bool overwriteExisting, ISet<string> keysLoadedByLoader)
     {
         foreach (var rawLine in File.ReadAllLines(path))
         {
@@ -57,12 +59,23 @@ public static class EnvFileLoader
             if (key is null)
                 continue;
 
-            if (overwriteExisting || keysLoadedFromBaseFile.Contains(key) || Environment.GetEnvironmentVariable(key) is null)
+            if (ShouldSetVariable(key, overwriteExisting, keysLoadedByLoader))
             {
                 Environment.SetEnvironmentVariable(key, value);
-                keysLoadedFromBaseFile.Add(key);
+                keysLoadedByLoader.Add(key);
             }
         }
+    }
+
+    private static bool ShouldSetVariable(string key, bool overwriteExisting, ISet<string> keysLoadedByLoader)
+    {
+        if (overwriteExisting)
+            return true;
+
+        if (keysLoadedByLoader.Contains(key))
+            return true;
+
+        return Environment.GetEnvironmentVariable(key) is null;
     }
 
     public static string? FindFile(string startDirectory)

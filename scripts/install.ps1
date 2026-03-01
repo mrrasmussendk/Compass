@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 
 $RootDir = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 $EnvFile = Join-Path $RootDir '.env.compass'
-$DefaultSqliteConnection = 'Data Source=appdb/compass-memory.db'
+$DefaultSqliteFileConnection = 'Data Source=appdb/compass-memory.db'
 
 function Resolve-ProfileName {
     param([string]$Value)
@@ -114,8 +114,8 @@ Write-Host '  1) Local SQLite (recommended default)'
 Write-Host '  2) Third-party connection string'
 $storageChoice = Read-Host '>'
 switch ($storageChoice) {
-    '1' { $memoryConnection = $DefaultSqliteConnection }
-    ''  { $memoryConnection = $DefaultSqliteConnection }
+    '1' { $memoryConnection = $DefaultSqliteFileConnection }
+    ''  { $memoryConnection = $DefaultSqliteFileConnection }
     '2' {
         $memoryConnection = Read-Host 'Enter COMPASS_MEMORY_CONNECTION_STRING'
         if ([string]::IsNullOrWhiteSpace($memoryConnection)) { throw 'A third-party connection string is required for this option.' }
