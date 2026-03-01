@@ -97,19 +97,17 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/responses");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
-
-            var messages = new List<object>();
-            if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
-                messages.Add(new { role = "system", content = modelRequest.SystemMessage });
-            messages.Add(new { role = "user", content = modelRequest.Prompt });
 
             var body = new Dictionary<string, object>
             {
                 ["model"] = modelRequest.ModelHint ?? config.Model,
-                ["messages"] = messages
+                ["input"] = modelRequest.Prompt
             };
+
+            if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
+                body["instructions"] = modelRequest.SystemMessage;
 
             request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
@@ -118,16 +116,38 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
             using var json = JsonDocument.Parse(payload);
 
-            if (!json.RootElement.TryGetProperty("choices", out var choices) ||
-                choices.GetArrayLength() == 0 ||
-                !choices[0].TryGetProperty("message", out var message) ||
-                !message.TryGetProperty("content", out var content))
+            if (json.RootElement.TryGetProperty("output_text", out var outputText))
             {
-                throw new InvalidOperationException("OpenAI API returned a response with missing or malformed content field.");
+                var text = outputText.GetString() ?? "OpenAI API returned empty content.";
+                return new ModelResponse { Text = text };
             }
 
-            var text = content.GetString() ?? "OpenAI API returned empty content.";
-            return new ModelResponse { Text = text };
+            if (!json.RootElement.TryGetProperty("output", out var output) || output.GetArrayLength() == 0)
+                throw new InvalidOperationException("OpenAI API returned a response with missing or malformed output field.");
+
+            var texts = new List<string>();
+            foreach (var item in output.EnumerateArray())
+            {
+                if (item.TryGetProperty("type", out var type) && type.GetString() == "message" &&
+                    item.TryGetProperty("content", out var contentArray))
+                {
+                    foreach (var contentItem in contentArray.EnumerateArray())
+                    {
+                        if (contentItem.TryGetProperty("type", out var ct) && ct.GetString() == "output_text" &&
+                            contentItem.TryGetProperty("text", out var t))
+                        {
+                            var s = t.GetString();
+                            if (!string.IsNullOrEmpty(s))
+                                texts.Add(s);
+                        }
+                    }
+                }
+            }
+
+            if (texts.Count == 0)
+                throw new InvalidOperationException("OpenAI API returned a response with no text output.");
+
+            return new ModelResponse { Text = string.Join("\n", texts) };
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
