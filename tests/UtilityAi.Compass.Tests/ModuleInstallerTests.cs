@@ -5,6 +5,16 @@ namespace UtilityAi.Compass.Tests;
 
 public class ModuleInstallerTests
 {
+    private const string ValidManifestJson = """
+        {
+          "publisher": "tests",
+          "version": "1.0.0",
+          "capabilities": [ "sample.read" ],
+          "permissions": [ "files.read" ],
+          "sideEffectLevel": "ReadOnly"
+        }
+        """;
+
     [Fact]
     public void TryParsePackageReference_ParsesExpectedFormat()
     {
@@ -189,16 +199,6 @@ public class ModuleInstallerTests
             Directory.Delete(root, recursive: true);
         }
     }
-
-    private const string ValidManifestJson = """
-        {
-          "publisher": "tests",
-          "version": "1.0.0",
-          "capabilities": [ "sample.read" ],
-          "permissions": [ "files.read" ],
-          "sideEffectLevel": "ReadOnly"
-        }
-        """;
 
     [Theory]
     [InlineData("/new-module MyPlugin", "MyPlugin", null)]

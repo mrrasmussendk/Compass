@@ -257,7 +257,10 @@ public static class ModuleInstaller
         {
             if (!TryValidateModuleAssembly(filePath, out var validationError))
                 return validationError;
-            if (!TryLoadManifest(Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory(), out _, out var manifestError))
+            var fileDirectory = Path.GetDirectoryName(filePath);
+            if (string.IsNullOrWhiteSpace(fileDirectory))
+                return $"Module install failed: could not resolve directory for '{Path.GetFileName(filePath)}'.";
+            if (!TryLoadManifest(fileDirectory, out _, out var manifestError))
                 return manifestError;
             if (!allowUnsigned && !IsSignedAssembly(filePath))
                 return $"Module install failed: '{Path.GetFileName(filePath)}' is unsigned. Re-run with --allow-unsigned to override.";
@@ -460,11 +463,18 @@ public static class ModuleInstaller
 
         try
         {
-            var parsed = JsonSerializer.Deserialize<ModulePermissionManifest>(File.ReadAllText(manifestPath), JsonDefaults);
-            if (parsed is null || parsed.Capabilities.Count == 0)
+            using var stream = File.OpenRead(manifestPath);
+            var parsed = JsonSerializer.Deserialize<ModulePermissionManifest>(stream, JsonDefaults);
+            if (parsed is null)
             {
                 manifest = null;
-                error = $"Module install failed: invalid manifest '{ManifestFileName}'.";
+                error = $"Module install failed: manifest '{ManifestFileName}' is empty or invalid.";
+                return false;
+            }
+            if (parsed.Capabilities.Count == 0)
+            {
+                manifest = null;
+                error = $"Module install failed: manifest '{ManifestFileName}' must declare at least one capability.";
                 return false;
             }
 
@@ -495,10 +505,16 @@ public static class ModuleInstaller
         {
             using var reader = new StreamReader(entry.Open(), Encoding.UTF8, leaveOpen: false);
             var parsed = JsonSerializer.Deserialize<ModulePermissionManifest>(reader.ReadToEnd(), JsonDefaults);
-            if (parsed is null || parsed.Capabilities.Count == 0)
+            if (parsed is null)
             {
                 manifest = null;
-                error = $"Module install failed: package contains invalid manifest '{ManifestFileName}'.";
+                error = $"Module install failed: package manifest '{ManifestFileName}' is empty or invalid.";
+                return false;
+            }
+            if (parsed.Capabilities.Count == 0)
+            {
+                manifest = null;
+                error = $"Module install failed: package manifest '{ManifestFileName}' must declare at least one capability.";
                 return false;
             }
 
@@ -529,7 +545,10 @@ public static class ModuleInstaller
             if (!signed)
                 findings.Add("Assembly is unsigned.");
 
-            var hasManifest = TryLoadManifest(Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory(), out var manifest, out _);
+            ModulePermissionManifest? manifest = null;
+            var fileDirectory = Path.GetDirectoryName(filePath);
+            var hasManifest = !string.IsNullOrWhiteSpace(fileDirectory)
+                && TryLoadManifest(fileDirectory, out manifest, out _);
             if (!hasManifest)
                 findings.Add($"Missing required manifest '{ManifestFileName}'.");
 
@@ -609,7 +628,7 @@ public static class ModuleInstaller
             new(module, false, false, false, [], [], [summary], summary);
     }
 
-    public sealed record ModulePermissionManifest(
+    private sealed record ModulePermissionManifest(
         string Publisher,
         string Version,
         IReadOnlyList<string> Capabilities,

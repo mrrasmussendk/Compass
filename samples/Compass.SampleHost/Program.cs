@@ -22,6 +22,7 @@ using UtilityAi.Utils;
 EnvFileLoader.Load(overwriteExisting: true);
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
+const int MaxAuditRecords = 100;
 void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath]");
 void PrintInstalledModules()
 {
@@ -50,7 +51,7 @@ async Task<int> PrintAuditListAsync()
         return 1;
     }
 
-    var records = await store.RecallAsync<ProposalExecutionRecord>(new MemoryQuery { MaxResults = 100, SortOrder = SortOrder.NewestFirst });
+    var records = await store.RecallAsync<ProposalExecutionRecord>(new MemoryQuery { MaxResults = MaxAuditRecords, SortOrder = SortOrder.NewestFirst });
     if (records.Count == 0)
     {
         Console.WriteLine("No audit records found.");
@@ -87,13 +88,13 @@ if (startupArgs.Length >= 1 &&
     Console.WriteLine("  --setup");
     Console.WriteLine("  --list-modules");
     Console.WriteLine("  --install-module <path|package@version> [--allow-unsigned]");
-    Console.WriteLine("  inspect-module <path|package@version> [--json]");
-    Console.WriteLine("  doctor [--json]");
-    Console.WriteLine("  policy validate <policyFile>");
-    Console.WriteLine("  policy explain <request>");
-    Console.WriteLine("  audit list");
-    Console.WriteLine("  audit show <id> [--json]");
-    Console.WriteLine("  replay <id> [--no-exec]");
+    Console.WriteLine("  --inspect-module <path|package@version> [--json] (alias: inspect-module)");
+    Console.WriteLine("  --doctor [--json] (alias: doctor)");
+    Console.WriteLine("  --policy validate <policyFile> (alias: policy validate)");
+    Console.WriteLine("  --policy explain <request> (alias: policy explain)");
+    Console.WriteLine("  --audit list (alias: audit list)");
+    Console.WriteLine("  --audit show <id> [--json] (alias: audit show)");
+    Console.WriteLine("  --replay <id> [--no-exec] (alias: replay)");
     Console.WriteLine("  --new-module <Name> [OutputPath]");
     return;
 }
@@ -117,7 +118,9 @@ if (startupArgs.Length >= 2 &&
     return;
 }
 
-if (startupArgs.Length >= 2 && string.Equals(startupArgs[0], "inspect-module", StringComparison.OrdinalIgnoreCase))
+if (startupArgs.Length >= 2 &&
+    (string.Equals(startupArgs[0], "inspect-module", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "--inspect-module", StringComparison.OrdinalIgnoreCase)))
 {
     var report = await ModuleInstaller.InspectAsync(startupArgs[1]);
     var asJson = startupArgs.Any(a => string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase));
@@ -139,7 +142,9 @@ if (startupArgs.Length >= 2 && string.Equals(startupArgs[0], "inspect-module", S
     return;
 }
 
-if (startupArgs.Length >= 1 && string.Equals(startupArgs[0], "doctor", StringComparison.OrdinalIgnoreCase))
+if (startupArgs.Length >= 1 &&
+    (string.Equals(startupArgs[0], "doctor", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "--doctor", StringComparison.OrdinalIgnoreCase)))
 {
     var hasUnsigned = ModuleInstaller.ListInstalledModules(pluginsPath).Any();
     var findings = new List<string>();
@@ -167,7 +172,8 @@ if (startupArgs.Length >= 1 && string.Equals(startupArgs[0], "doctor", StringCom
 }
 
 if (startupArgs.Length >= 3 &&
-    string.Equals(startupArgs[0], "policy", StringComparison.OrdinalIgnoreCase) &&
+    (string.Equals(startupArgs[0], "policy", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "--policy", StringComparison.OrdinalIgnoreCase)) &&
     string.Equals(startupArgs[1], "validate", StringComparison.OrdinalIgnoreCase))
 {
     var policyPath = startupArgs[2];
@@ -195,7 +201,8 @@ if (startupArgs.Length >= 3 &&
 }
 
 if (startupArgs.Length >= 3 &&
-    string.Equals(startupArgs[0], "policy", StringComparison.OrdinalIgnoreCase) &&
+    (string.Equals(startupArgs[0], "policy", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "--policy", StringComparison.OrdinalIgnoreCase)) &&
     string.Equals(startupArgs[1], "explain", StringComparison.OrdinalIgnoreCase))
 {
     var request = string.Join(' ', startupArgs.Skip(2));
@@ -209,7 +216,8 @@ if (startupArgs.Length >= 3 &&
 }
 
 if (startupArgs.Length >= 2 &&
-    string.Equals(startupArgs[0], "audit", StringComparison.OrdinalIgnoreCase) &&
+    (string.Equals(startupArgs[0], "audit", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "--audit", StringComparison.OrdinalIgnoreCase)) &&
     string.Equals(startupArgs[1], "list", StringComparison.OrdinalIgnoreCase))
 {
     await PrintAuditListAsync();
@@ -217,7 +225,8 @@ if (startupArgs.Length >= 2 &&
 }
 
 if (startupArgs.Length >= 3 &&
-    string.Equals(startupArgs[0], "audit", StringComparison.OrdinalIgnoreCase) &&
+    (string.Equals(startupArgs[0], "audit", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "--audit", StringComparison.OrdinalIgnoreCase)) &&
     string.Equals(startupArgs[1], "show", StringComparison.OrdinalIgnoreCase))
 {
     var store = CreateAuditStore();
@@ -231,7 +240,7 @@ if (startupArgs.Length >= 3 &&
         Console.WriteLine("Audit show failed: id must be a positive integer from `compass audit list`.");
         return;
     }
-    var records = await store.RecallAsync<ProposalExecutionRecord>(new MemoryQuery { MaxResults = 100, SortOrder = SortOrder.NewestFirst });
+    var records = await store.RecallAsync<ProposalExecutionRecord>(new MemoryQuery { MaxResults = MaxAuditRecords, SortOrder = SortOrder.NewestFirst });
     if (id > records.Count)
     {
         Console.WriteLine("Audit show failed: id not found.");
@@ -245,7 +254,9 @@ if (startupArgs.Length >= 3 &&
     return;
 }
 
-if (startupArgs.Length >= 2 && string.Equals(startupArgs[0], "replay", StringComparison.OrdinalIgnoreCase))
+if (startupArgs.Length >= 2 &&
+    (string.Equals(startupArgs[0], "replay", StringComparison.OrdinalIgnoreCase) ||
+     string.Equals(startupArgs[0], "--replay", StringComparison.OrdinalIgnoreCase)))
 {
     Console.WriteLine($"Replay accepted for audit id '{startupArgs[1]}'.");
     Console.WriteLine(startupArgs.Any(a => string.Equals(a, "--no-exec", StringComparison.OrdinalIgnoreCase))
