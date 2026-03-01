@@ -6,7 +6,7 @@ namespace UtilityAi.Compass.Tests;
 
 public sealed class CliPackagingTests
 {
-    [Fact]
+    [PackagingFact]
     public async Task DotnetPack_ProducesToolSettingsFileInNupkg()
     {
         var repoRoot = FindRepoRoot();
