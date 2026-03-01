@@ -21,4 +21,25 @@ public class PluginLoaderTests
         var manifests = loader.GetManifests().ToList();
         Assert.Single(manifests);
     }
+
+    [Fact]
+    public void LoadFromFolder_SkipsInvalidDllFiles()
+    {
+        var loader = new PluginLoader();
+        var tempFolder = Path.Combine(Path.GetTempPath(), $"plugin-loader-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempFolder);
+
+        try
+        {
+            File.WriteAllText(Path.Combine(tempFolder, "invalid.dll"), "not a dll");
+
+            loader.LoadFromFolder(tempFolder);
+
+            Assert.Empty(loader.GetManifests());
+        }
+        finally
+        {
+            Directory.Delete(tempFolder, recursive: true);
+        }
+    }
 }

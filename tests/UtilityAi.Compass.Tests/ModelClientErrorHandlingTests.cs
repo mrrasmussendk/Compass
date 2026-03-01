@@ -7,6 +7,8 @@ namespace UtilityAi.Compass.Tests;
 
 public class ModelClientErrorHandlingTests
 {
+    private const int InvalidModelProvider = 999;
+
     private sealed class StubHandler(HttpStatusCode statusCode, string responseBody) : HttpMessageHandler
     {
         public string? LastRequestBody { get; private set; }
@@ -106,5 +108,16 @@ public class ModelClientErrorHandlingTests
         Assert.False(doc.RootElement.TryGetProperty("max_completion_tokens", out _));
         Assert.False(doc.RootElement.TryGetProperty("max_tokens", out _));
         Assert.False(doc.RootElement.TryGetProperty("temperature", out _));
+    }
+
+    [Fact]
+    public void ModelClientFactory_Throws_ForUnsupportedProvider()
+    {
+        using var httpClient = new HttpClient(new StubHandler(HttpStatusCode.OK, """{"output_text":"ok"}"""));
+        var config = new ModelConfiguration((ModelProvider)InvalidModelProvider, "test-key", "test-model");
+
+        var ex = Assert.Throws<NotSupportedException>(() => ModelClientFactory.Create(config, httpClient));
+
+        Assert.Contains("Unsupported model provider", ex.Message);
     }
 }
