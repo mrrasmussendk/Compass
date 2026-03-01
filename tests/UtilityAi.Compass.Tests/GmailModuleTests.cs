@@ -39,6 +39,19 @@ public class GmailModuleTests
     }
 
     [Fact]
+    public void Propose_ReturnsEmpty_ForNonGmailRequest()
+    {
+        var module = new GmailModule(new StubModelClient());
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("summarize this document"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var proposals = module.Propose(rt).ToList();
+
+        Assert.Empty(proposals);
+    }
+
+    [Fact]
     public async Task Propose_UsesReadAndDraftTools_WhenExecuted()
     {
         var stub = new StubModelClient("draft prepared");

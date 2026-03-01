@@ -144,6 +144,7 @@ Setup flow:
 
 #### `--list-modules`
 Shows standard modules + plugin DLLs already installed in the runtime `plugins/` folder.
+Built-in standard modules include file read/write, summarization, web search, and Gmail (read + draft).
 
 #### `--install-module <path|package@version>`
 Installs a module from either:
@@ -151,6 +152,9 @@ Installs a module from either:
 - local `.dll`
 - local `.nupkg`
 - NuGet package reference (`Package.Id@1.2.3`)
+
+If the module manifest declares `requiredSecrets`, Compass validates them during install.
+Missing values are prompted in interactive mode; installation fails if required values are not provided.
 
 Examples:
 
