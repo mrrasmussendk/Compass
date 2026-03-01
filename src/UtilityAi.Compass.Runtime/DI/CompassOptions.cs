@@ -24,4 +24,10 @@ public sealed class CompassOptions
 
     /// <summary>Gets or sets the cooldown keys whose state is tracked each tick.</summary>
     public List<string> TrackedCooldownKeys { get; set; } = [];
+
+    /// <summary>Gets or sets whether the scheduled-command module and its background service are registered.</summary>
+    public bool EnableScheduler { get; set; } = false;
+
+    /// <summary>Gets or sets the polling interval for the scheduler background service. Defaults to 15 seconds.</summary>
+    public TimeSpan? SchedulerPollInterval { get; set; }
 }

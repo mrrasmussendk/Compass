@@ -81,6 +81,22 @@ public static class ServiceCollectionExtensions
             services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<GovernanceFinalizerModule>());
         }
 
+        if (options.EnableScheduler)
+        {
+            services.AddSingleton<SchedulerSensor>(sp =>
+                new SchedulerSensor(sp.GetRequiredService<IMemoryStore>()));
+            services.AddSingleton<ISensor>(sp => sp.GetRequiredService<SchedulerSensor>());
+
+            services.AddSingleton<SchedulerModule>(sp =>
+                new SchedulerModule(sp.GetRequiredService<IMemoryStore>()));
+            services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<SchedulerModule>());
+
+            services.AddSingleton<SchedulerService>(sp =>
+                new SchedulerService(
+                    sp.GetRequiredService<IMemoryStore>(),
+                    options.SchedulerPollInterval));
+        }
+
         services.AddSingleton<CompassGovernedSelectionStrategy>(sp =>
             new CompassGovernedSelectionStrategy(
                 sp.GetRequiredService<IMemoryStore>(),
