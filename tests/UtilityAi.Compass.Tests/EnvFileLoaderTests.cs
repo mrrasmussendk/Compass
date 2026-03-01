@@ -151,4 +151,28 @@ public class EnvFileLoaderTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    [Fact]
+    public void Load_AppliesActiveProfileFile_AfterBaseFile()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(dir);
+        var baseEnvFile = Path.Combine(dir, ".env.compass");
+        var profileEnvFile = Path.Combine(dir, ".env.compass.dev");
+        var uniqueKey = $"COMPASS_TEST_{Guid.NewGuid():N}";
+        var priorProfile = Environment.GetEnvironmentVariable("COMPASS_PROFILE");
+        File.WriteAllText(baseEnvFile, $"COMPASS_PROFILE=dev{Environment.NewLine}{uniqueKey}=base-value");
+        File.WriteAllText(profileEnvFile, $"{uniqueKey}=profile-value");
+        try
+        {
+            EnvFileLoader.Load(dir);
+            Assert.Equal("profile-value", Environment.GetEnvironmentVariable(uniqueKey));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(uniqueKey, null);
+            Environment.SetEnvironmentVariable("COMPASS_PROFILE", priorProfile);
+            Directory.Delete(dir, recursive: true);
+        }
+    }
 }

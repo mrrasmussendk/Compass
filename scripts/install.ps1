@@ -5,12 +5,84 @@
     Interactive setup that writes environment variables to .env.compass.
     Equivalent to scripts/install.sh for Linux/macOS.
 #>
+[CmdletBinding()]
+param(
+    [string]$Profile
+)
+
 $ErrorActionPreference = 'Stop'
 
 $RootDir = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 $EnvFile = Join-Path $RootDir '.env.compass'
+$DefaultSqliteConnection = 'Data Source=appdb/compass-memory.db'
+
+function Resolve-ProfileName {
+    param([string]$Value)
+    switch ($Value.ToLowerInvariant()) {
+        '1' { return 'dev' }
+        'dev' { return 'dev' }
+        '2' { return 'personal' }
+        'personal' { return 'personal' }
+        '3' { return 'team' }
+        'team' { return 'team' }
+        '4' { return 'prod' }
+        'prod' { return 'prod' }
+        default { throw "Invalid profile '$Value'. Use dev, personal, team, or prod." }
+    }
+}
+
+function Set-ActiveProfile {
+    param([string]$Name)
+    @(
+        "`$env:COMPASS_PROFILE='$Name'"
+    ) | Set-Content -Path $EnvFile -Encoding UTF8
+}
+
+if (-not [string]::IsNullOrWhiteSpace($Profile)) {
+    $resolvedProfile = Resolve-ProfileName $Profile
+    $profileFile = Join-Path $RootDir ".env.compass.$resolvedProfile"
+    if (-not (Test-Path $profileFile)) {
+        throw "Profile '$resolvedProfile' does not exist yet. Create it first by running the installer without parameters."
+    }
+
+    Set-ActiveProfile $resolvedProfile
+    Write-Host "Switched active profile to '$resolvedProfile' in $EnvFile"
+    exit 0
+}
 
 Write-Host 'Compass installer'
+Write-Host 'Select onboarding action:'
+Write-Host '  1) Create/update profile configuration'
+Write-Host '  2) Switch active profile'
+$onboardingAction = Read-Host '>'
+Write-Host 'Select profile:'
+Write-Host '  1) dev'
+Write-Host '  2) personal'
+Write-Host '  3) team'
+Write-Host '  4) prod'
+$profileChoice = Read-Host '>'
+$resolvedProfile = Resolve-ProfileName $profileChoice
+$ProfileEnvFile = Join-Path $RootDir ".env.compass.$resolvedProfile"
+
+if ($onboardingAction -eq '2') {
+    if (-not (Test-Path $ProfileEnvFile)) {
+        throw "Profile '$resolvedProfile' has not been configured yet. Choose create/update first."
+    }
+
+    Set-ActiveProfile $resolvedProfile
+    Write-Host "Active profile set to '$resolvedProfile'."
+    Write-Host "Configuration saved to: $EnvFile"
+    exit 0
+}
+
+if ($onboardingAction -ne '1') {
+    throw 'Invalid onboarding action'
+}
+
+if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+    throw 'dotnet SDK was not found in PATH. Install .NET 10 SDK before onboarding.'
+}
+
 Write-Host 'Select model provider:'
 Write-Host '  1) OpenAI'
 Write-Host '  2) Anthropic'
@@ -25,6 +97,8 @@ switch ($providerChoice) {
 }
 
 $apiKey = Read-Host "Enter $keyName"
+$apiKey = $apiKey.Trim()
+if ([string]::IsNullOrWhiteSpace($apiKey)) { throw "$keyName is required." }
 $selectedModel = Read-Host "Enter model name [$defaultModel]"
 if ([string]::IsNullOrWhiteSpace($selectedModel)) { $selectedModel = $defaultModel }
 
@@ -34,23 +108,44 @@ Write-Host '  1) Local console'
 Write-Host '  2) Discord channel'
 $deployChoice = Read-Host '>'
 
+Write-Host ''
+Write-Host 'Select memory storage:'
+Write-Host '  1) Local SQLite (recommended default)'
+Write-Host '  2) Third-party connection string'
+$storageChoice = Read-Host '>'
+switch ($storageChoice) {
+    '1' { $memoryConnection = $DefaultSqliteConnection }
+    ''  { $memoryConnection = $DefaultSqliteConnection }
+    '2' {
+        $memoryConnection = Read-Host 'Enter COMPASS_MEMORY_CONNECTION_STRING'
+        if ([string]::IsNullOrWhiteSpace($memoryConnection)) { throw 'A third-party connection string is required for this option.' }
+    }
+    default { throw 'Invalid storage choice' }
+}
+
 $lines = @(
     "`$env:COMPASS_MODEL_PROVIDER='$provider'"
     "`$env:${keyName}='$apiKey'"
     "`$env:COMPASS_MODEL_NAME='$selectedModel'"
+    "`$env:COMPASS_MEMORY_CONNECTION_STRING='$memoryConnection'"
 )
 
 if ($deployChoice -eq '2') {
     $discordToken   = Read-Host 'Enter DISCORD_BOT_TOKEN'
     $discordChannel = Read-Host 'Enter DISCORD_CHANNEL_ID'
+    if ([string]::IsNullOrWhiteSpace($discordToken) -or [string]::IsNullOrWhiteSpace($discordChannel)) {
+        throw 'DISCORD_BOT_TOKEN and DISCORD_CHANNEL_ID are required for Discord mode.'
+    }
     $lines += "`$env:DISCORD_BOT_TOKEN='$discordToken'"
     $lines += "`$env:DISCORD_CHANNEL_ID='$discordChannel'"
 }
 
-$lines | Set-Content -Path $EnvFile -Encoding UTF8
+$lines | Set-Content -Path $ProfileEnvFile -Encoding UTF8
+Set-ActiveProfile $resolvedProfile
 
 Write-Host ''
 Write-Host "Configuration saved to: $EnvFile"
+Write-Host "Profile configuration saved to: $ProfileEnvFile"
 Write-Host ''
 Write-Host 'Next steps:'
 $hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Compass.sln')) -and (Test-Path (Join-Path $RootDir 'samples\Compass.SampleHost'))
@@ -64,4 +159,5 @@ else {
 }
 Write-Host ''
 Write-Host 'The host loads .env.compass automatically — no need to source the file.'
+Write-Host 'To switch profiles quickly, run: .\scripts\install.ps1 -Profile <dev|personal|team|prod>'
 Write-Host 'If Discord variables are configured, the host will start in Discord mode automatically.'

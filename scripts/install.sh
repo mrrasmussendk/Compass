@@ -3,12 +3,78 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env.compass"
+DEFAULT_SQLITE_CONNECTION="Data Source=appdb/compass-memory.db"
 HAS_SOURCE_LAYOUT="false"
 if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/samples/Compass.SampleHost" ]]; then
   HAS_SOURCE_LAYOUT="true"
 fi
 
+normalize_profile() {
+  case "${1,,}" in
+    1|dev) echo "dev" ;;
+    2|personal) echo "personal" ;;
+    3|team) echo "team" ;;
+    4|prod) echo "prod" ;;
+    *) return 1 ;;
+  esac
+}
+
+write_active_profile() {
+  local profile_name="$1"
+  {
+    echo "export COMPASS_PROFILE=${profile_name}"
+  } > "$ENV_FILE"
+}
+
+if [[ $# -ge 1 ]]; then
+  profile="$(normalize_profile "$1")" || { echo "Invalid profile '$1'. Use dev, personal, team, or prod."; exit 1; }
+  profile_file="$ROOT_DIR/.env.compass.${profile}"
+  if [[ ! -f "$profile_file" ]]; then
+    echo "Profile '$profile' does not exist yet. Create it first by running the installer without arguments."
+    exit 1
+  fi
+
+  write_active_profile "$profile"
+  echo "Switched active profile to '$profile' in $ENV_FILE"
+  exit 0
+fi
+
 echo "Compass installer"
+echo "Select onboarding action:"
+echo "  1) Create/update profile configuration"
+echo "  2) Switch active profile"
+read -r -p "> " onboarding_action
+echo "Select profile:"
+echo "  1) dev"
+echo "  2) personal"
+echo "  3) team"
+echo "  4) prod"
+read -r -p "> " profile_choice
+profile="$(normalize_profile "$profile_choice")" || { echo "Invalid profile choice"; exit 1; }
+profile_env_file="$ROOT_DIR/.env.compass.${profile}"
+
+if [[ "$onboarding_action" == "2" ]]; then
+  if [[ ! -f "$profile_env_file" ]]; then
+    echo "Profile '$profile' has not been configured yet. Choose create/update first."
+    exit 1
+  fi
+
+  write_active_profile "$profile"
+  echo "Active profile set to '$profile'."
+  echo "Configuration saved to: $ENV_FILE"
+  exit 0
+fi
+
+if [[ "$onboarding_action" != "1" ]]; then
+  echo "Invalid onboarding action"
+  exit 1
+fi
+
+if ! command -v dotnet >/dev/null 2>&1; then
+  echo "dotnet SDK was not found in PATH. Install .NET 10 SDK before onboarding."
+  exit 1
+fi
+
 echo "Select model provider:"
 echo "  1) OpenAI"
 echo "  2) Anthropic"
@@ -23,6 +89,10 @@ case "$provider_choice" in
 esac
 
 read -r -p "Enter ${key_name}: " api_key
+if [[ -z "${api_key}" ]]; then
+  echo "${key_name} is required."
+  exit 1
+fi
 read -r -p "Enter model name [${default_model}]: " selected_model
 selected_model="${selected_model:-$default_model}"
 
@@ -32,24 +102,60 @@ echo "  1) Local console"
 echo "  2) Discord channel"
 read -r -p "> " deploy_choice
 
+echo
+echo "Select memory storage:"
+echo "  1) Local SQLite (recommended default)"
+echo "  2) Third-party connection string"
+read -r -p "> " storage_choice
+
+case "$storage_choice" in
+  1|"")
+    memory_connection="$DEFAULT_SQLITE_CONNECTION"
+    ;;
+  2)
+    read -r -p "Enter COMPASS_MEMORY_CONNECTION_STRING: " memory_connection
+    if [[ -z "${memory_connection}" ]]; then
+      echo "A third-party connection string is required for this option."
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Invalid storage choice"
+    exit 1
+    ;;
+esac
+
 {
   echo "export COMPASS_MODEL_PROVIDER=${provider}"
   echo "export ${key_name}=${api_key}"
   echo "export COMPASS_MODEL_NAME=${selected_model}"
-} > "$ENV_FILE"
+  echo "export COMPASS_MEMORY_CONNECTION_STRING='${memory_connection}'"
+} > "$profile_env_file"
 
 if [[ "$deploy_choice" == "2" ]]; then
   read -r -p "Enter DISCORD_BOT_TOKEN: " discord_token
   read -r -p "Enter DISCORD_CHANNEL_ID: " discord_channel
+  if [[ -z "${discord_token}" || -z "${discord_channel}" ]]; then
+    echo "DISCORD_BOT_TOKEN and DISCORD_CHANNEL_ID are required for Discord mode."
+    exit 1
+  fi
   {
     echo "export DISCORD_BOT_TOKEN=${discord_token}"
     echo "export DISCORD_CHANNEL_ID=${discord_channel}"
-  } >> "$ENV_FILE"
+  } >> "$profile_env_file"
+fi
+
+write_active_profile "$profile"
+
+if [[ -z "${memory_connection}" ]]; then
+  echo "COMPASS_MEMORY_CONNECTION_STRING is required."
+  exit 1
 fi
 
 cat <<EOF
 
 Configuration saved to: $ENV_FILE
+Profile configuration saved to: $profile_env_file
 
 Next steps:
 EOF
@@ -69,5 +175,6 @@ fi
 cat <<EOF
 
 The host loads .env.compass automatically — no need to source the file.
+To switch profiles quickly, run: ./scripts/install.sh <dev|personal|team|prod>
 If Discord variables are configured, the host will start in Discord mode automatically.
 EOF
