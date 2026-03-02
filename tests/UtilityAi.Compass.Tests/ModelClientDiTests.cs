@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using UtilityAi.Compass.Abstractions.Interfaces;
-using Compass.SamplePlugin.OpenAi;
+using UtilityAi.Compass.StandardModules;
 
 namespace UtilityAi.Compass.Tests;
 
@@ -26,24 +26,24 @@ public class ModelClientDiTests
     }
 
     [Fact]
-    public void OpenAiModule_ReceivesIModelClient_ViaDI()
+    public void ConversationModule_ReceivesIModelClient_ViaDI()
     {
         var services = new ServiceCollection();
         var stub = new StubModelClient();
         services.AddSingleton<IModelClient>(stub);
-        services.AddSingleton<OpenAiModule>();
+        services.AddSingleton<ConversationModule>();
 
         var provider = services.BuildServiceProvider();
-        var module = provider.GetRequiredService<OpenAiModule>();
+        var module = provider.GetRequiredService<ConversationModule>();
 
         Assert.NotNull(module);
     }
 
     [Fact]
-    public void OpenAiModule_UsesInjectedModelClient_InProposal()
+    public void ConversationModule_UsesInjectedModelClient_InProposal()
     {
         var stub = new StubModelClient();
-        var module = new OpenAiModule(stub);
+        var module = new ConversationModule(stub);
 
         var bus = new UtilityAi.Utils.EventBus();
         bus.Publish(new UtilityAi.Compass.Abstractions.Facts.UserRequest("Hello test"));
@@ -52,14 +52,14 @@ public class ModelClientDiTests
         var proposals = module.Propose(rt).ToList();
 
         Assert.Single(proposals);
-        Assert.Equal("openai.chat", proposals[0].Id);
+        Assert.Equal("conversation.chat", proposals[0].Id);
     }
 
     [Fact]
-    public async Task OpenAiModule_Proposal_DelegatesToModelClient()
+    public async Task ConversationModule_Proposal_DelegatesToModelClient()
     {
         var stub = new StubModelClient();
-        var module = new OpenAiModule(stub);
+        var module = new ConversationModule(stub);
 
         var bus = new UtilityAi.Utils.EventBus();
         bus.Publish(new UtilityAi.Compass.Abstractions.Facts.UserRequest("Hello world"));
@@ -75,10 +75,10 @@ public class ModelClientDiTests
     }
 
     [Fact]
-    public async Task OpenAiModule_Proposal_SendsSystemMessageAndParameters()
+    public async Task ConversationModule_Proposal_SendsSystemMessageAndParameters()
     {
         var stub = new StubModelClient();
-        var module = new OpenAiModule(stub);
+        var module = new ConversationModule(stub);
 
         var bus = new UtilityAi.Utils.EventBus();
         bus.Publish(new UtilityAi.Compass.Abstractions.Facts.UserRequest("Tell me a joke"));
@@ -89,7 +89,7 @@ public class ModelClientDiTests
 
         Assert.NotNull(stub.LastModelRequest);
         Assert.Equal("Tell me a joke", stub.LastModelRequest!.Prompt);
-        Assert.Equal("You are a helpful assistant.", stub.LastModelRequest.SystemMessage);
+        Assert.Contains("helpful conversational AI assistant", stub.LastModelRequest.SystemMessage);
         Assert.Equal(512, stub.LastModelRequest.MaxTokens);
     }
 
@@ -118,10 +118,10 @@ public class ModelClientDiTests
     }
 
     [Fact]
-    public async Task SkillMarkdownModule_Proposal_LoadsSystemMessageFromSkillFile()
+    public async Task ConversationModule_Proposal_SetsSystemMessage()
     {
         var stub = new StubModelClient();
-        var module = new SkillMarkdownModule(stub);
+        var module = new ConversationModule(stub);
 
         var bus = new UtilityAi.Utils.EventBus();
         bus.Publish(new UtilityAi.Compass.Abstractions.Facts.UserRequest("Explain utility AI"));
@@ -131,6 +131,6 @@ public class ModelClientDiTests
         await proposal.Act(CancellationToken.None);
 
         Assert.NotNull(stub.LastModelRequest);
-        Assert.Contains("When answering:", stub.LastModelRequest!.SystemMessage);
+        Assert.Contains("When you see conversation history", stub.LastModelRequest!.SystemMessage);
     }
 }

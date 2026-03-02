@@ -370,9 +370,7 @@ UtilityAi.Compass.sln
 │   ├── UtilityAi.Compass.WeatherModule/    # Example weather-oriented module
 │   └── UtilityAi.Compass.Cli/              # CLI host/tooling
 ├── samples/
-│   ├── Compass.SampleHost/                 # Console/Discord sample host
-│   ├── Compass.SamplePlugin.Basic/         # Minimal plugin sample
-│   └── Compass.SamplePlugin.OpenAi/        # Model-backed plugin sample
+│   └── Compass.SampleHost/                 # Console/Discord sample host
 ├── docs/
 │   ├── INSTALL.md
 │   ├── USING.md

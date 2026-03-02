@@ -256,19 +256,21 @@ public class CompoundRequestOrchestratorTests
     public async Task DecomposeRequestAsync_ThrowsOperationCanceled_WhenCancelledMidFlight()
     {
         var cts = new CancellationTokenSource();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var modelClient = new DelegatingModelClient(async (_, ct) =>
         {
-            // Simulate LLM taking time
-            await Task.Delay(100, ct);
+            started.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, ct);
             return new ModelResponse { Text = "[\"a\", \"b\"]" };
         });
 
-        // Cancel after a short delay
-        cts.CancelAfter(TimeSpan.FromMilliseconds(10));
+        var decomposeTask = CompoundRequestOrchestrator.DecomposeRequestAsync(modelClient, "input", cts.Token);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        cts.Cancel();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            CompoundRequestOrchestrator.DecomposeRequestAsync(modelClient, "input", cts.Token));
+            decomposeTask);
     }
 
     // ────────────────────────────────────────────────────────────
