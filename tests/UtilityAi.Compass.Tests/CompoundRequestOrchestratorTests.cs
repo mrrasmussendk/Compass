@@ -63,7 +63,8 @@ public class CompoundRequestOrchestratorTests
     [InlineData("what is the capital of France")]
     [InlineData("summarize this document")]
     [InlineData("hello")]
-    [InlineData("I saw a bird and then i shot it what should i do?")]
+    [InlineData("I saw a bird and then I shot it what should I do?")]
+    [InlineData("I saw a bird and then I shot it what do I do?")]
     public void IsCompoundRequest_ReturnsFalse_ForSimpleRequests(string text)
     {
         Assert.False(CompoundRequestOrchestrator.IsCompoundRequest(text));

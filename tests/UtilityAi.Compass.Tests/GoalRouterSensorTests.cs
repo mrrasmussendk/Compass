@@ -134,7 +134,7 @@ public class GoalRouterSensorTests
     {
         var sensor = new GoalRouterSensor();
         var bus = new EventBus();
-        bus.Publish(new UserRequest("I saw a bird and then i shot it what should i do?"));
+        bus.Publish(new UserRequest("I saw a bird and then I shot it what should I do?"));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         await sensor.SenseAsync(rt, CancellationToken.None);
