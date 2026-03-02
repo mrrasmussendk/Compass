@@ -173,7 +173,7 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
         }
         catch (TaskCanceledException ex)
         {
-            throw new InvalidOperationException("Failed to call OpenAI API: The request timed out or was canceled before completion.", ex);
+            throw new InvalidOperationException("Failed to call OpenAI API: The request timed out before completion.", ex);
         }
         catch (HttpRequestException ex)
         {
@@ -237,7 +237,7 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
         }
         catch (TaskCanceledException ex)
         {
-            throw new InvalidOperationException("Failed to call Anthropic API: The request timed out or was canceled before completion.", ex);
+            throw new InvalidOperationException("Failed to call Anthropic API: The request timed out before completion.", ex);
         }
         catch (HttpRequestException ex)
         {
@@ -308,7 +308,7 @@ file sealed class GeminiModelClient(ModelConfiguration config, HttpClient httpCl
         }
         catch (TaskCanceledException ex)
         {
-            throw new InvalidOperationException("Failed to call Gemini API: The request timed out or was canceled before completion.", ex);
+            throw new InvalidOperationException("Failed to call Gemini API: The request timed out before completion.", ex);
         }
         catch (HttpRequestException ex)
         {
