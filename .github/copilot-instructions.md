@@ -12,7 +12,6 @@
 
 ```
 UtilityAi.Compass.sln
-├── vendor/UtilityAi/                    ← git submodule @ v1.6.5
 ├── src/
 │   ├── UtilityAi.Compass.Abstractions/  ← Enums, facts, interfaces
 │   ├── UtilityAi.Compass.Runtime/       ← Sensors, modules, strategy, DI
@@ -29,8 +28,7 @@ UtilityAi.Compass.sln
 
 ## How to Build
 
-> Requires [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download).  
-> The `vendor/UtilityAi` submodule must be initialised: `git submodule update --init --recursive`
+> Requires [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download).
 
 ```bash
 dotnet build UtilityAi.Compass.sln
