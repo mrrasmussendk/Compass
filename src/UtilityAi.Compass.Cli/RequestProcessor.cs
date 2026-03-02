@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using UtilityAi.Capabilities;
+using UtilityAi.Compass.Abstractions;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Compass.Runtime;
@@ -72,6 +73,12 @@ internal sealed class RequestProcessor(IHost host, CompassGovernedSelectionStrat
         {
             return (goal, lane,
                 "No model configured. Run 'compass --setup' or scripts/install.sh (Linux/macOS) / scripts/install.ps1 (Windows).");
+        }
+
+        if (goal?.Goal == GoalTag.Execute || lane?.Lane == Lane.Execute)
+        {
+            return (goal, lane,
+                "I can't complete this action transactionally because no installed capability can execute and revert it. Install a module that supports this action.");
         }
 
         var responseText = await modelClient.GenerateAsync(input, cancellationToken);

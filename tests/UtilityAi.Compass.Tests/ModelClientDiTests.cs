@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
+using UtilityAi.Compass.Abstractions;
+using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Compass.StandardModules;
+using UtilityAi.Utils;
 
 namespace UtilityAi.Compass.Tests;
 
@@ -132,5 +135,22 @@ public class ModelClientDiTests
 
         Assert.NotNull(stub.LastModelRequest);
         Assert.Contains("When you see conversation history", stub.LastModelRequest!.SystemMessage);
+    }
+
+    [Fact]
+    public void ConversationModule_ReturnsEmpty_WhenExecutionGoalIsSelected()
+    {
+        var stub = new StubModelClient();
+        var module = new ConversationModule(stub);
+
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("delete the file"));
+        bus.Publish(new GoalSelected(GoalTag.Execute, 0.95, "test"));
+        bus.Publish(new LaneSelected(Lane.Execute));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        var proposals = module.Propose(rt).ToList();
+
+        Assert.Empty(proposals);
     }
 }

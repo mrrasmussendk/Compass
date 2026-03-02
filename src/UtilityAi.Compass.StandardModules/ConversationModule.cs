@@ -38,6 +38,9 @@ public sealed class ConversationModule : ICapabilityModule
     public IEnumerable<Proposal> Propose(Runtime rt)
     {
         if (_modelClient is null) yield break;
+        var goal = rt.Bus.GetOrDefault<GoalSelected>();
+        var lane = rt.Bus.GetOrDefault<LaneSelected>();
+        if (goal?.Goal == GoalTag.Execute || lane?.Lane == Lane.Execute) yield break;
         var request = rt.Bus.GetOrDefault<UserRequest>();
         if (request is null) yield break;
 
