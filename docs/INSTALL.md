@@ -199,8 +199,7 @@ UtilityAi.Compass.sln
 │   ├── UtilityAi.Compass.PluginHost/    ← Plugin loader (AssemblyLoadContext)
 │   └── UtilityAi.Compass.Hitl/          ← Human-in-the-loop gate (optional)
 ├── samples/
-│   ├── Compass.SampleHost/              ← Console REPL / Discord demo host
-│   └── Compass.SamplePlugin.Basic/      ← Example third-party plugin
+│   └── Compass.SampleHost/              ← Console REPL / Discord demo host
 └── tests/
     └── UtilityAi.Compass.Tests/         ← xUnit tests
 ```

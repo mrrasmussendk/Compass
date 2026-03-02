@@ -27,7 +27,6 @@ See [INSTALL.md](INSTALL.md) for prerequisites, setup, and step-by-step installa
 | `UtilityAi.Compass.PluginHost` | Assembly-based plugin loader and DI integration |
 | `UtilityAi.Compass.Hitl` | Human-in-the-loop gate module and facts |
 | `Compass.SampleHost` | Console host demonstrating the framework |
-| `Compass.SamplePlugin.Basic` | Example plugin using the SDK |
 
 ## Quick Start
 
