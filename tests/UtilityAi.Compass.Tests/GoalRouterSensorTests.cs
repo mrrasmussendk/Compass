@@ -128,4 +128,17 @@ public class GoalRouterSensorTests
         Assert.True(multiStep.IsCompound);
         Assert.Equal(3, multiStep.EstimatedSteps);
     }
+
+    [Fact]
+    public async Task SenseAsync_DoesNotPublishMultiStepRequest_ForNarrativeAdvicePrompt()
+    {
+        var sensor = new GoalRouterSensor();
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("I saw a bird and then i shot it what should i do?"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        await sensor.SenseAsync(rt, CancellationToken.None);
+
+        Assert.Null(bus.GetOrDefault<MultiStepRequest>());
+    }
 }
