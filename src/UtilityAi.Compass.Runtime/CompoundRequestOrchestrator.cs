@@ -30,9 +30,6 @@ public static class CompoundRequestOrchestrator
             return false;
 
         var lower = text.ToLowerInvariant();
-        if (CompoundRequestHeuristics.IsAdvicePrompt(text))
-            return false;
-
         // Sequential intent indicators
         var indicators = new[]
         {

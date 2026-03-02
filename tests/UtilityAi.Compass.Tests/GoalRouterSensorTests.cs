@@ -130,11 +130,12 @@ public class GoalRouterSensorTests
     }
 
     [Fact]
-    public async Task SenseAsync_DoesNotPublishMultiStepRequest_ForNarrativeAdvicePrompt()
+    public async Task SenseAsync_DoesNotPublishMultiStepRequest_WhenModelMarksRequestAsNonCompound()
     {
-        var sensor = new GoalRouterSensor();
+        var sensor = new GoalRouterSensor(new StubModelClient(
+            "{\"goal\":\"Answer\",\"confidence\":0.9,\"isCompound\":false,\"estimatedSteps\":1}"));
         var bus = new EventBus();
-        bus.Publish(new UserRequest("I saw a bird and then I shot it what should I do?"));
+        bus.Publish(new UserRequest("Ich habe einen Vogel gesehen und dann habe ich ihn erschossen, was soll ich tun?"));
         var rt = new UtilityAi.Utils.Runtime(bus, 0);
 
         await sensor.SenseAsync(rt, CancellationToken.None);
