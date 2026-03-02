@@ -4,6 +4,7 @@ using UtilityAi.Capabilities;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Compass.Runtime;
+using UtilityAi.Compass.Runtime.Strategy;
 using UtilityAi.Memory;
 using UtilityAi.Orchestration;
 using UtilityAi.Sensor;
@@ -11,8 +12,11 @@ using UtilityAi.Utils;
 
 namespace Compass.SampleHost;
 
-internal sealed class RequestProcessor(IHost host, UtilityAi.Compass.Runtime.Strategy.CompassGovernedSelectionStrategy strategy, IModelClient? modelClient)
+internal sealed class RequestProcessor(IHost host, CompassGovernedSelectionStrategy strategy, IModelClient? modelClient)
 {
+    private const int MaxConversationTurns = 50;
+    private static readonly TimeSpan ConversationRetentionWindow = TimeSpan.FromHours(1);
+
     public async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessAsync(string input, CancellationToken cancellationToken)
     {
         GoalSelected? goal = null;
@@ -27,8 +31,8 @@ internal sealed class RequestProcessor(IHost host, UtilityAi.Compass.Runtime.Str
             {
                 var (g, l, response) = await RunSingleRequestAsync(request, cancellationToken);
                 allResponses.Add(response);
-                goal = g;
-                lane = l;
+                goal ??= g;
+                lane ??= l;
             }
 
             responseText = string.Join("\n\n", allResponses);
@@ -90,7 +94,7 @@ internal sealed class RequestProcessor(IHost host, UtilityAi.Compass.Runtime.Str
             cancellationToken);
 
         var count = await memoryStore.CountAsync<ConversationTurn>(cancellationToken);
-        if (count > 50)
-            await memoryStore.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
+        if (count > MaxConversationTurns)
+            await memoryStore.PruneAsync(ConversationRetentionWindow, cancellationToken);
     }
 }
