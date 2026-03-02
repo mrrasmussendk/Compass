@@ -22,7 +22,7 @@ EnvFileLoader.Load(overwriteExisting: true);
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 const int MaxAuditRecords = 100;
-void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath]");
+void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], quit");
 string? PromptForSecret(string secretName)
 {
     Console.Write($"Missing required secret '{secretName}'. Enter value (blank will fail install): ");
@@ -133,6 +133,11 @@ if (startupArgs.Length >= 1 &&
     Console.WriteLine("  --audit show <id> [--json] (alias: audit show)");
     Console.WriteLine("  --replay <id> [--no-exec] (alias: replay)");
     Console.WriteLine("  --new-module <Name> [OutputPath]");
+    Console.WriteLine();
+    Console.WriteLine("Getting started:");
+    Console.WriteLine("  1) compass --setup");
+    Console.WriteLine("  2) compass");
+    Console.WriteLine("  3) In interactive mode, type /help for commands or 'quit' to exit.");
     return;
 }
 
