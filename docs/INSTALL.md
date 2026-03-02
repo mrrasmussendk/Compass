@@ -124,7 +124,7 @@ Windows PowerShell:
 
 ## 5. Configure — Manual Setup
 
-If you prefer to set environment variables yourself, export the following before running the sample host:
+If you prefer to set environment variables yourself, export the following before running the main host:
 
 | Variable | Required | Description |
 |---|---|---|
@@ -147,7 +147,7 @@ Example (Linux / macOS):
 export COMPASS_MODEL_PROVIDER=openai
 export OPENAI_API_KEY=sk-...
 export COMPASS_MEMORY_CONNECTION_STRING="Data Source=appdb/compass-memory.db"
-dotnet run --project samples/Compass.SampleHost
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
 ```
 
 ---
@@ -155,7 +155,7 @@ dotnet run --project samples/Compass.SampleHost
 ## 6. Run the Sample Host
 
 ```bash
-dotnet run --project samples/Compass.SampleHost
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
 ```
 
 A REPL will start:
@@ -174,15 +174,15 @@ If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the host switches to Di
 ## 7. Install Plugins (Optional)
 
 1. Build the plugin: `dotnet publish -c Release`
-2. Copy the output DLL (and any dependencies) into a `plugins/` folder next to the sample host executable:
+2. Copy the output DLL (and any dependencies) into a `plugins/` folder next to the main host executable:
 
    ```bash
-   mkdir -p samples/Compass.SampleHost/bin/Debug/net10.0/plugins
+   mkdir -p src/UtilityAi.Compass.Cli/bin/Debug/net10.0/plugins
    cp path/to/plugin/bin/Release/net10.0/publish/* \
-      samples/Compass.SampleHost/bin/Debug/net10.0/plugins/
+      src/UtilityAi.Compass.Cli/bin/Debug/net10.0/plugins/
    ```
 
-3. Run the sample host — it will discover all `ICapabilityModule` and `ISensor` types automatically.
+3. Run the main host — it will discover all `ICapabilityModule` and `ISensor` types automatically.
 
 See the [root README](../README.md#step-by-step-build-your-first-capability-module) for details on writing your own plugin.
 

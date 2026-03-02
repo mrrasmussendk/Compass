@@ -6,10 +6,10 @@ This guide is for running Compass as a host application.
 
 Follow [INSTALL.md](INSTALL.md) for prerequisites, build/test, and provider setup.
 
-## 2) Run the sample host
+## 2) Run the main host
 
 ```bash
-dotnet run --project samples/Compass.SampleHost
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
 ```
 
 ## 3) Understand runtime behavior
@@ -39,7 +39,7 @@ compass --install-module /absolute/path/MyPlugin.dll
 
 If a plugin manifest includes `requiredSecrets`, Compass prompts for missing values during interactive install and fails installation when a required value is not supplied.
 
-Example Gmail prompts you can try in the sample host:
+Example Gmail prompts you can try in the main host:
 
 - `read my gmail inbox for unread messages`
 - `draft a reply to the latest gmail message`

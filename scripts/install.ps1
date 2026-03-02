@@ -183,10 +183,10 @@ Write-Host "Configuration saved to: $EnvFile"
 Write-Host "Profile configuration saved to: $ProfileEnvFile"
 Write-Host ''
 Write-Host 'Next steps:'
-$hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Compass.sln')) -and (Test-Path (Join-Path $RootDir 'samples\Compass.SampleHost'))
+$hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Compass.sln')) -and (Test-Path (Join-Path $RootDir 'src\UtilityAi.Compass.Cli'))
 if ($hasSourceLayout) {
     Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
-    Write-Host "  2. dotnet run --project `"$RootDir\samples\Compass.SampleHost`""
+    Write-Host "  2. dotnet run --framework net10.0 --project `"$RootDir\src\UtilityAi.Compass.Cli`""
 }
 else {
     Write-Host '  1. Run: compass'
