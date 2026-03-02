@@ -184,7 +184,7 @@ If `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` are set, the host switches to Di
 
 3. Run the sample host — it will discover all `ICapabilityModule` and `ISensor` types automatically.
 
-See the [root README](../README.md#how-to-write-a-plugin) for details on writing your own plugin.
+See the [root README](../README.md#step-by-step-build-your-first-capability-module) for details on writing your own plugin.
 
 ---
 
@@ -197,7 +197,10 @@ UtilityAi.Compass.sln
 │   ├── UtilityAi.Compass.Runtime/       ← Sensors, modules, strategy, DI
 │   ├── UtilityAi.Compass.PluginSdk/     ← Attributes + metadata provider
 │   ├── UtilityAi.Compass.PluginHost/    ← Plugin loader (AssemblyLoadContext)
-│   └── UtilityAi.Compass.Hitl/          ← Human-in-the-loop gate (optional)
+│   ├── UtilityAi.Compass.Hitl/          ← Human-in-the-loop gate (optional)
+│   ├── UtilityAi.Compass.StandardModules/ ← Built-in reusable modules
+│   ├── UtilityAi.Compass.WeatherModule/   ← Example weather-oriented module
+│   └── UtilityAi.Compass.Cli/             ← CLI host/tooling
 ├── samples/
 │   └── Compass.SampleHost/              ← Console REPL / Discord demo host
 └── tests/

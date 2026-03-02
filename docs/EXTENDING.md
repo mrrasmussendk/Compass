@@ -32,4 +32,4 @@ compass --install-module /absolute/path/MyPlugin.dll
 
 See:
 
-- Plugin example in the root [README.md](../README.md#example-capability-module)
+- Plugin example in the root [README.md](../README.md#step-by-step-build-your-first-capability-module)
