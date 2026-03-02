@@ -16,6 +16,9 @@ dotnet test UtilityAi.Compass.sln
 - `src/UtilityAi.Compass.PluginSdk` — plugin attributes and metadata
 - `src/UtilityAi.Compass.PluginHost` — plugin loading and registration
 - `src/UtilityAi.Compass.Hitl` — human-in-the-loop controls
+- `src/UtilityAi.Compass.StandardModules` — built-in reusable modules
+- `src/UtilityAi.Compass.WeatherModule` — example weather-focused module
+- `src/UtilityAi.Compass.Cli` — CLI host/tooling
 
 ## Testing expectations
 

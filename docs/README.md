@@ -26,6 +26,9 @@ See [INSTALL.md](INSTALL.md) for prerequisites, setup, and step-by-step installa
 | `UtilityAi.Compass.PluginSdk` | Attributes and metadata provider for plugin authors |
 | `UtilityAi.Compass.PluginHost` | Assembly-based plugin loader and DI integration |
 | `UtilityAi.Compass.Hitl` | Human-in-the-loop gate module and facts |
+| `UtilityAi.Compass.StandardModules` | Built-in reusable capability modules |
+| `UtilityAi.Compass.WeatherModule` | Example weather-focused module |
+| `UtilityAi.Compass.Cli` | CLI host/tooling and module workflows |
 | `Compass.SampleHost` | Console host demonstrating the framework |
 
 ## Quick Start
