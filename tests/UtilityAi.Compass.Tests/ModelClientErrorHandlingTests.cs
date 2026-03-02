@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using Compass.SampleHost;
+using UtilityAi.Compass.Cli;
 using UtilityAi.Compass.Abstractions.Interfaces;
 
 namespace UtilityAi.Compass.Tests;

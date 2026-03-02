@@ -1,4 +1,4 @@
-namespace Compass.SampleHost;
+namespace UtilityAi.Compass.Cli;
 
 /// <summary>
 /// Loads environment variables from a <c>.env.compass</c> file so the host
