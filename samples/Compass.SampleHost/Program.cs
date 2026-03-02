@@ -588,6 +588,10 @@ else
         {
             Console.WriteLine($"  Error: {ex.Message}");
         }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("  Error: The request timed out or was canceled.");
+        }
     }
 }
 
