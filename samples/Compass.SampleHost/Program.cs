@@ -391,31 +391,26 @@ foreach (var module in host.Services.GetServices<ICapabilityModule>())
     }
 }
 
-async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
+// Runs a single request through the full pipeline (sensors + modules + governance).
+async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> RunSingleRequestAsync(string input, CancellationToken cancellationToken)
 {
     var bus = new EventBus();
     bus.Publish(new UserRequest(input));
 
-    // Create orchestrator with the governance strategy and the request-specific bus
     var requestOrchestrator = new UtilityAiOrchestrator(selector: strategy, stopAtZero: true, bus: bus);
 
-    // Add all sensors
     foreach (var sensor in host.Services.GetServices<ISensor>())
         requestOrchestrator.AddSensor(sensor);
 
-    // Add all modules
     foreach (var module in host.Services.GetServices<ICapabilityModule>())
         requestOrchestrator.AddModule(module);
 
-    // Allow multiple ticks for workflow orchestration
-    // Tick 1: Sensors detect multi-step, simple modules propose
-    // Tick 2+: Workflow modules propose and execute steps
     await requestOrchestrator.RunAsync(maxTicks: 10, cancellationToken);
 
     var goal = bus.GetOrDefault<GoalSelected>();
     var lane = bus.GetOrDefault<LaneSelected>();
     var response = bus.GetOrDefault<AiResponse>();
-    
+
     string responseText;
     if (response is not null)
     {
@@ -427,15 +422,117 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
     }
     else
     {
-        // Fallback: use model client directly
         responseText = await modelClient.GenerateAsync(input, cancellationToken);
     }
 
-    // Store conversation turn in memory for context-aware future requests
-    var memoryStore = host.Services.GetService<IMemoryStore>();
-    if (memoryStore is not null && !string.IsNullOrWhiteSpace(responseText))
+    return (goal, lane, responseText);
+}
+
+// Detects compound requests using the same heuristic as GoalRouterSensor.
+static bool IsCompoundRequest(string text)
+{
+    var lower = text.ToLowerInvariant();
+    var indicators = new[] { " then ", " and then ", " afterwards ", " after that ", " next ", " followed by ", " after " };
+    if (indicators.Any(i => lower.Contains(i)))
+        return true;
+    var verbs = new[] { "create", "write", "read", "delete", "update", "insert", "add", "remove", "modify", "input" };
+    return verbs.Count(v => lower.Contains(v)) >= 2;
+}
+
+// Uses the LLM to decompose a compound request into independent sub-tasks.
+async Task<List<string>> DecomposeRequestAsync(string input, CancellationToken cancellationToken)
+{
+    if (modelClient is null)
+        return [input];
+
+    try
     {
-        await memoryStore.StoreAsync(
+        var response = await modelClient.GenerateAsync(
+            new ModelRequest
+            {
+                SystemMessage = "Split this compound user request into independent sub-tasks. " +
+                                "Return a JSON array of strings, one per task. " +
+                                "Keep each sub-task self-contained (include relevant context like filenames). " +
+                                "If not compound, return the original as a single-element array. " +
+                                "Only return valid JSON, nothing else.",
+                Prompt = input,
+                MaxTokens = 256
+            },
+            cancellationToken);
+
+        using var doc = JsonDocument.Parse(response.Text);
+        if (doc.RootElement.ValueKind == JsonValueKind.Array)
+        {
+            var tasks = doc.RootElement.EnumerateArray()
+                .Select(e => e.GetString())
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Cast<string>()
+                .ToList();
+
+            if (tasks.Count > 0)
+                return tasks;
+        }
+    }
+    catch
+    {
+        // LLM response wasn't valid JSON; fall through to single-request handling.
+    }
+
+    return [input];
+}
+
+async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
+{
+    // When the model client is available and the request looks compound,
+    // decompose it into sub-tasks and run each through the full pipeline.
+    // This is module-agnostic: FileCreationModule handles file sub-tasks,
+    // ConversationModule handles questions, and any installed plugin
+    // (SMS, weather, etc.) handles its own domain automatically.
+    if (modelClient is not null && IsCompoundRequest(input))
+    {
+        var subtasks = await DecomposeRequestAsync(input, cancellationToken);
+        if (subtasks.Count > 1)
+        {
+            var allResponses = new List<string>();
+            GoalSelected? lastGoal = null;
+            LaneSelected? lastLane = null;
+
+            foreach (var subtask in subtasks)
+            {
+                var (g, l, r) = await RunSingleRequestAsync(subtask, cancellationToken);
+                allResponses.Add(r);
+                lastGoal = g;
+                lastLane = l;
+            }
+
+            var combinedResponse = string.Join("\n\n", allResponses);
+
+            // Store combined conversation turn in memory
+            var memoryStore = host.Services.GetService<IMemoryStore>();
+            if (memoryStore is not null && !string.IsNullOrWhiteSpace(combinedResponse))
+            {
+                await memoryStore.StoreAsync(
+                    new ConversationTurn
+                    {
+                        UserMessage = input,
+                        AssistantResponse = combinedResponse
+                    },
+                    DateTimeOffset.UtcNow,
+                    cancellationToken);
+            }
+
+            return (lastGoal, lastLane, combinedResponse);
+        }
+    }
+
+    // Non-compound path: run normally through the full pipeline.
+    var (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
+
+    // Store conversation turn in memory for context-aware future requests
+    var memoryStore2 = host.Services.GetService<IMemoryStore>();
+    if (memoryStore2 is not null && !string.IsNullOrWhiteSpace(responseText))
+    {
+        await memoryStore2.StoreAsync(
             new ConversationTurn
             {
                 UserMessage = input,
@@ -443,13 +540,12 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
             },
             DateTimeOffset.UtcNow,
             cancellationToken);
-        
+
         // Performance optimization: Keep only recent conversation history
-        // Prune turns older than 1 hour to prevent unbounded growth
-        var count = await memoryStore.CountAsync<ConversationTurn>(cancellationToken);
-        if (count > 50) // If more than 50 turns, prune old ones
+        var count = await memoryStore2.CountAsync<ConversationTurn>(cancellationToken);
+        if (count > 50)
         {
-            await memoryStore.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
+            await memoryStore2.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
         }
     }
 
