@@ -26,6 +26,12 @@ public class ModelClientErrorHandlingTests
         }
     }
 
+    private sealed class ThrowingHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromException<HttpResponseMessage>(exception);
+    }
+
     [Theory]
     [InlineData(ModelProvider.OpenAi)]
     [InlineData(ModelProvider.Anthropic)]
@@ -119,5 +125,22 @@ public class ModelClientErrorHandlingTests
         var ex = Assert.Throws<NotSupportedException>(() => ModelClientFactory.Create(config, httpClient));
 
         Assert.Contains("Unsupported model provider", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(ModelProvider.OpenAi, "OpenAI")]
+    [InlineData(ModelProvider.Anthropic, "Anthropic")]
+    [InlineData(ModelProvider.Gemini, "Gemini")]
+    public async Task GenerateAsync_ThrowsInvalidOperation_OnTaskCanceled(ModelProvider provider, string expectedProvider)
+    {
+        using var httpClient = new HttpClient(new ThrowingHandler(new TaskCanceledException("network timeout")));
+        var config = new ModelConfiguration(provider, "test-key", "test-model");
+        var client = ModelClientFactory.Create(config, httpClient);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => client.GenerateAsync("Hello", CancellationToken.None));
+
+        Assert.Contains(expectedProvider, ex.Message);
+        Assert.Contains("timed out", ex.Message);
     }
 }
