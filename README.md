@@ -12,7 +12,7 @@ This README is organized around those two workflows first.
 **Try it now (30 seconds):**
 
 ```bash
-git clone https://github.com/mrrasmussendk/Compass.git && cd Compass && dotnet run --project samples/Compass.SampleHost
+git clone https://github.com/mrrasmussendk/Compass.git && cd Compass && dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
 ```
 
 **Database/local DB:** no external database required. Guided setup defaults to local SQLite file memory (`Data Source=appdb/compass-memory.db`) unless you choose a third-party connection string.
@@ -81,10 +81,10 @@ Guided setup is profile-aware (`dev`, `personal`, `team`, `prod`) and writes:
 
 On repeated setup runs, you can press Enter on the API key prompt to reuse the cached key already stored for that profile.
 
-### Run the sample host (same core runtime used by the CLI tool)
+### Run the main host
 
 ```bash
-dotnet run --project samples/Compass.SampleHost
+dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
 ```
 
 Expected startup (wording may vary by build/version):

@@ -19,6 +19,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\UtilityAi.Compass.Cli\Program.cs" Link="Program.cs" />
+    <Compile Include="..\..\src\UtilityAi.Compass.Cli\EnvFileLoader.cs" Link="EnvFileLoader.cs" />
+    <Compile Include="..\..\src\UtilityAi.Compass.Cli\Integrations.cs" Link="Integrations.cs" />
+    <Compile Include="..\..\src\UtilityAi.Compass.Cli\ModuleInstaller.cs" Link="ModuleInstaller.cs" />
+    <Compile Include="..\..\src\UtilityAi.Compass.Cli\RequestProcessor.cs" Link="RequestProcessor.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="..\..\scripts\install.sh" Link="scripts/install.sh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Pack>false</Pack>

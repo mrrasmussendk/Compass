@@ -10,7 +10,7 @@ using UtilityAi.Orchestration;
 using UtilityAi.Sensor;
 using UtilityAi.Utils;
 
-namespace Compass.SampleHost;
+namespace UtilityAi.Compass.Cli;
 
 internal sealed class RequestProcessor(IHost host, CompassGovernedSelectionStrategy strategy, IModelClient? modelClient)
 {

@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using UtilityAi.Capabilities;
 
-namespace Compass.SampleHost;
+namespace UtilityAi.Compass.Cli;
 
 public static class ModuleInstaller
 {

@@ -1,4 +1,4 @@
-using Compass.SampleHost;
+using UtilityAi.Compass.Cli;
 using System.IO.Compression;
 
 namespace UtilityAi.Compass.Tests;

@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Compass.SampleHost;
+using UtilityAi.Compass.Cli;
 using UtilityAi.Capabilities;
 using UtilityAi.Compass.Runtime;
 using UtilityAi.Compass.Runtime.Memory;

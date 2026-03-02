@@ -24,14 +24,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\samples\Compass.SampleHost\Program.cs" Link="Program.cs" />
-    <Compile Include="..\..\samples\Compass.SampleHost\EnvFileLoader.cs" Link="EnvFileLoader.cs" />
-    <Compile Include="..\..\samples\Compass.SampleHost\Integrations.cs" Link="Integrations.cs" />
-    <Compile Include="..\..\samples\Compass.SampleHost\ModuleInstaller.cs" Link="ModuleInstaller.cs" />
-    <Compile Include="..\..\samples\Compass.SampleHost\RequestProcessor.cs" Link="RequestProcessor.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <Content Include="..\..\scripts\install.sh" Link="scripts/install.sh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

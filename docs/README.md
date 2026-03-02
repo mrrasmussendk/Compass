@@ -29,7 +29,7 @@ See [INSTALL.md](INSTALL.md) for prerequisites, setup, and step-by-step installa
 | `UtilityAi.Compass.StandardModules` | Built-in reusable capability modules |
 | `UtilityAi.Compass.WeatherModule` | Example weather-focused module |
 | `UtilityAi.Compass.Cli` | CLI host/tooling and module workflows |
-| `Compass.SampleHost` | Console host demonstrating the framework |
+| `UtilityAi.Compass.Cli` | Console host and primary entry point |
 
 ## Quick Start
 

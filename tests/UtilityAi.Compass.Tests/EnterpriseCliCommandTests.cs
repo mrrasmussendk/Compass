@@ -113,7 +113,7 @@ public sealed class EnterpriseCliCommandTests
         using var process = Process.Start(new ProcessStartInfo
         {
             FileName = "dotnet",
-            Arguments = $"run --project \"{Path.Combine(repoRoot, "samples", "Compass.SampleHost", "Compass.SampleHost.csproj")}\" -- {arguments}",
+            Arguments = $"run --framework net10.0 --project \"{Path.Combine(repoRoot, "src", "UtilityAi.Compass.Cli", "UtilityAi.Compass.Cli.csproj")}\" -- {arguments}",
             WorkingDirectory = repoRoot,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
