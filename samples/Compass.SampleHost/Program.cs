@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Compass.SampleHost;
 using UtilityAi.Capabilities;
+using UtilityAi.Compass.Runtime;
 using UtilityAi.Compass.Runtime.Memory;
 using UtilityAi.Memory;
 using UtilityAi.Compass.Abstractions.Facts;
@@ -391,31 +392,26 @@ foreach (var module in host.Services.GetServices<ICapabilityModule>())
     }
 }
 
-async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
+// Runs a single request through the full pipeline (sensors + modules + governance).
+async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> RunSingleRequestAsync(string input, CancellationToken cancellationToken)
 {
     var bus = new EventBus();
     bus.Publish(new UserRequest(input));
 
-    // Create orchestrator with the governance strategy and the request-specific bus
     var requestOrchestrator = new UtilityAiOrchestrator(selector: strategy, stopAtZero: true, bus: bus);
 
-    // Add all sensors
     foreach (var sensor in host.Services.GetServices<ISensor>())
         requestOrchestrator.AddSensor(sensor);
 
-    // Add all modules
     foreach (var module in host.Services.GetServices<ICapabilityModule>())
         requestOrchestrator.AddModule(module);
 
-    // Allow multiple ticks for workflow orchestration
-    // Tick 1: Sensors detect multi-step, simple modules propose
-    // Tick 2+: Workflow modules propose and execute steps
     await requestOrchestrator.RunAsync(maxTicks: 10, cancellationToken);
 
     var goal = bus.GetOrDefault<GoalSelected>();
     var lane = bus.GetOrDefault<LaneSelected>();
     var response = bus.GetOrDefault<AiResponse>();
-    
+
     string responseText;
     if (response is not null)
     {
@@ -427,8 +423,48 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
     }
     else
     {
-        // Fallback: use model client directly
         responseText = await modelClient.GenerateAsync(input, cancellationToken);
+    }
+
+    return (goal, lane, responseText);
+}
+
+async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
+{
+    // When the model client is available and the request looks compound,
+    // decompose it into sub-tasks and run each through the full pipeline.
+    // This is module-agnostic: FileCreationModule handles file sub-tasks,
+    // ConversationModule handles questions, and any installed plugin
+    // (SMS, weather, etc.) handles its own domain automatically.
+    GoalSelected? goal = null;
+    LaneSelected? lane = null;
+    string responseText;
+
+    if (modelClient is not null && CompoundRequestOrchestrator.IsCompoundRequest(input))
+    {
+        var subtasks = await CompoundRequestOrchestrator.DecomposeRequestAsync(modelClient, input, cancellationToken);
+        if (subtasks.Count > 1)
+        {
+            var allResponses = new List<string>();
+
+            foreach (var subtask in subtasks)
+            {
+                var (g, l, r) = await RunSingleRequestAsync(subtask, cancellationToken);
+                allResponses.Add(r);
+                goal = g;
+                lane = l;
+            }
+
+            responseText = string.Join("\n\n", allResponses);
+        }
+        else
+        {
+            (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
+        }
+    }
+    else
+    {
+        (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
     }
 
     // Store conversation turn in memory for context-aware future requests
@@ -443,11 +479,10 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
             },
             DateTimeOffset.UtcNow,
             cancellationToken);
-        
+
         // Performance optimization: Keep only recent conversation history
-        // Prune turns older than 1 hour to prevent unbounded growth
         var count = await memoryStore.CountAsync<ConversationTurn>(cancellationToken);
-        if (count > 50) // If more than 50 turns, prune old ones
+        if (count > 50)
         {
             await memoryStore.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
         }

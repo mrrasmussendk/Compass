@@ -107,8 +107,8 @@ public class GoalRouterSensorTests
         Assert.Equal(64, model.LastRequest.MaxTokens);
         foreach (var goal in Enum.GetNames<GoalTag>())
             Assert.Contains(goal, model.LastRequest.SystemMessage);
-        Assert.Contains("active_workflow: summarization (Active)", model.LastRequest.Prompt);
-        Assert.Contains("recent_step: Succeeded: Summary generated", model.LastRequest.Prompt);
-        Assert.Contains("set_variables: summary|tokenCount", model.LastRequest.Prompt);
+        Assert.Contains("wf:summarization (Active)", model.LastRequest.Prompt);
+        Assert.Contains("step:Succeeded: Summary generated", model.LastRequest.Prompt);
+        Assert.Contains("vars:summary|tokenCount", model.LastRequest.Prompt);
     }
 }
