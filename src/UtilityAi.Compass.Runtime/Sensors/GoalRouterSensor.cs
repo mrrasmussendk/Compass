@@ -154,7 +154,6 @@ public sealed class GoalRouterSensor : ISensor
     private static MultiStepRequest? DetectMultiStepRequest(string requestText)
     {
         var lowerText = requestText.ToLowerInvariant();
-
         // Check for compound request indicators
         var compoundIndicators = new[]
         {

@@ -30,7 +30,6 @@ public static class CompoundRequestOrchestrator
             return false;
 
         var lower = text.ToLowerInvariant();
-
         // Sequential intent indicators
         var indicators = new[]
         {
