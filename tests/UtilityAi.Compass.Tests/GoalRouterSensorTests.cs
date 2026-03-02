@@ -111,4 +111,21 @@ public class GoalRouterSensorTests
         Assert.Contains("step:Succeeded: Summary generated", model.LastRequest.Prompt);
         Assert.Contains("vars:summary|tokenCount", model.LastRequest.Prompt);
     }
+
+    [Fact]
+    public async Task SenseAsync_PublishesMultiStepRequest_FromModelIntent()
+    {
+        var sensor = new GoalRouterSensor(new StubModelClient(
+            "{\"goal\":\"Execute\",\"confidence\":0.92,\"isCompound\":true,\"estimatedSteps\":3}"));
+        var bus = new EventBus();
+        bus.Publish(new UserRequest("help me handle my onboarding tasks"));
+        var rt = new UtilityAi.Utils.Runtime(bus, 0);
+
+        await sensor.SenseAsync(rt, CancellationToken.None);
+
+        var multiStep = bus.GetOrDefault<MultiStepRequest>();
+        Assert.NotNull(multiStep);
+        Assert.True(multiStep.IsCompound);
+        Assert.Equal(3, multiStep.EstimatedSteps);
+    }
 }

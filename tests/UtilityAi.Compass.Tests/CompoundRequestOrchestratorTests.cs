@@ -447,4 +447,27 @@ public class CompoundRequestOrchestratorTests
         Assert.Single(result);
         Assert.Equal("create file then tell joke", result[0]);
     }
+
+    [Fact]
+    public async Task PlanRequestsAsync_UsesModelDecomposition_ForSemanticCompoundRequest()
+    {
+        var modelClient = new StubModelClient("[\"Search flights to Berlin\", \"Book a hotel in Berlin\"]");
+
+        var result = await CompoundRequestOrchestrator.PlanRequestsAsync(
+            modelClient, "I need to sort out my Berlin trip", CancellationToken.None);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Search flights to Berlin", result[0]);
+        Assert.Equal("Book a hotel in Berlin", result[1]);
+    }
+
+    [Fact]
+    public async Task PlanRequestsAsync_ReturnsOriginal_WhenNoModelClient()
+    {
+        var result = await CompoundRequestOrchestrator.PlanRequestsAsync(
+            null, "single request", CancellationToken.None);
+
+        Assert.Single(result);
+        Assert.Equal("single request", result[0]);
+    }
 }

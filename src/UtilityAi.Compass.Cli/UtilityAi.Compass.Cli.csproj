@@ -28,6 +28,7 @@
     <Compile Include="..\..\samples\Compass.SampleHost\EnvFileLoader.cs" Link="EnvFileLoader.cs" />
     <Compile Include="..\..\samples\Compass.SampleHost\Integrations.cs" Link="Integrations.cs" />
     <Compile Include="..\..\samples\Compass.SampleHost\ModuleInstaller.cs" Link="ModuleInstaller.cs" />
+    <Compile Include="..\..\samples\Compass.SampleHost\RequestProcessor.cs" Link="RequestProcessor.cs" />
   </ItemGroup>
 
   <ItemGroup>

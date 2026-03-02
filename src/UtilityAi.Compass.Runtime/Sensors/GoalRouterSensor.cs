@@ -14,6 +14,7 @@ namespace UtilityAi.Compass.Runtime.Sensors;
 public sealed class GoalRouterSensor : ISensor
 {
     private const double DefaultModelConfidence = 0.7;
+    private const int DefaultEstimatedSteps = 1;
     private static readonly string GoalList = string.Join("|", Enum.GetNames<GoalTag>());
     private readonly IModelClient? _modelClient;
     private readonly IMemoryStore? _memoryStore;
@@ -48,19 +49,19 @@ public sealed class GoalRouterSensor : ISensor
         var activeWorkflow = rt.Bus.GetOrDefault<ActiveWorkflow>();
         var recentStep = rt.Bus.GetOrDefault<StepResult>();
 
-        // Detect compound/multi-step requests
-        var multiStepInfo = DetectMultiStepRequest(request.Text);
-        if (multiStepInfo is not null)
-        {
-            rt.Bus.Publish(multiStepInfo);
-        }
-
-        var llmGoal = await ClassifyWithModelAsync(request.Text, activeWorkflow, recentStep, ct);
-        if (llmGoal is { } match)
+        var llmIntent = await ClassifyWithModelAsync(request.Text, activeWorkflow, recentStep, ct);
+        if (llmIntent is { } match)
         {
             rt.Bus.Publish(new GoalSelected(match.Goal, match.Confidence, "llm"));
+            if (match.IsCompound)
+                rt.Bus.Publish(new MultiStepRequest(request.Text, match.EstimatedSteps, IsCompound: true));
             return;
         }
+
+        // Fallback compound/multi-step detection when model classification is unavailable.
+        var multiStepInfo = DetectMultiStepRequest(request.Text);
+        if (multiStepInfo is not null)
+            rt.Bus.Publish(multiStepInfo);
 
         rt.Bus.Publish(new GoalSelected(GoalTag.Answer, 0.5, "default"));
     }
@@ -72,8 +73,8 @@ public sealed class GoalRouterSensor : ISensor
     /// <param name="activeWorkflow">Optional active workflow context.</param>
     /// <param name="recentStep">Optional recent step result context.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>The classified goal/confidence tuple, or <see langword="null"/> when classification fails.</returns>
-    private async Task<(GoalTag Goal, double Confidence)?> ClassifyWithModelAsync(
+    /// <returns>The classified intent, or <see langword="null"/> when classification fails.</returns>
+    private async Task<IntentClassification?> ClassifyWithModelAsync(
         string requestText,
         ActiveWorkflow? activeWorkflow,
         StepResult? recentStep,
@@ -133,16 +134,16 @@ public sealed class GoalRouterSensor : ISensor
         var response = await _modelClient.GenerateAsync(
             new ModelRequest
             {
-                SystemMessage = $"Classify intent. Goals: {GoalList}. Return JSON: {{\"goal\":\"<goal>\",\"confidence\":0-1}}. If user replies with number/word and conversation_history shows options, it's Answer (conf>0.9).",
+                SystemMessage = $"Classify intent. Goals: {GoalList}. Return JSON: {{\"goal\":\"<goal>\",\"confidence\":0-1,\"isCompound\":true|false,\"estimatedSteps\":1-5}}. If user replies with number/word and conversation_history shows options, it's Answer (conf>0.9).",
                 Prompt = $"req:{requestText}\nhist:{conversationContext}\nwf:{workflowContext}\nstep:{stepContext}\nvars:{variableContext}",
                 MaxTokens = 64
             },
             ct);
 
-        if (!TryParseGoalResponse(response.Text, out var goal, out var confidence))
+        if (!TryParseIntentResponse(response.Text, out var intent))
             return null;
 
-        return (goal, confidence);
+        return intent;
     }
 
     /// <summary>
@@ -191,16 +192,14 @@ public sealed class GoalRouterSensor : ISensor
     }
 
     /// <summary>
-    /// Parses model output JSON into a typed goal classification.
+    /// Parses model output JSON into a typed intent classification.
     /// </summary>
     /// <param name="text">Raw model output text.</param>
-    /// <param name="goal">Parsed goal value when successful.</param>
-    /// <param name="confidence">Parsed confidence value when successful.</param>
+    /// <param name="intent">Parsed intent values when successful.</param>
     /// <returns><see langword="true"/> when parsing succeeds; otherwise <see langword="false"/>.</returns>
-    private static bool TryParseGoalResponse(string text, out GoalTag goal, out double confidence)
+    private static bool TryParseIntentResponse(string text, out IntentClassification intent)
     {
-        goal = GoalTag.Answer;
-        confidence = 0;
+        intent = new IntentClassification(GoalTag.Answer, DefaultModelConfidence, false, DefaultEstimatedSteps);
 
         try
         {
@@ -213,20 +212,31 @@ public sealed class GoalRouterSensor : ISensor
             if (string.IsNullOrWhiteSpace(goalName))
                 return false;
 
-            if (!Enum.TryParse(goalName, ignoreCase: true, out goal))
+            if (!Enum.TryParse(goalName, ignoreCase: true, out GoalTag goal))
                 return false;
 
+            var confidence = DefaultModelConfidence;
             if (root.TryGetProperty("confidence", out var confidenceElement) &&
                 confidenceElement.ValueKind is JsonValueKind.Number &&
                 confidenceElement.TryGetDouble(out var parsed))
             {
                 confidence = Math.Clamp(parsed, 0, 1);
             }
-            else
+
+            var isCompound = false;
+            if (root.TryGetProperty("isCompound", out var isCompoundElement)
+                && isCompoundElement.ValueKind is JsonValueKind.True or JsonValueKind.False)
             {
-                confidence = DefaultModelConfidence;
+                isCompound = isCompoundElement.GetBoolean();
             }
 
+            var estimatedSteps = root.TryGetProperty("estimatedSteps", out var estimatedStepsElement)
+                && estimatedStepsElement.ValueKind == JsonValueKind.Number
+                && estimatedStepsElement.TryGetInt32(out var parsedSteps)
+                ? Math.Clamp(parsedSteps, 1, 5)
+                : DefaultEstimatedSteps;
+
+            intent = new IntentClassification(goal, confidence, isCompound, estimatedSteps);
             return true;
         }
         catch (JsonException)
@@ -234,4 +244,6 @@ public sealed class GoalRouterSensor : ISensor
             return false;
         }
     }
+
+    private sealed record IntentClassification(GoalTag Goal, double Confidence, bool IsCompound, int EstimatedSteps);
 }

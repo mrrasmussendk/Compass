@@ -6,7 +6,6 @@ using Compass.SampleHost;
 using UtilityAi.Capabilities;
 using UtilityAi.Compass.Runtime;
 using UtilityAi.Compass.Runtime.Memory;
-using UtilityAi.Memory;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
 using UtilityAi.Compass.PluginHost;
@@ -16,10 +15,7 @@ using UtilityAi.Compass.Runtime.DI;
 using UtilityAi.Compass.Runtime.Modules;
 using UtilityAi.Compass.Runtime.Sensors;
 using UtilityAi.Compass.StandardModules.DI;
-using UtilityAi.Consideration;
-using UtilityAi.Orchestration;
-using UtilityAi.Sensor;
-using UtilityAi.Utils;
+using UtilityAi.Memory;
 
 // Auto-load .env.compass so the host works without manually sourcing the file.
 EnvFileLoader.Load(overwriteExisting: true);
@@ -392,104 +388,7 @@ foreach (var module in host.Services.GetServices<ICapabilityModule>())
     }
 }
 
-// Runs a single request through the full pipeline (sensors + modules + governance).
-async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> RunSingleRequestAsync(string input, CancellationToken cancellationToken)
-{
-    var bus = new EventBus();
-    bus.Publish(new UserRequest(input));
-
-    var requestOrchestrator = new UtilityAiOrchestrator(selector: strategy, stopAtZero: true, bus: bus);
-
-    foreach (var sensor in host.Services.GetServices<ISensor>())
-        requestOrchestrator.AddSensor(sensor);
-
-    foreach (var module in host.Services.GetServices<ICapabilityModule>())
-        requestOrchestrator.AddModule(module);
-
-    await requestOrchestrator.RunAsync(maxTicks: 10, cancellationToken);
-
-    var goal = bus.GetOrDefault<GoalSelected>();
-    var lane = bus.GetOrDefault<LaneSelected>();
-    var response = bus.GetOrDefault<AiResponse>();
-
-    string responseText;
-    if (response is not null)
-    {
-        responseText = response.Text;
-    }
-    else if (modelClient is null)
-    {
-        responseText = "No model configured. Run 'compass --setup' or scripts/install.sh (Linux/macOS) / scripts/install.ps1 (Windows).";
-    }
-    else
-    {
-        responseText = await modelClient.GenerateAsync(input, cancellationToken);
-    }
-
-    return (goal, lane, responseText);
-}
-
-async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
-{
-    // When the model client is available and the request looks compound,
-    // decompose it into sub-tasks and run each through the full pipeline.
-    // This is module-agnostic: FileCreationModule handles file sub-tasks,
-    // ConversationModule handles questions, and any installed plugin
-    // (SMS, weather, etc.) handles its own domain automatically.
-    GoalSelected? goal = null;
-    LaneSelected? lane = null;
-    string responseText;
-
-    if (modelClient is not null && CompoundRequestOrchestrator.IsCompoundRequest(input))
-    {
-        var subtasks = await CompoundRequestOrchestrator.DecomposeRequestAsync(modelClient, input, cancellationToken);
-        if (subtasks.Count > 1)
-        {
-            var allResponses = new List<string>();
-
-            foreach (var subtask in subtasks)
-            {
-                var (g, l, r) = await RunSingleRequestAsync(subtask, cancellationToken);
-                allResponses.Add(r);
-                goal = g;
-                lane = l;
-            }
-
-            responseText = string.Join("\n\n", allResponses);
-        }
-        else
-        {
-            (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
-        }
-    }
-    else
-    {
-        (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
-    }
-
-    // Store conversation turn in memory for context-aware future requests
-    var memoryStore = host.Services.GetService<IMemoryStore>();
-    if (memoryStore is not null && !string.IsNullOrWhiteSpace(responseText))
-    {
-        await memoryStore.StoreAsync(
-            new ConversationTurn
-            {
-                UserMessage = input,
-                AssistantResponse = responseText
-            },
-            DateTimeOffset.UtcNow,
-            cancellationToken);
-
-        // Performance optimization: Keep only recent conversation history
-        var count = await memoryStore.CountAsync<ConversationTurn>(cancellationToken);
-        if (count > 50)
-        {
-            await memoryStore.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
-        }
-    }
-
-    return (goal, lane, responseText);
-}
+var requestProcessor = new RequestProcessor(host, strategy, modelClient);
 
 var discordToken = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
 var discordChannelId = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
@@ -506,7 +405,7 @@ if (!string.IsNullOrWhiteSpace(discordToken) && !string.IsNullOrWhiteSpace(disco
     var bridge = new DiscordChannelBridge(httpClient, discordToken, discordChannelId);
     await bridge.RunAsync(async (message, token) =>
     {
-        var (_, _, response) = await ProcessRequestAsync(message, token);
+        var (_, _, response) = await requestProcessor.ProcessAsync(message, token);
         return response;
     }, cts.Token);
 }
@@ -574,7 +473,7 @@ else
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         try
         {
-            var (goal, lane, responseText) = await ProcessRequestAsync(input, cts.Token);
+            var (goal, lane, responseText) = await requestProcessor.ProcessAsync(input, cts.Token);
 
             var laneInfo = lane is not null ? $"Lane: {lane.Lane}" : "Lane: (from module)";
             Console.WriteLine($"  Goal: {goal?.Goal} ({goal?.Confidence:P0}), {laneInfo}");

@@ -106,4 +106,19 @@ public static class CompoundRequestOrchestrator
 
         return [input];
     }
+
+    /// <summary>
+    /// Plans request execution using semantic decomposition when a model client is available.
+    /// Falls back to the original single request when decomposition is unavailable or fails.
+    /// </summary>
+    public static Task<List<string>> PlanRequestsAsync(
+        IModelClient? modelClient,
+        string input,
+        CancellationToken cancellationToken)
+    {
+        if (modelClient is null)
+            return Task.FromResult(new List<string> { input });
+
+        return DecomposeRequestAsync(modelClient, input, cancellationToken);
+    }
 }
