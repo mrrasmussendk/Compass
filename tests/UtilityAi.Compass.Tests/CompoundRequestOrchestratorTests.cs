@@ -74,7 +74,7 @@ public class CompoundRequestOrchestratorTests
     [InlineData(null)]
     public void IsCompoundRequest_ReturnsFalse_ForEmptyOrNullInput(string? text)
     {
-        Assert.False(CompoundRequestOrchestrator.IsCompoundRequest(text!));
+        Assert.False(CompoundRequestOrchestrator.IsCompoundRequest(text));
     }
 
     [Fact]
@@ -415,7 +415,7 @@ public class CompoundRequestOrchestratorTests
 
         // Fast tasks (1) should have completed before the slow one (0) in the completion order
         var slowIndex = completionOrder.IndexOf(0);
-        var lastFastIndex = completionOrder.Count - 1 - completionOrder.AsEnumerable().Reverse().ToList().IndexOf(1);
+        var lastFastIndex = completionOrder.LastIndexOf(1);
         Assert.True(lastFastIndex < slowIndex,
             "At least some fast decompositions should complete before the slow one");
     }

@@ -24,7 +24,7 @@ public static class CompoundRequestOrchestrator
     /// </summary>
     /// <param name="text">The raw user request text.</param>
     /// <returns><see langword="true"/> when the text looks like a compound request.</returns>
-    public static bool IsCompoundRequest(string text)
+    public static bool IsCompoundRequest(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return false;
