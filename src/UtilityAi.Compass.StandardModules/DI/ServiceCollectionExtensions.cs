@@ -41,6 +41,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<WebSearchModule>();
         services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<WebSearchModule>());
 
+        services.AddSingleton<GmailModule>();
+        services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<GmailModule>());
+
         services.AddSingleton<CompoundRequestModule>();
         services.AddSingleton<ICapabilityModule>(sp => sp.GetRequiredService<CompoundRequestModule>());
 
