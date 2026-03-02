@@ -5,17 +5,15 @@ public class DependencySourceTests
     [Fact]
     public void Repository_DoesNotTrackUtilityAiAsVendorSubmodule()
     {
-        var repoRoot = FindRepositoryRoot(AppContext.BaseDirectory);
+        var repoRoot = GetRepositoryRoot(AppContext.BaseDirectory);
         var gitmodulesPath = Path.Combine(repoRoot, ".gitmodules");
 
-        if (!File.Exists(gitmodulesPath))
-            return;
-
-        var gitmodules = File.ReadAllText(gitmodulesPath);
-        Assert.DoesNotContain("vendor/UtilityAi", gitmodules, StringComparison.Ordinal);
+        Assert.True(
+            !File.Exists(gitmodulesPath) ||
+            !File.ReadAllText(gitmodulesPath).Contains("vendor/UtilityAi", StringComparison.Ordinal));
     }
 
-    private static string FindRepositoryRoot(string startPath)
+    private static string GetRepositoryRoot(string startPath)
     {
         var current = new DirectoryInfo(startPath);
         while (current is not null && !File.Exists(Path.Combine(current.FullName, "UtilityAi.Compass.sln")))
