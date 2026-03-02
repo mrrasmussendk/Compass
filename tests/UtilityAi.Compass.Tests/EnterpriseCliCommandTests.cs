@@ -46,6 +46,18 @@ public sealed class EnterpriseCliCommandTests
     }
 
     [Fact]
+    public async Task Help_IncludesGettingStartedGuidance()
+    {
+        var (exitCode, output, error) = await RunCliAsync("--help");
+
+        Assert.Equal(0, exitCode);
+        Assert.Contains("Getting started:", output);
+        Assert.Contains("compass --setup", output);
+        Assert.Contains("type /help for commands or 'quit' to exit", output, StringComparison.OrdinalIgnoreCase);
+        Assert.True(string.IsNullOrWhiteSpace(error), error);
+    }
+
+    [Fact]
     public async Task InspectModule_Json_ReportsManifestAndCapabilities()
     {
         var root = CreateTempDirectory();
