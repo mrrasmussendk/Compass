@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Compass.SampleHost;
 using UtilityAi.Capabilities;
+using UtilityAi.Compass.Runtime;
 using UtilityAi.Compass.Runtime.Memory;
 using UtilityAi.Memory;
 using UtilityAi.Compass.Abstractions.Facts;
@@ -428,59 +429,6 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> RunSingleR
     return (goal, lane, responseText);
 }
 
-// Detects compound requests using the same heuristic as GoalRouterSensor.
-static bool IsCompoundRequest(string text)
-{
-    var lower = text.ToLowerInvariant();
-    var indicators = new[] { " then ", " and then ", " afterwards ", " after that ", " next ", " followed by ", " after " };
-    if (indicators.Any(i => lower.Contains(i)))
-        return true;
-    var verbs = new[] { "create", "write", "read", "delete", "update", "insert", "add", "remove", "modify", "input" };
-    return verbs.Count(v => lower.Contains(v)) >= 2;
-}
-
-// Uses the LLM to decompose a compound request into independent sub-tasks.
-async Task<List<string>> DecomposeRequestAsync(string input, CancellationToken cancellationToken)
-{
-    if (modelClient is null)
-        return [input];
-
-    try
-    {
-        var response = await modelClient.GenerateAsync(
-            new ModelRequest
-            {
-                SystemMessage = "Split this compound user request into independent sub-tasks. " +
-                                "Return a JSON array of strings, one per task. " +
-                                "Keep each sub-task self-contained (include relevant context like filenames). " +
-                                "If not compound, return the original as a single-element array. " +
-                                "Only return valid JSON, nothing else.",
-                Prompt = input,
-                MaxTokens = 256
-            },
-            cancellationToken);
-
-        using var doc = JsonDocument.Parse(response.Text);
-        if (doc.RootElement.ValueKind == JsonValueKind.Array)
-        {
-            var tasks = doc.RootElement.EnumerateArray()
-                .Select(e => e.GetString())
-                .Where(s => !string.IsNullOrWhiteSpace(s))
-                .Cast<string>()
-                .ToList();
-
-            if (tasks.Count > 0)
-                return tasks;
-        }
-    }
-    catch
-    {
-        // LLM response wasn't valid JSON; fall through to single-request handling.
-    }
-
-    return [input];
-}
-
 async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessRequestAsync(string input, CancellationToken cancellationToken)
 {
     // When the model client is available and the request looks compound,
@@ -492,9 +440,9 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
     LaneSelected? lane = null;
     string responseText;
 
-    if (modelClient is not null && IsCompoundRequest(input))
+    if (modelClient is not null && CompoundRequestOrchestrator.IsCompoundRequest(input))
     {
-        var subtasks = await DecomposeRequestAsync(input, cancellationToken);
+        var subtasks = await CompoundRequestOrchestrator.DecomposeRequestAsync(modelClient, input, cancellationToken);
         if (subtasks.Count > 1)
         {
             var allResponses = new List<string>();

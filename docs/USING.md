@@ -43,3 +43,13 @@ Example Gmail prompts you can try in the sample host:
 
 - `read my gmail inbox for unread messages`
 - `draft a reply to the latest gmail message`
+
+## 5) Compound requests
+
+Compass handles compound requests automatically when a model client is configured. You can combine multiple independent tasks in a single message:
+
+- `create file u.txt with gold then give me the colors of the rainbow`
+- `write hello to greeting.txt and then summarize today's news`
+- `send an SMS with the weather forecast then create a log entry`
+
+Each sub-task is routed through the full pipeline, so the right module handles each part — no module needs special compound-request awareness. See [COMPOUND-REQUESTS.md](COMPOUND-REQUESTS.md) for architecture details.
