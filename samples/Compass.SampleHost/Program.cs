@@ -488,51 +488,42 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
     // This is module-agnostic: FileCreationModule handles file sub-tasks,
     // ConversationModule handles questions, and any installed plugin
     // (SMS, weather, etc.) handles its own domain automatically.
+    GoalSelected? goal = null;
+    LaneSelected? lane = null;
+    string responseText;
+
     if (modelClient is not null && IsCompoundRequest(input))
     {
         var subtasks = await DecomposeRequestAsync(input, cancellationToken);
         if (subtasks.Count > 1)
         {
             var allResponses = new List<string>();
-            GoalSelected? lastGoal = null;
-            LaneSelected? lastLane = null;
 
             foreach (var subtask in subtasks)
             {
                 var (g, l, r) = await RunSingleRequestAsync(subtask, cancellationToken);
                 allResponses.Add(r);
-                lastGoal = g;
-                lastLane = l;
+                goal = g;
+                lane = l;
             }
 
-            var combinedResponse = string.Join("\n\n", allResponses);
-
-            // Store combined conversation turn in memory
-            var memoryStore = host.Services.GetService<IMemoryStore>();
-            if (memoryStore is not null && !string.IsNullOrWhiteSpace(combinedResponse))
-            {
-                await memoryStore.StoreAsync(
-                    new ConversationTurn
-                    {
-                        UserMessage = input,
-                        AssistantResponse = combinedResponse
-                    },
-                    DateTimeOffset.UtcNow,
-                    cancellationToken);
-            }
-
-            return (lastGoal, lastLane, combinedResponse);
+            responseText = string.Join("\n\n", allResponses);
+        }
+        else
+        {
+            (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
         }
     }
-
-    // Non-compound path: run normally through the full pipeline.
-    var (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
+    else
+    {
+        (goal, lane, responseText) = await RunSingleRequestAsync(input, cancellationToken);
+    }
 
     // Store conversation turn in memory for context-aware future requests
-    var memoryStore2 = host.Services.GetService<IMemoryStore>();
-    if (memoryStore2 is not null && !string.IsNullOrWhiteSpace(responseText))
+    var memoryStore = host.Services.GetService<IMemoryStore>();
+    if (memoryStore is not null && !string.IsNullOrWhiteSpace(responseText))
     {
-        await memoryStore2.StoreAsync(
+        await memoryStore.StoreAsync(
             new ConversationTurn
             {
                 UserMessage = input,
@@ -542,10 +533,10 @@ async Task<(GoalSelected? Goal, LaneSelected? Lane, string Response)> ProcessReq
             cancellationToken);
 
         // Performance optimization: Keep only recent conversation history
-        var count = await memoryStore2.CountAsync<ConversationTurn>(cancellationToken);
+        var count = await memoryStore.CountAsync<ConversationTurn>(cancellationToken);
         if (count > 50)
         {
-            await memoryStore2.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
+            await memoryStore.PruneAsync(TimeSpan.FromHours(1), cancellationToken);
         }
     }
 
