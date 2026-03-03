@@ -1,6 +1,6 @@
-# UtilityAi.Compass
+# Compass
 
-**UtilityAi.Compass** is a modular, GOAP-driven AI assistant framework built on .NET. It uses **Goal-Oriented Action Planning** to decompose user requests into dependency-aware execution plans, runs independent steps in parallel, and enforces human-in-the-loop approval, caching, and memory — all before any side-effecting action fires.
+Compass is a modular, GOAP-driven AI assistant framework built on .NET. It uses **Goal-Oriented Action Planning** to decompose user requests into dependency-aware execution plans, runs independent steps in parallel, and enforces human-in-the-loop approval, caching, and memory — all before any side-effecting action fires.
 
 Third-party modules plug in via a single interface (`ICompassModule`). The host handles planning, routing, governance, and security so module authors focus only on capability logic.
 
