@@ -125,18 +125,42 @@ jobs:
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
+          set -euo pipefail
           if [ -z "$NUGET_API_KEY" ]; then
             echo "::error::NUGET_API_KEY secret is not set or is empty. Configure it under Settings > Secrets and variables > Actions."
             exit 1
           fi
-          NUGET_API_KEY="$(printf '%s' "$NUGET_API_KEY" | tr -d '[:space:]')"
+
+          # Sanitize: strip BOM, non-printable characters, whitespace, and surrounding quotes
+          NUGET_API_KEY="$(printf '%s' "$NUGET_API_KEY" \
+            | sed 's/^\xEF\xBB\xBF//' \
+            | tr -cd '[:print:]' \
+            | tr -d '[:space:]' \
+            | sed "s/^['\"]//; s/['\"]$//")"
+
+          echo "Sanitized API key length: ${#NUGET_API_KEY}"
+          if [ "${#NUGET_API_KEY}" -lt 32 ]; then
+            echo "::error::NUGET_API_KEY is too short (${#NUGET_API_KEY} chars) after sanitization — NuGet API keys are typically 46 characters. Please re-copy the key from https://www.nuget.org/account/apikeys"
+            exit 1
+          fi
+
+          failed=0
           for pkg in artifacts/*.nupkg; do
             echo "Pushing $pkg ..."
-            dotnet nuget push "$pkg" \
+            if ! dotnet nuget push "$pkg" \
               --api-key "$NUGET_API_KEY" \
               --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate
+              --skip-duplicate; then
+              echo "::error::Failed to push $pkg. Common causes:"
+              echo "  1. The API key value in the NUGET_API_KEY secret may be incorrect — re-copy the key from https://www.nuget.org/account/apikeys"
+              echo "  2. The API key may not have 'Push' permission for this package — ensure the key's scope includes the package ID or uses the glob pattern '*'"
+              echo "  3. The package may be owned by a different NuGet.org account than the key's owner"
+              failed=1
+            fi
           done
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
 
       - name: Upload NuGet artifact
         uses: actions/upload-artifact@v4
