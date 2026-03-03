@@ -211,7 +211,7 @@ public static class ModuleInstaller
                 <Nullable>enable</Nullable>
                 <Version>1.0.0</Version>
                 <Authors>YourName</Authors>
-                <Description>Compass module created with /new-module</Description>
+                <Description>Vitruvian module created with /new-module</Description>
               </PropertyGroup>
 
               <ItemGroup>
@@ -234,7 +234,7 @@ public static class ModuleInstaller
             namespace {{moduleNamespace}};
 
             /// <summary>
-            /// Example module created by compass --new-module.
+            /// Example module created by vitruvian --new-module.
             /// Implements ICompassModule for simplified LLM-based routing.
             /// </summary>
             [RequiresPermission(ModuleAccess.Read)]
@@ -313,7 +313,7 @@ public static class ModuleInstaller
             $$"""
             # {{moduleName}}
 
-            A Compass module created with `/new-module`.
+            A Vitruvian module created with `/new-module`.
 
             ## What This Module Does
 
@@ -335,7 +335,7 @@ public static class ModuleInstaller
             # Build in Release mode
             dotnet build -c Release
 
-            # Install the module (adjust path to your Compass installation)
+            # Install the module (adjust path to your Vitruvian installation)
             compass --install-module ./bin/Release/net10.0/{{moduleName}}.dll --allow-unsigned
             ```
 
@@ -345,9 +345,9 @@ public static class ModuleInstaller
             # Build the module
             dotnet build
 
-            # Copy DLL and manifest to Compass plugins directory
-            cp bin/Debug/net10.0/{{moduleName}}.dll /path/to/compass/plugins/
-            cp compass-manifest.json /path/to/compass/plugins/
+            # Copy DLL and manifest to Vitruvian plugins directory
+            cp bin/Debug/net10.0/{{moduleName}}.dll /path/to/vitruvian/plugins/
+            cp compass-manifest.json /path/to/vitruvian/plugins/
             ```
 
             ## Deployment
@@ -432,9 +432,9 @@ public static class ModuleInstaller
             ## Documentation
 
             For more details on module development, see:
-            - [Compass README](https://github.com/mrrasmussendk/Compass)
-            - [EXTENDING.md](https://github.com/mrrasmussendk/Compass/blob/main/docs/EXTENDING.md)
-            - [SECURITY.md](https://github.com/mrrasmussendk/Compass/blob/main/docs/SECURITY.md)
+            - [Vitruvian README](https://github.com/mrrasmussendk/Vitruvian)
+            - [EXTENDING.md](https://github.com/mrrasmussendk/Vitruvian/blob/main/docs/EXTENDING.md)
+            - [SECURITY.md](https://github.com/mrrasmussendk/Vitruvian/blob/main/docs/SECURITY.md)
             """);
 
         return $"Created module scaffold at '{moduleDirectory}' with manifest and README. Build with 'dotnet build', then install with 'compass --install-module ./bin/Debug/net10.0/{moduleName}.dll --allow-unsigned'.";
@@ -909,7 +909,7 @@ public static class ModuleInstaller
 
         var result = builder.ToString().Trim('_');
         if (result.Length == 0)
-            result = "CompassModule";
+            result = "VitruvianModule";
 
         while (result.Contains("__", StringComparison.Ordinal))
             result = result.Replace("__", "_", StringComparison.Ordinal);

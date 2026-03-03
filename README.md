@@ -1,14 +1,14 @@
-# Compass
+# Vitruvian
 
-Compass is a modular, GOAP-driven AI assistant framework built on .NET. It uses **Goal-Oriented Action Planning** to decompose user requests into dependency-aware execution plans, runs independent steps in parallel, and enforces human-in-the-loop approval, caching, and memory — all before any side-effecting action fires.
+Vitruvian is a modular, GOAP-driven AI assistant framework built on .NET. It uses **Goal-Oriented Action Planning** to decompose user requests into dependency-aware execution plans, runs independent steps in parallel, and enforces human-in-the-loop approval, caching, and memory — all before any side-effecting action fires.
 
 Third-party modules plug in via a single interface (`ICompassModule`). The host handles planning, routing, governance, and security so module authors focus only on capability logic.
 
 **Try it now:**
 
 ```bash
-git clone https://github.com/mrrasmussendk/Vitruviangit
-cd Compass
+git clone https://github.com/mrrasmussendk/Vitruvian.git
+cd Vitruvian
 dotnet run --framework net8.0 --project src/UtilityAi.VitruvianCli
 ```
 
@@ -43,7 +43,7 @@ dotnet run --framework net8.0 --project src/UtilityAi.VitruvianCli
 
 | Your goal | Start here |
 |---|---|
-| **Use Compass as an assistant** | [Quick Start](#quick-start) → [CLI Usage](#cli-usage) |
+| **Use Vitruvian as an assistant** | [Quick Start](#quick-start) → [CLI Usage](#cli-usage) |
 | **Build and inject custom modules** | [Building Your Own Module](#building-your-own-module) |
 | **Understand the GOAP architecture** | [Architecture](#architecture) |
 | **Contribute to the framework** | [Repository Layout](#repository-layout) → [Contributing](#contributing) |
@@ -61,8 +61,8 @@ dotnet run --framework net8.0 --project src/UtilityAi.VitruvianCli
 ### Clone, build, and test
 
 ```bash
-git clone https://github.com/mrrasmussendk/Vitruviangit
-cd Compass
+git clone https://github.com/mrrasmussendk/Vitruvian.git
+cd Vitruvian
 dotnet build
 dotnet test   # All tests should pass
 ```
@@ -100,14 +100,14 @@ COMPASS_OPENAI_API_KEY=sk-...
 COMPASS_MODEL_NAME=gpt-4
 ```
 
-### Run Compass
+### Run Vitruvian
 
 ```bash
 dotnet run --project src/UtilityAi.VitruvianCli
 ```
 
 ```
-Compass CLI started. Type a request (or 'quit' to exit):
+Vitruvian CLI started. Type a request (or 'quit' to exit):
 Model provider configured: OpenAi (gpt-4)
 Working directory: ~/compass-workspace
 >
@@ -138,11 +138,13 @@ Try some requests:
 
 ---
 
+---
+
 ## Architecture
 
 ### GOAP Pipeline
 
-Compass uses a **Goal-Oriented Action Planning (GOAP)** architecture. Every user request passes through three phases:
+Vitruvian uses a **Goal-Oriented Action Planning (GOAP)** architecture. Every user request passes through three phases:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -249,7 +251,7 @@ Uses LLM-based reasoning to select the best module for a request. Falls back to 
 
 ## Building Your Own Module
 
-Compass is designed so that anyone can build and inject custom modules. The GOAP planner automatically discovers registered modules and includes them in planning.
+Vitruvian is designed so that anyone can build and inject custom modules. The GOAP planner automatically discovers registered modules and includes them in planning.
 
 ### Step 1: Implement `ICompassModule`
 
@@ -298,7 +300,7 @@ For plugin-based deployment without recompiling the host:
 
 1. Build your module as a class library DLL
 2. Drop it into the `plugins/` folder next to the CLI executable
-3. Restart Compass — the `PluginHost` discovers and loads it via `AssemblyLoadContext`
+3. Restart Vitruvian — the `PluginHost` discovers and loads it via `AssemblyLoadContext`
 
 You can also use SDK attributes for governance metadata:
 
@@ -355,7 +357,7 @@ Type natural language requests:
 
 ### Conversation Flow
 
-Compass maintains context across messages:
+Vitruvian maintains context across messages:
 
 ```
 > What is the weather tomorrow?
@@ -371,7 +373,7 @@ The second message is understood in the context of the weather question thanks t
 
 ## Security & Permissions
 
-Compass enforces a layered security model. For the full reference, see [`docs/SECURITY.md`](docs/SECURITY.md).
+Vitruvian enforces a layered security model. For the full reference, see [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ### Permission Model
 
@@ -513,5 +515,5 @@ See LICENSE file for details.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/mrrasmussendk/Compass/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/mrrasmussendk/Compass/discussions)
+- **Issues**: [GitHub Issues](https://github.com/mrrasmussendk/Vitruvian/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/mrrasmussendk/Vitruvian/discussions)
