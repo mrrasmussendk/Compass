@@ -53,7 +53,8 @@ public sealed class PlanExecutor
     public async Task<PlanResult> ExecuteAsync(ExecutionPlan plan, string? userId, CancellationToken ct)
     {
         var results = new ConcurrentDictionary<string, PlanStepResult>();
-        var stepOutputs = new ConcurrentDictionary<string, string>();
+        // Use a list with lock to maintain insertion order for context window
+        var stepOutputs = new OrderedOutputs();
 
         // Group steps into waves: each wave contains steps whose dependencies are already satisfied.
         var remaining = new List<PlanStep>(plan.Steps);
@@ -80,13 +81,19 @@ public sealed class PlanExecutor
             foreach (var result in waveResults)
             {
                 results[result.StepId] = result;
-                stepOutputs[result.StepId] = result.Output;
+                stepOutputs.Add(result.StepId, result.Output);
             }
         }
 
         // Aggregate
         var orderedResults = plan.Steps
-            .Select(s => results.TryGetValue(s.StepId, out var r) ? r : new PlanStepResult(s.StepId, s.ModuleDomain, false, "Step not executed", DateTimeOffset.UtcNow, TimeSpan.Zero))
+            .Select(s =>
+            {
+                if (results.TryGetValue(s.StepId, out var r))
+                    return r;
+                return new PlanStepResult(s.StepId, s.ModuleDomain, false,
+                    "Step not executed", DateTimeOffset.UtcNow, TimeSpan.Zero);
+            })
             .ToList();
 
         var aggregatedOutput = string.Join("\n\n", orderedResults.Select(r => r.Output));
@@ -105,7 +112,7 @@ public sealed class PlanExecutor
     private async Task<PlanStepResult> ExecuteStepAsync(
         PlanStep step,
         string? userId,
-        ConcurrentDictionary<string, string> priorOutputs,
+        OrderedOutputs priorOutputs,
         CancellationToken ct)
     {
         var started = DateTimeOffset.UtcNow;
@@ -165,12 +172,12 @@ public sealed class PlanExecutor
         }
     }
 
-    private string BuildContextWindow(string input, ConcurrentDictionary<string, string> priorOutputs)
+    private string BuildContextWindow(string input, OrderedOutputs priorOutputs)
     {
-        if (priorOutputs.IsEmpty || _contextWindowSize <= 0)
+        if (priorOutputs.Count == 0 || _contextWindowSize <= 0)
             return input;
 
-        var recentOutputs = priorOutputs.Values.TakeLast(_contextWindowSize).ToList();
+        var recentOutputs = priorOutputs.GetRecent(_contextWindowSize);
         if (recentOutputs.Count == 0)
             return input;
 
@@ -180,7 +187,7 @@ public sealed class PlanExecutor
 
     private static OperationType InferOperationType(PlanStep step)
     {
-        var lower = (step.Description + " " + step.Input).ToLowerInvariant();
+        var lower = $"{step.Description} {step.Input}".ToLowerInvariant();
         if (lower.Contains("delete") || lower.Contains("remove"))
             return OperationType.Delete;
         if (lower.Contains("execute") || lower.Contains("run") || lower.Contains("shell"))
@@ -192,4 +199,23 @@ public sealed class PlanExecutor
 
     private static string Truncate(string text, int maxLength)
         => text.Length <= maxLength ? text : text[..maxLength] + "...";
+
+    /// <summary>Thread-safe, insertion-ordered collection of step outputs.</summary>
+    private sealed class OrderedOutputs
+    {
+        private readonly object _lock = new();
+        private readonly List<string> _outputs = [];
+
+        public int Count { get { lock (_lock) return _outputs.Count; } }
+
+        public void Add(string stepId, string output)
+        {
+            lock (_lock) _outputs.Add(output);
+        }
+
+        public List<string> GetRecent(int count)
+        {
+            lock (_lock) return _outputs.TakeLast(count).ToList();
+        }
+    }
 }

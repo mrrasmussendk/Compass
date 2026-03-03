@@ -36,6 +36,9 @@ internal sealed class RequestProcessor
         _planner = new GoapPlanner(modelClient);
     }
 
+    /// <summary>Gets the current plan executor (created lazily after the first module is registered).</summary>
+    internal PlanExecutor? Executor => _executor;
+
     public void RegisterModule(ICompassModule module)
     {
         _modules[module.Domain] = module;
@@ -107,16 +110,16 @@ internal sealed class RequestProcessor
         }
 
         // Phase 3: EXECUTE — build context-aware module map and execute via PlanExecutor
-        var contextAwareModules = new Dictionary<string, ICompassModule>();
-        foreach (var step in plan.Steps)
+        // Reuse the executor across requests to preserve cache and memory state
+        if (_executor is null)
         {
-            if (!string.IsNullOrEmpty(step.ModuleDomain) && !contextAwareModules.ContainsKey(step.ModuleDomain))
+            var contextAwareModules = new Dictionary<string, ICompassModule>();
+            foreach (var kvp in _modules)
             {
-                contextAwareModules[step.ModuleDomain] = GetContextAwareModule(step.ModuleDomain);
+                contextAwareModules[kvp.Key] = GetContextAwareModule(kvp.Key);
             }
+            _executor = new PlanExecutor(contextAwareModules, _approvalGate);
         }
-
-        _executor = new PlanExecutor(contextAwareModules, _approvalGate);
 
         var execStart = sw.ElapsedMilliseconds;
         var result = await _executor.ExecuteAsync(plan, null, cancellationToken);

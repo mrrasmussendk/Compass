@@ -171,7 +171,10 @@ public sealed class GoapPlanner
         else if (trimmed.StartsWith("```"))
         {
             var lines = trimmed.Split('\n');
-            trimmed = string.Join('\n', lines.Skip(1).Take(lines.Length - 2));
+            if (lines.Length >= 3)
+                trimmed = string.Join('\n', lines.Skip(1).Take(lines.Length - 2));
+            else
+                trimmed = string.Join('\n', lines.Skip(1));
         }
         return trimmed.Trim();
     }
