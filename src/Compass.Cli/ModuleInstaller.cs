@@ -198,6 +198,8 @@ public static class ModuleInstaller
 
         var projectPath = Path.Combine(moduleDirectory, $"{moduleName.Trim()}.csproj");
         var classPath = Path.Combine(moduleDirectory, $"{className}.cs");
+        var manifestPath = Path.Combine(moduleDirectory, ManifestFileName);
+        var readmePath = Path.Combine(moduleDirectory, "README.md");
 
         File.WriteAllText(projectPath,
             """
@@ -207,10 +209,17 @@ public static class ModuleInstaller
                 <TargetFramework>net10.0</TargetFramework>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
+                <Version>1.0.0</Version>
+                <Authors>YourName</Authors>
+                <Description>Compass module created with /new-module</Description>
               </PropertyGroup>
 
               <ItemGroup>
                 <PackageReference Include="UtilityAi" Version="1.6.5" />
+              </ItemGroup>
+
+              <ItemGroup>
+                <None Include="compass-manifest.json" CopyToOutputDirectory="PreserveNewest" />
               </ItemGroup>
 
             </Project>
@@ -219,6 +228,8 @@ public static class ModuleInstaller
         File.WriteAllText(classPath,
             $$"""
             using Compass.Abstractions.Interfaces;
+            using Compass.Abstractions;
+            using Compass.PluginSdk.Attributes;
 
             namespace {{moduleNamespace}};
 
@@ -226,30 +237,207 @@ public static class ModuleInstaller
             /// Example module created by compass --new-module.
             /// Implements ICompassModule for simplified LLM-based routing.
             /// </summary>
+            [RequiresPermission(ModuleAccess.Read)]
             public sealed class {{className}} : ICompassModule
             {
                 private readonly IModelClient? _modelClient;
 
+                /// <summary>
+                /// Unique identifier for this module. The GOAP planner uses this for routing.
+                /// </summary>
                 public string Domain => "{{domainId}}";
-                public string Description => "Example module - describe what this module does";
+
+                /// <summary>
+                /// Natural language description used by the planner and router to decide
+                /// when to invoke this module. Be specific about what this module does.
+                /// </summary>
+                public string Description => "Example module - TODO: describe what this module does";
 
                 public {{className}}(IModelClient? modelClient = null)
                 {
                     _modelClient = modelClient;
                 }
 
+                /// <summary>
+                /// Executes the module's capability based on the user request.
+                /// </summary>
+                /// <param name="request">The natural language request from the user or planner.</param>
+                /// <param name="userId">Optional user identifier for permission checks.</param>
+                /// <param name="ct">Cancellation token for async operations.</param>
+                /// <returns>A user-friendly response string describing the result.</returns>
                 public async Task<string> ExecuteAsync(string request, string? userId, CancellationToken ct)
                 {
                     // TODO: Implement your module logic here
-                    if (_modelClient is null)
-                        return "No model configured.";
 
-                    return await _modelClient.GenerateAsync($"Handle request: {request}", ct);
+                    // Example: Return an error if no model is configured
+                    if (_modelClient is null)
+                        return "Error: No model client configured for this module.";
+
+                    try
+                    {
+                        // Example: Use the model client to process the request
+                        var response = await _modelClient.GenerateAsync(
+                            $"Handle the following request: {request}",
+                            ct);
+
+                        return response;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Return user-friendly error messages
+                        return $"Error processing request: {ex.Message}";
+                    }
                 }
             }
             """);
 
-        return $"Created module scaffold at '{moduleDirectory}'. Build it with 'dotnet build'.";
+        File.WriteAllText(manifestPath,
+            $$"""
+            {
+              "Publisher": "YourName",
+              "Version": "1.0.0",
+              "Capabilities": [
+                "{{domainId}}"
+              ],
+              "Permissions": [
+                "read"
+              ],
+              "SideEffectLevel": "readonly",
+              "NetworkEgressDomains": [],
+              "FileAccessScopes": [],
+              "RequiredSecrets": []
+            }
+            """);
+
+        File.WriteAllText(readmePath,
+            $$"""
+            # {{moduleName}}
+
+            A Compass module created with `/new-module`.
+
+            ## What This Module Does
+
+            TODO: Describe your module's functionality here.
+
+            ## Building
+
+            Build the module:
+
+            ```bash
+            dotnet build
+            ```
+
+            ## Testing Locally
+
+            ### Option 1: Install the DLL
+
+            ```bash
+            # Build in Release mode
+            dotnet build -c Release
+
+            # Install the module (adjust path to your Compass installation)
+            compass --install-module ./bin/Release/net10.0/{{moduleName}}.dll --allow-unsigned
+            ```
+
+            ### Option 2: Copy to plugins folder
+
+            ```bash
+            # Build the module
+            dotnet build
+
+            # Copy DLL and manifest to Compass plugins directory
+            cp bin/Debug/net10.0/{{moduleName}}.dll /path/to/compass/plugins/
+            cp compass-manifest.json /path/to/compass/plugins/
+            ```
+
+            ## Deployment
+
+            ### Package for Distribution
+
+            Create a NuGet package:
+
+            ```bash
+            dotnet pack -c Release
+            ```
+
+            The `.nupkg` file will be in `bin/Release/`.
+
+            ### Sign the Assembly (Recommended)
+
+            For production use, sign your assembly to avoid the `--allow-unsigned` flag:
+
+            1. Generate a strong name key:
+               ```bash
+               sn -k {{moduleName}}.snk
+               ```
+
+            2. Add to your `.csproj`:
+               ```xml
+               <PropertyGroup>
+                 <SignAssembly>true</SignAssembly>
+                 <AssemblyOriginatorKeyFile>{{moduleName}}.snk</AssemblyOriginatorKeyFile>
+               </PropertyGroup>
+               ```
+
+            3. Rebuild and the assembly will be signed.
+
+            ## Customization
+
+            ### Required Changes
+
+            1. **Update `Description`** in `{{className}}.cs` to accurately describe what your module does
+            2. **Implement `ExecuteAsync`** with your actual module logic
+            3. **Update `compass-manifest.json`**:
+               - Set your publisher name
+               - Update permissions to match what your module needs
+               - Set `SideEffectLevel` (`readonly`, `low`, `medium`, `high`)
+
+            ### Permission Levels
+
+            If your module needs more than read access, update the `[RequiresPermission]` attribute:
+
+            ```csharp
+            [RequiresPermission(ModuleAccess.Read | ModuleAccess.Write)]
+            ```
+
+            And update `compass-manifest.json`:
+
+            ```json
+            "Permissions": ["read", "write"],
+            "SideEffectLevel": "medium"
+            ```
+
+            ### Adding Secrets
+
+            If your module needs API keys or credentials:
+
+            1. Add to `compass-manifest.json`:
+               ```json
+               "RequiredSecrets": ["MY_API_KEY"]
+               ```
+
+            2. Users will be prompted during installation to provide the secret.
+
+            ## Testing
+
+            Create unit tests in a separate test project:
+
+            ```bash
+            dotnet new xunit -n {{moduleName}}.Tests
+            cd {{moduleName}}.Tests
+            dotnet add reference ../{{moduleName}}.csproj
+            dotnet add package Moq
+            ```
+
+            ## Documentation
+
+            For more details on module development, see:
+            - [Compass README](https://github.com/mrrasmussendk/Compass)
+            - [EXTENDING.md](https://github.com/mrrasmussendk/Compass/blob/main/docs/EXTENDING.md)
+            - [SECURITY.md](https://github.com/mrrasmussendk/Compass/blob/main/docs/SECURITY.md)
+            """);
+
+        return $"Created module scaffold at '{moduleDirectory}' with manifest and README. Build with 'dotnet build', then install with 'compass --install-module ./bin/Debug/net10.0/{moduleName}.dll --allow-unsigned'.";
     }
 
     public static async Task<ModuleInspectionReport> InspectAsync(string moduleSpec, CancellationToken cancellationToken = default)
