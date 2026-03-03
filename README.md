@@ -9,7 +9,7 @@ Third-party modules plug in via a single interface (`ICompassModule`). The host 
 ```bash
 git clone https://github.com/mrrasmussendk/Vitruvian.git
 cd Vitruvian
-dotnet run --framework net8.0 --project src/UtilityAi.VitruvianCli
+dotnet run --framework net8.0 --project src/VitruvianCli
 ```
 
 ---
@@ -103,7 +103,7 @@ COMPASS_MODEL_NAME=gpt-4
 ### Run Vitruvian
 
 ```bash
-dotnet run --project src/UtilityAi.VitruvianCli
+dotnet run --project src/VitruvianCli
 ```
 
 ```
@@ -253,10 +253,10 @@ Vitruvian is designed so that anyone can build and inject custom modules. The GO
 
 ### Step 1: Implement `ICompassModule`
 
-Create a class library targeting `net8.0` and reference `UtilityAi.VitruvianAbstractions`:
+Create a class library targeting `net8.0` and reference `VitruvianAbstractions`:
 
 ```csharp
-using UtilityAi.VitruvianAbstractions.Interfaces;
+using VitruvianAbstractions.Interfaces;
 
 public sealed class TranslationModule : ICompassModule
 {
@@ -303,7 +303,7 @@ For plugin-based deployment without recompiling the host:
 You can also use SDK attributes for governance metadata:
 
 ```csharp
-using UtilityAi.VitruvianPluginSdk.Attributes;
+using VitruvianPluginSdk.Attributes;
 
 [CompassCapability("translation", priority: 5)]
 [CompassGoals(GoalTag.Answer)]
@@ -331,7 +331,7 @@ public sealed class TranslationModule : ICompassModule { /* ... */ }
 ### Interactive Mode
 
 ```bash
-dotnet run --project src/UtilityAi.VitruvianCli
+dotnet run --project src/VitruvianCli
 ```
 
 Type natural language requests:
@@ -465,24 +465,24 @@ File operations use a dedicated directory (default: `~/compass-workspace`). Over
 ## Repository Layout
 
 ```text
-UtilityAi.Vitruviansln
+Vitruviansln
 ├── src/
-│   ├── UtilityAi.VitruvianAbstractions/     # Core interfaces (ICompassModule, IApprovalGate,
+│   ├── VitruvianAbstractions/     # Core interfaces (ICompassModule, IApprovalGate,
 │   │                                        #   IModelClient), enums, facts, planning types
-│   ├── UtilityAi.VitruvianRuntime/          # GoapPlanner, PlanExecutor, ModuleRouter,
+│   ├── VitruvianRuntime/          # GoapPlanner, PlanExecutor, ModuleRouter,
 │   │                                        #   PermissionChecker, CompoundRequestOrchestrator
-│   ├── UtilityAi.VitruvianStandardModules/  # Built-in modules (File, Conversation, Web,
+│   ├── VitruvianStandardModules/  # Built-in modules (File, Conversation, Web,
 │   │                                        #   Summarization, Gmail, Shell)
-│   ├── UtilityAi.VitruvianPluginSdk/        # SDK attributes for module metadata
+│   ├── VitruvianPluginSdk/        # SDK attributes for module metadata
 │   │                                        #   (CompassCapability, CompassGoals, etc.)
-│   ├── UtilityAi.VitruvianPluginHost/       # Plugin loading via AssemblyLoadContext,
+│   ├── VitruvianPluginHost/       # Plugin loading via AssemblyLoadContext,
 │   │                                        #   SandboxedModuleRunner
-│   ├── UtilityAi.VitruvianHitl/             # ConsoleApprovalGate, HITL facts
-│   ├── UtilityAi.VitruvianWeatherModule/    # Example standalone module
-│   └── UtilityAi.VitruvianCli/              # CLI entry point, RequestProcessor,
+│   ├── VitruvianHitl/             # ConsoleApprovalGate, HITL facts
+│   ├── VitruvianWeatherModule/    # Example standalone module
+│   └── VitruvianCli/              # CLI entry point, RequestProcessor,
 │                                            #   ContextAwareModelClient, ModelClientFactory
 ├── tests/
-│   └── UtilityAi.VitruvianTests/            # 68 xUnit tests (planner, executor, router,
+│   └── VitruvianTests/            # 68 xUnit tests (planner, executor, router,
 │                                            #   modules, permissions, sandboxing, HITL)
 └── docs/
     ├── SECURITY.md                          # Security model reference

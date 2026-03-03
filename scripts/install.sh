@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env.compass"
 DEFAULT_SQLITE_FILE_CONNECTION="Data Source=appdb/compass-memory.db"
 HAS_SOURCE_LAYOUT="false"
-if [[ -f "$ROOT_DIR/UtilityAi.Vitruviansln" && -d "$ROOT_DIR/src/UtilityAi.VitruvianCli" ]]; then
+if [[ -f "$ROOT_DIR/Vitruviansln" && -d "$ROOT_DIR/src/VitruvianCli" ]]; then
   HAS_SOURCE_LAYOUT="true"
 fi
 
@@ -193,8 +193,8 @@ EOF
 
 if [[ "$HAS_SOURCE_LAYOUT" == "true" ]]; then
   cat <<EOF
-  1. dotnet build "$ROOT_DIR/UtilityAi.Vitruviansln"
-  2. dotnet run --framework net10.0 --project "$ROOT_DIR/src/UtilityAi.VitruvianCli"
+  1. dotnet build "$ROOT_DIR/Vitruviansln"
+  2. dotnet run --framework net10.0 --project "$ROOT_DIR/src/VitruvianCli"
 EOF
 else
   cat <<EOF

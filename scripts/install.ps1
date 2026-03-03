@@ -183,10 +183,10 @@ Write-Host "Configuration saved to: $EnvFile"
 Write-Host "Profile configuration saved to: $ProfileEnvFile"
 Write-Host ''
 Write-Host 'Next steps:'
-$hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Vitruviansln')) -and (Test-Path (Join-Path $RootDir 'src\UtilityAi.VitruvianCli'))
+$hasSourceLayout = (Test-Path (Join-Path $RootDir 'Vitruviansln')) -and (Test-Path (Join-Path $RootDir 'src\VitruvianCli'))
 if ($hasSourceLayout) {
-    Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Vitruviansln`""
-    Write-Host "  2. dotnet run --framework net10.0 --project `"$RootDir\src\UtilityAi.VitruvianCli`""
+    Write-Host "  1. dotnet build `"$RootDir\Vitruviansln`""
+    Write-Host "  2. dotnet run --framework net10.0 --project `"$RootDir\src\VitruvianCli`""
 }
 else {
     Write-Host '  1. Run: compass'
