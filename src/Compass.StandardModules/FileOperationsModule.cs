@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Compass.Abstractions;
 using Compass.Abstractions.Interfaces;
+using Compass.PluginSdk.Attributes;
 
 namespace Compass.StandardModules;
 
@@ -7,6 +9,8 @@ namespace Compass.StandardModules;
 /// File operations module implementing ICompassModule.
 /// Handles reading and writing files on the local filesystem.
 /// </summary>
+[RequiresPermission(ModuleAccess.Read)]
+[RequiresPermission(ModuleAccess.Write)]
 public sealed class FileOperationsModule : ICompassModule
 {
     private const string SkillResourceName = "Compass.StandardModules.skill.md";

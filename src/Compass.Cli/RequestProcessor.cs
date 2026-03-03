@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Compass.Abstractions;
 using Compass.Abstractions.Facts;
 using Compass.Abstractions.Interfaces;
 using Compass.Abstractions.Planning;
@@ -41,6 +42,14 @@ public sealed class RequestProcessor
 
     public void RegisterModule(ICompassModule module)
     {
+        // Log warning if module doesn't declare permissions (but allow it)
+        var requiredAccess = PermissionChecker.GetRequiredAccess(module.GetType());
+        if (requiredAccess == ModuleAccess.None)
+        {
+            Console.WriteLine($"[WARNING] Module '{module.Domain}' does not declare [RequiresPermission] attributes. " +
+                            "This is a security best practice. Add [RequiresPermission] to declare intended access levels.");
+        }
+
         _modules[module.Domain] = module;
 
         // Register with router (metadata is optional and defaults to 0.0 cost/risk)

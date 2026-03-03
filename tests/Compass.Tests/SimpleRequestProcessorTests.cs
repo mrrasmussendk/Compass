@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Compass.Abstractions;
 using Compass.Abstractions.Interfaces;
 using Compass.Cli;
+using Compass.PluginSdk.Attributes;
 using Compass.Runtime.Routing;
 using Xunit;
 
@@ -28,6 +30,7 @@ public sealed class SimpleRequestProcessorTests
             => Task.FromResult(_response);
     }
 
+    [RequiresPermission(ModuleAccess.Read)]
     private sealed class TestModule : ICompassModule
     {
         public string Domain { get; }

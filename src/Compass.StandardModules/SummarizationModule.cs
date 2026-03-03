@@ -1,4 +1,6 @@
+using Compass.Abstractions;
 using Compass.Abstractions.Interfaces;
+using Compass.PluginSdk.Attributes;
 
 namespace Compass.StandardModules;
 
@@ -6,6 +8,7 @@ namespace Compass.StandardModules;
 /// Summarization module implementing ICompassModule.
 /// Summarizes text, conversations, or documents into concise overviews.
 /// </summary>
+[RequiresPermission(ModuleAccess.Read)]
 public sealed class SummarizationModule : ICompassModule
 {
     private readonly IModelClient? _modelClient;

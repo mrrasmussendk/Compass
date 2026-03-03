@@ -1,4 +1,6 @@
+using Compass.Abstractions;
 using Compass.Abstractions.Interfaces;
+using Compass.PluginSdk.Attributes;
 
 namespace Compass.StandardModules;
 
@@ -6,6 +8,8 @@ namespace Compass.StandardModules;
 /// Gmail module implementing ICompassModule.
 /// Reads Gmail messages and creates draft replies (does not send directly).
 /// </summary>
+[RequiresPermission(ModuleAccess.Read)]
+[RequiresPermission(ModuleAccess.Write)]
 public sealed class GmailModule : ICompassModule
 {
     private readonly IModelClient? _modelClient;

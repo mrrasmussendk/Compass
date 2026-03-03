@@ -1,4 +1,6 @@
+using Compass.Abstractions;
 using Compass.Abstractions.Interfaces;
+using Compass.PluginSdk.Attributes;
 
 namespace Compass.StandardModules;
 
@@ -6,6 +8,7 @@ namespace Compass.StandardModules;
 /// Web search module implementing ICompassModule.
 /// Performs web searches by leveraging the model client's web search capabilities.
 /// </summary>
+[RequiresPermission(ModuleAccess.Read)]
 public sealed class WebSearchModule : ICompassModule
 {
     private readonly IModelClient? _modelClient;
