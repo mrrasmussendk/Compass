@@ -240,6 +240,8 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
                 body["system"] = modelRequest.SystemMessage;
             if (modelRequest.Temperature.HasValue)
                 body["temperature"] = modelRequest.Temperature.Value;
+            if (modelRequest.Tools is { Count: > 0 })
+                body["tools"] = modelRequest.Tools.Select(BuildAnthropicTool).ToArray();
 
             request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
@@ -249,14 +251,12 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
             using var json = JsonDocument.Parse(payload);
 
             if (!json.RootElement.TryGetProperty("content", out var contentArray) ||
-                contentArray.GetArrayLength() == 0 ||
-                !contentArray[0].TryGetProperty("text", out var textProperty))
+                contentArray.GetArrayLength() == 0)
             {
-                throw new InvalidOperationException("Anthropic API returned a response with missing or malformed text field.");
+                throw new InvalidOperationException("Anthropic API returned a response with missing or malformed content field.");
             }
 
-            var text = textProperty.GetString() ?? "Anthropic API returned empty text.";
-            return new ModelResponse { Text = text };
+            return ParseAnthropicContent(contentArray);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -270,6 +270,69 @@ file sealed class AnthropicModelClient(ModelConfiguration config, HttpClient htt
         {
             throw new InvalidOperationException($"Failed to call Anthropic API: {ex.Message}", ex);
         }
+    }
+
+    private static object BuildAnthropicTool(ModelTool tool)
+    {
+        var properties = new Dictionary<string, object>();
+        if (tool.Parameters is not null)
+        {
+            foreach (var (name, type) in tool.Parameters)
+                properties[name] = new { type = MapParameterType(type) };
+        }
+
+        return new
+        {
+            name = tool.Name,
+            description = tool.Description,
+            input_schema = new
+            {
+                type = "object",
+                properties,
+                required = tool.Parameters?.Keys.ToArray() ?? []
+            }
+        };
+    }
+
+    private static string MapParameterType(string type) => type.ToLowerInvariant() switch
+    {
+        "int" or "integer" or "number" => "number",
+        "bool" or "boolean" => "boolean",
+        _ => "string"
+    };
+
+    private static ModelResponse ParseAnthropicContent(JsonElement contentArray)
+    {
+        var texts = new List<string>();
+        string? toolCall = null;
+        string? toolArguments = null;
+
+        foreach (var block in contentArray.EnumerateArray())
+        {
+            if (!block.TryGetProperty("type", out var typeProp))
+                continue;
+
+            var blockType = typeProp.GetString();
+            if (blockType == "text" && block.TryGetProperty("text", out var textProp))
+            {
+                var t = textProp.GetString();
+                if (!string.IsNullOrEmpty(t))
+                    texts.Add(t);
+            }
+            else if (blockType == "tool_use")
+            {
+                if (block.TryGetProperty("name", out var nameProp))
+                    toolCall = nameProp.GetString();
+                if (block.TryGetProperty("input", out var inputProp))
+                    toolArguments = inputProp.GetRawText();
+            }
+        }
+
+        var text = texts.Count > 0
+            ? string.Join("\n", texts)
+            : (toolCall is not null ? $"Tool call: {toolCall}" : "Anthropic API returned empty content.");
+
+        return new ModelResponse { Text = text, ToolCall = toolCall, ToolArguments = toolArguments };
     }
 }
 
