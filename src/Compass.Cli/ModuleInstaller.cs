@@ -336,7 +336,7 @@ public static class ModuleInstaller
             dotnet build -c Release
 
             # Install the module (adjust path to your Vitruvian installation)
-            compass --install-module ./bin/Release/net10.0/{{moduleName}}.dll --allow-unsigned
+            vitruvian --install-module ./bin/Release/net10.0/{{moduleName}}.dll --allow-unsigned
             ```
 
             ### Option 2: Copy to plugins folder
@@ -437,7 +437,7 @@ public static class ModuleInstaller
             - [SECURITY.md](https://github.com/mrrasmussendk/Vitruvian/blob/main/docs/SECURITY.md)
             """);
 
-        return $"Created module scaffold at '{moduleDirectory}' with manifest and README. Build with 'dotnet build', then install with 'compass --install-module ./bin/Debug/net10.0/{moduleName}.dll --allow-unsigned'.";
+        return $"Created module scaffold at '{moduleDirectory}' with manifest and README. Build with 'dotnet build', then install with 'vitruvian --install-module ./bin/Debug/net10.0/{moduleName}.dll --allow-unsigned'.";
     }
 
     public static async Task<ModuleInspectionReport> InspectAsync(string moduleSpec, CancellationToken cancellationToken = default)

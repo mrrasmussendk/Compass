@@ -138,8 +138,6 @@ Try some requests:
 
 ---
 
----
-
 ## Architecture
 
 ### GOAP Pipeline
