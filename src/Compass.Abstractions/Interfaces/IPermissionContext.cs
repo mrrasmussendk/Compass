@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Interfaces;
+namespace VitruvianAbstractions.Interfaces;
 
 /// <summary>
 /// Provides the permission context for the current execution,

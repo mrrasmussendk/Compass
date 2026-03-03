@@ -1,4 +1,4 @@
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>Declares cooldown rules that prevent a module's proposals from firing too frequently.</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

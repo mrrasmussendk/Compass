@@ -2,15 +2,15 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Compass.Cli;
-using Compass.Runtime;
-using Compass.Runtime.Routing;
-using Compass.Abstractions.Facts;
-using Compass.Abstractions.Interfaces;
-using Compass.PluginHost;
-using Compass.PluginSdk.Attributes;
-using Compass.Runtime.DI;
-using Compass.StandardModules;
+using VitruvianCli;
+using VitruvianRuntime;
+using VitruvianRuntime.Routing;
+using VitruvianAbstractions.Facts;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginHost;
+using VitruvianPluginSdk.Attributes;
+using VitruvianRuntime.DI;
+using VitruvianStandardModules;
 
 // Auto-load .env.compass so the host works without manually sourcing the file.
 EnvFileLoader.Load(overwriteExisting: true);
@@ -57,12 +57,12 @@ void PrintInstalledModules()
 {
     var standardModules = new[]
     {
-        nameof(Compass.StandardModules.ConversationModule),
-        nameof(Compass.StandardModules.FileOperationsModule),
-        nameof(Compass.StandardModules.ShellCommandModule),
-        nameof(Compass.StandardModules.SummarizationModule),
-        nameof(Compass.StandardModules.WebSearchModule),
-        nameof(Compass.StandardModules.GmailModule)
+        nameof(VitruvianStandardModules.ConversationModule),
+        nameof(VitruvianStandardModules.FileOperationsModule),
+        nameof(VitruvianStandardModules.ShellCommandModule),
+        nameof(VitruvianStandardModules.SummarizationModule),
+        nameof(VitruvianStandardModules.WebSearchModule),
+        nameof(VitruvianStandardModules.GmailModule)
     };
 
     Console.WriteLine($"Standard modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", standardModules)}");
@@ -354,7 +354,7 @@ var host = builder.Build();
 
 // Create and configure the request processor
 var router = host.Services.GetRequiredService<ModuleRouter>();
-var approvalGate = new Compass.Hitl.ConsoleApprovalGate(timeout: TimeSpan.FromSeconds(30));
+var approvalGate = new VitruvianHitl.ConsoleApprovalGate(timeout: TimeSpan.FromSeconds(30));
 var requestProcessor = new RequestProcessor(host, router, modelClient, approvalGate);
 
 // Register all modules with the router

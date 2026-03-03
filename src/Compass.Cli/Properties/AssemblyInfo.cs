@@ -1,3 +1,3 @@
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("Compass.Tests")]
+[assembly: InternalsVisibleTo("VitruvianTests")]

@@ -1,4 +1,4 @@
-namespace Compass.Runtime;
+namespace VitruvianRuntime;
 
 /// <summary>
 /// Utilities for keyword-based text matching and scoring.

@@ -1,8 +1,8 @@
-using Compass.Abstractions.Interfaces;
-using Compass.Runtime.Routing;
+using VitruvianAbstractions.Interfaces;
+using VitruvianRuntime.Routing;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class ModuleRouterTests
 {

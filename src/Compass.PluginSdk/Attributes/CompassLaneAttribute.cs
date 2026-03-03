@@ -1,6 +1,6 @@
-using Compass.Abstractions;
+using VitruvianAbstractions;
 
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>Assigns a capability module to a governance <see cref="Abstractions.Lane"/>.</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

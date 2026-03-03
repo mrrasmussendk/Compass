@@ -1,7 +1,7 @@
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
 
-namespace Compass.Hitl;
+namespace VitruvianHitl;
 
 /// <summary>
 /// Console-based <see cref="IApprovalGate"/> that prompts the user for y/n approval

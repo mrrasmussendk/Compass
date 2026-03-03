@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Interfaces;
+namespace VitruvianAbstractions.Interfaces;
 
 /// <summary>
 /// Gate that requires human approval before executing write or destructive operations.

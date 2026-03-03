@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Compass.Runtime.DI;
+namespace VitruvianRuntime.DI;
 
 /// <summary>
 /// Extension methods for registering Compass runtime services with <see cref="IServiceCollection"/>.

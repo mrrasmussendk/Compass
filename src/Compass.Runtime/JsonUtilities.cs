@@ -1,4 +1,4 @@
-namespace Compass.Runtime;
+namespace VitruvianRuntime;
 
 /// <summary>
 /// Utilities for cleaning and parsing JSON responses from LLMs.

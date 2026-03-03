@@ -1,6 +1,6 @@
-using Compass.Abstractions.Interfaces;
+using VitruvianAbstractions.Interfaces;
 
-namespace Compass.StandardModules;
+namespace VitruvianStandardModules;
 
 /// <summary>
 /// Conversation module implementing ICompassModule.

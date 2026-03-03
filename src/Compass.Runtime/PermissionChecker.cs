@@ -1,8 +1,8 @@
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
-using Compass.PluginSdk.Attributes;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginSdk.Attributes;
 
-namespace Compass.Runtime;
+namespace VitruvianRuntime;
 
 /// <summary>
 /// Validates that a module has the required permissions before execution.

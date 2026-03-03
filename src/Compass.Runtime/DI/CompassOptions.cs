@@ -1,6 +1,6 @@
-using Compass.Abstractions.Facts;
+using VitruvianAbstractions.Facts;
 
-namespace Compass.Runtime.DI;
+namespace VitruvianRuntime.DI;
 
 /// <summary>
 /// Configuration options for Compass DI registration via <see cref="ServiceCollectionExtensions.AddUtilityAiCompass"/>.

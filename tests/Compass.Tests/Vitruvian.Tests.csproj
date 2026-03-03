@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <RootNamespace>VitruvianTests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,13 +20,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Compass.Abstractions\Compass.Abstractions.csproj" />
-    <ProjectReference Include="..\..\src\Compass.Cli\Compass.Cli.csproj" />
-    <ProjectReference Include="..\..\src\Compass.Hitl\Compass.Hitl.csproj" />
-    <ProjectReference Include="..\..\src\Compass.PluginHost\Compass.PluginHost.csproj" />
-    <ProjectReference Include="..\..\src\Compass.PluginSdk\Compass.PluginSdk.csproj" />
-    <ProjectReference Include="..\..\src\Compass.Runtime\Compass.Runtime.csproj" />
-    <ProjectReference Include="..\..\src\Compass.StandardModules\Compass.StandardModules.csproj" />
+    <ProjectReference Include="..\..\src\Compass.Abstractions\Vitruvian.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Compass.Cli\Vitruvian.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Compass.Hitl\Vitruvian.Hitl.csproj" />
+    <ProjectReference Include="..\..\src\Compass.PluginHost\Vitruvian.PluginHost.csproj" />
+    <ProjectReference Include="..\..\src\Compass.PluginSdk\Vitruvian.PluginSdk.csproj" />
+    <ProjectReference Include="..\..\src\Compass.Runtime\Vitruvian.Runtime.csproj" />
+    <ProjectReference Include="..\..\src\Compass.StandardModules\Vitruvian.StandardModules.csproj" />
   </ItemGroup>
 
 </Project>

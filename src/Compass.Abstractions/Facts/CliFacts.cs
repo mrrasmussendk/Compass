@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Facts;
+namespace VitruvianAbstractions.Facts;
 
 /// <summary>Fact published by the CLI intent sensor when a command-line operation is detected.</summary>
 /// <param name="Verb">The detected <see cref="CliVerb"/> (Read, Write, or Update).</param>

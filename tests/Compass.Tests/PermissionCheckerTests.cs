@@ -1,10 +1,10 @@
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
-using Compass.PluginSdk.Attributes;
-using Compass.Runtime;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginSdk.Attributes;
+using VitruvianRuntime;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class PermissionCheckerTests
 {

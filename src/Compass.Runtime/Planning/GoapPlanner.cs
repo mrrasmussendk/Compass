@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Compass.Abstractions.Interfaces;
-using Compass.Abstractions.Planning;
+using VitruvianAbstractions.Interfaces;
+using VitruvianAbstractions.Planning;
 
-namespace Compass.Runtime.Planning;
+namespace VitruvianRuntime.Planning;
 
 /// <summary>
 /// GOAP-style planner that produces an <see cref="ExecutionPlan"/> from a user request

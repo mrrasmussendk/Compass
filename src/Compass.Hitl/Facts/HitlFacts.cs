@@ -1,4 +1,4 @@
-namespace Compass.Hitl.Facts;
+namespace VitruvianHitl.Facts;
 
 /// <summary>Fact published when a proposal requires human approval.</summary>
 /// <param name="RequestId">Unique identifier for this approval request.</param>

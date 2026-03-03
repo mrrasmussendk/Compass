@@ -1,4 +1,4 @@
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>Declares the risk level of invoking a module's proposals.</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

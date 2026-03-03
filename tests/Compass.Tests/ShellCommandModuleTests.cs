@@ -1,8 +1,8 @@
-using Compass.Abstractions.Interfaces;
-using Compass.StandardModules;
+using VitruvianAbstractions.Interfaces;
+using VitruvianStandardModules;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class ShellCommandModuleTests
 {

@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Interfaces;
+namespace VitruvianAbstractions.Interfaces;
 
 /// <summary>
 /// Defines the resource limits and API restrictions for a sandboxed module execution context.

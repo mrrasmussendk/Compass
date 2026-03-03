@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
-using Compass.Abstractions.Planning;
-using Compass.Runtime.Planning;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianAbstractions.Planning;
+using VitruvianRuntime.Planning;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class PlanExecutorTests
 {

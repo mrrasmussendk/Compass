@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Interfaces;
+namespace VitruvianAbstractions.Interfaces;
 
 /// <summary>
 /// Describes a tool/skill that can be made available to the model during generation.

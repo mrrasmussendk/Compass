@@ -1,6 +1,6 @@
-using Compass.Abstractions;
+using VitruvianAbstractions;
 
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>
 /// Declares the file/resource permissions that a capability module requires.

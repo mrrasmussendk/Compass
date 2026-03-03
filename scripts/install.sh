@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env.compass"
 DEFAULT_SQLITE_FILE_CONNECTION="Data Source=appdb/compass-memory.db"
 HAS_SOURCE_LAYOUT="false"
-if [[ -f "$ROOT_DIR/UtilityAi.Compass.sln" && -d "$ROOT_DIR/src/UtilityAi.Compass.Cli" ]]; then
+if [[ -f "$ROOT_DIR/UtilityAi.Vitruviansln" && -d "$ROOT_DIR/src/UtilityAi.VitruvianCli" ]]; then
   HAS_SOURCE_LAYOUT="true"
 fi
 
@@ -57,7 +57,7 @@ write_active_profile() {
 
 if [[ $# -ge 1 ]]; then
   profile="$(normalize_profile "$1")" || { echo "Invalid profile '$1'. Use dev, personal, team, or prod."; exit 1; }
-  profile_file="$ROOT_DIR/.env.compass.${profile}"
+  profile_file="$ROOT_DIR/.env.Vitruvian${profile}"
   if [[ ! -f "$profile_file" ]]; then
     echo "Profile '$profile' does not exist yet. Create it first by running the installer without arguments."
     exit 1
@@ -80,7 +80,7 @@ echo "  3) team"
 echo "  4) prod"
 read -r -p "> " profile_choice
 profile="$(normalize_profile "$profile_choice")" || { echo "Invalid profile choice"; exit 1; }
-profile_env_file="$ROOT_DIR/.env.compass.${profile}"
+profile_env_file="$ROOT_DIR/.env.Vitruvian${profile}"
 
 if [[ "$onboarding_action" == "2" ]]; then
   if [[ ! -f "$profile_env_file" ]]; then
@@ -193,8 +193,8 @@ EOF
 
 if [[ "$HAS_SOURCE_LAYOUT" == "true" ]]; then
   cat <<EOF
-  1. dotnet build "$ROOT_DIR/UtilityAi.Compass.sln"
-  2. dotnet run --framework net10.0 --project "$ROOT_DIR/src/UtilityAi.Compass.Cli"
+  1. dotnet build "$ROOT_DIR/UtilityAi.Vitruviansln"
+  2. dotnet run --framework net10.0 --project "$ROOT_DIR/src/UtilityAi.VitruvianCli"
 EOF
 else
   cat <<EOF

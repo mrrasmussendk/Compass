@@ -1,14 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Compass.Abstractions\Compass.Abstractions.csproj" />
-    <ProjectReference Include="..\Compass.Runtime\Compass.Runtime.csproj" />
+    <ProjectReference Include="..\Compass.Abstractions\Vitruvian.Abstractions.csproj" />
+    <ProjectReference Include="..\Compass.Runtime\Vitruvian.Runtime.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>VitruvianHitl</RootNamespace>
   </PropertyGroup>
 
 </Project>

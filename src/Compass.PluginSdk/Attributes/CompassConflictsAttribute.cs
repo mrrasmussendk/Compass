@@ -1,6 +1,6 @@
-using Compass.Abstractions;
+using VitruvianAbstractions;
 
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>Declares conflict rules that prevent a module from running alongside conflicting proposals.</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

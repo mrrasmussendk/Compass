@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Facts;
+namespace VitruvianAbstractions.Facts;
 
 /// <summary>Fact published by the goal router sensor when a goal is detected from user input.</summary>
 /// <param name="Goal">The detected <see cref="GoalTag"/>.</param>

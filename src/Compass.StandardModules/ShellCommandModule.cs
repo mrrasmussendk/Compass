@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Text.Json;
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
-using Compass.PluginSdk.Attributes;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginSdk.Attributes;
 
-namespace Compass.StandardModules;
+namespace VitruvianStandardModules;
 
 /// <summary>
 /// Shell command module implementing ICompassModule.

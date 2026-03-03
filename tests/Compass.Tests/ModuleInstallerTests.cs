@@ -1,7 +1,7 @@
-using Compass.Cli;
+using VitruvianCli;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class ModuleInstallerTests
 {

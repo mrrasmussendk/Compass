@@ -1,22 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Compass.PluginSdk\Compass.PluginSdk.csproj" />
-    <ProjectReference Include="..\Compass.Abstractions\Compass.Abstractions.csproj" />
+    <ProjectReference Include="..\Compass.Runtime\Vitruvian.Runtime.csproj" />
+    <ProjectReference Include="..\Compass.PluginSdk\Vitruvian.PluginSdk.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="skill.md" />
-  </ItemGroup>
-
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>VitruvianPluginHost</RootNamespace>
   </PropertyGroup>
 
 </Project>

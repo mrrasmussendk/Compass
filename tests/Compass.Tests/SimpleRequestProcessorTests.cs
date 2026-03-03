@@ -1,13 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
-using Compass.Cli;
-using Compass.PluginSdk.Attributes;
-using Compass.Runtime.Routing;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianCli;
+using VitruvianPluginSdk.Attributes;
+using VitruvianRuntime.Routing;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class SimpleRequestProcessorTests
 {

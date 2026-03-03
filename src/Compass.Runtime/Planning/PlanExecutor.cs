@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using Compass.Abstractions.Interfaces;
-using Compass.Abstractions.Planning;
-using Compass.Abstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianAbstractions.Planning;
+using VitruvianAbstractions;
 
-namespace Compass.Runtime.Planning;
+namespace VitruvianRuntime.Planning;
 
 /// <summary>
 /// Executes a GOAP-style <see cref="ExecutionPlan"/> with support for:

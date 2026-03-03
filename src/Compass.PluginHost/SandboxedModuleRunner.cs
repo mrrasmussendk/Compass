@@ -1,7 +1,7 @@
 using System.Runtime.Loader;
-using Compass.Abstractions.Interfaces;
+using VitruvianAbstractions.Interfaces;
 
-namespace Compass.PluginHost;
+namespace VitruvianPluginHost;
 
 /// <summary>
 /// Runs a module inside an isolated <see cref="AssemblyLoadContext"/> with

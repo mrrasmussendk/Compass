@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Compass.Abstractions.Interfaces;
+using VitruvianAbstractions.Interfaces;
 
-namespace Compass.Runtime;
+namespace VitruvianRuntime;
 
 /// <summary>
 /// Orchestrates compound (multi-intent) request handling at the host level.

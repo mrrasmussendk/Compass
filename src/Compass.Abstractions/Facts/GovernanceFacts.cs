@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Facts;
+namespace VitruvianAbstractions.Facts;
 
 /// <summary>
 /// Governance tuning knobs that control how proposals are scored and filtered.

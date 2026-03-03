@@ -5,7 +5,7 @@ using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
 
-namespace Compass.Cli;
+namespace VitruvianCli;
 
 public static class ModuleInstaller
 {
@@ -227,9 +227,9 @@ public static class ModuleInstaller
 
         File.WriteAllText(classPath,
             $$"""
-            using Compass.Abstractions.Interfaces;
-            using Compass.Abstractions;
-            using Compass.PluginSdk.Attributes;
+            using VitruvianAbstractions.Interfaces;
+            using VitruvianAbstractions;
+            using VitruvianPluginSdk.Attributes;
 
             namespace {{moduleNamespace}};
 
@@ -592,7 +592,7 @@ public static class ModuleInstaller
 
     private static bool TryValidateModuleAssembly(string assemblyPath, out string error)
     {
-        var loadContext = new AssemblyLoadContext($"Compass.ModuleValidation.{Guid.NewGuid():N}", isCollectible: true);
+        var loadContext = new AssemblyLoadContext($"VitruvianModuleValidation.{Guid.NewGuid():N}", isCollectible: true);
         try
         {
             // Load from a memory stream to avoid holding a file lock on Windows.

@@ -1,4 +1,4 @@
-namespace Compass.Cli;
+namespace VitruvianCli;
 
 /// <summary>
 /// Loads environment variables from a <c>.env.compass</c> file so the host
@@ -11,7 +11,7 @@ namespace Compass.Cli;
 /// </list>
 /// Existing environment variables are not overwritten by default, allowing callers
 /// to override individual values via the shell when needed. If <c>COMPASS_PROFILE</c>
-/// is set, an additional <c>.env.compass.&lt;profile&gt;</c> file is loaded after the base file.
+/// is set, an additional <c>.env.Vitruvian&lt;profile&gt;</c> file is loaded after the base file.
 /// </summary>
 public static class EnvFileLoader
 {

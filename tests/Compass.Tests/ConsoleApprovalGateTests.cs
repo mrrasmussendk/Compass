@@ -1,8 +1,8 @@
-using Compass.Abstractions;
-using Compass.Hitl;
+using VitruvianAbstractions;
+using VitruvianHitl;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class ConsoleApprovalGateTests
 {

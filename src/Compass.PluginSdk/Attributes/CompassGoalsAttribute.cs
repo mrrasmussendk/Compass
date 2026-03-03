@@ -1,6 +1,6 @@
-using Compass.Abstractions;
+using VitruvianAbstractions;
 
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>Declares which <see cref="GoalTag"/> values a capability module can serve.</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

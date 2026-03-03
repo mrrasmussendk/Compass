@@ -1,4 +1,4 @@
-namespace Compass.Abstractions;
+namespace VitruvianAbstractions;
 
 /// <summary>
 /// High-level intent detected from a user request.

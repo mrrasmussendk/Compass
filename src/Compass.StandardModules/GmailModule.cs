@@ -1,8 +1,8 @@
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
-using Compass.PluginSdk.Attributes;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginSdk.Attributes;
 
-namespace Compass.StandardModules;
+namespace VitruvianStandardModules;
 
 /// <summary>
 /// Gmail module implementing ICompassModule.

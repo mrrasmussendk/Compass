@@ -1,4 +1,4 @@
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>Marks a capability module with its domain name and natural language description.</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

@@ -1,6 +1,6 @@
-using Compass.Abstractions.Interfaces;
+using VitruvianAbstractions.Interfaces;
 
-namespace Compass.Cli;
+namespace VitruvianCli;
 
 /// <summary>
 /// Wraps an IModelClient to automatically inject conversation context into requests.

@@ -1,4 +1,4 @@
-﻿namespace Compass.Abstractions.Facts;
+﻿namespace VitruvianAbstractions.Facts;
 
 /// <summary>
 /// Represents a single turn in a conversation between the user and the AI.

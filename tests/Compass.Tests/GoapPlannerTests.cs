@@ -1,9 +1,9 @@
-using Compass.Abstractions.Interfaces;
-using Compass.Abstractions.Planning;
-using Compass.Runtime.Planning;
+using VitruvianAbstractions.Interfaces;
+using VitruvianAbstractions.Planning;
+using VitruvianRuntime.Planning;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class GoapPlannerTests
 {

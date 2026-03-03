@@ -1,6 +1,6 @@
-using Compass.Abstractions;
+using VitruvianAbstractions;
 
-namespace Compass.PluginSdk.Attributes;
+namespace VitruvianPluginSdk.Attributes;
 
 /// <summary>Declares the side-effect level of a capability module.</summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]

@@ -1,15 +1,15 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Compass.Abstractions;
-using Compass.Abstractions.Facts;
-using Compass.Abstractions.Interfaces;
-using Compass.Abstractions.Planning;
-using Compass.Runtime;
-using Compass.Runtime.Planning;
-using Compass.Runtime.Routing;
-using Compass.StandardModules;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Facts;
+using VitruvianAbstractions.Interfaces;
+using VitruvianAbstractions.Planning;
+using VitruvianRuntime;
+using VitruvianRuntime.Planning;
+using VitruvianRuntime.Routing;
+using VitruvianStandardModules;
 
-namespace Compass.Cli;
+namespace VitruvianCli;
 
 /// <summary>
 /// GOAP-style request processor that creates a plan before executing.

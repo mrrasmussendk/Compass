@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Compass.Abstractions.Facts;
-using Compass.Abstractions.Interfaces;
-using Compass.Runtime.DI;
+using VitruvianAbstractions.Facts;
+using VitruvianAbstractions.Interfaces;
+using VitruvianRuntime.DI;
 
-namespace Compass.Runtime.Routing;
+namespace VitruvianRuntime.Routing;
 
 /// <summary>
 /// Routes user requests to the most appropriate module using LLM-based selection.

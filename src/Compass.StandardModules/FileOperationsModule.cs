@@ -1,9 +1,9 @@
 using System.Text.Json;
-using Compass.Abstractions;
-using Compass.Abstractions.Interfaces;
-using Compass.PluginSdk.Attributes;
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginSdk.Attributes;
 
-namespace Compass.StandardModules;
+namespace VitruvianStandardModules;
 
 /// <summary>
 /// File operations module implementing ICompassModule.
@@ -13,7 +13,7 @@ namespace Compass.StandardModules;
 [RequiresPermission(ModuleAccess.Write)]
 public sealed class FileOperationsModule : ICompassModule
 {
-    private const string SkillResourceName = "Compass.StandardModules.skill.md";
+    private const string SkillResourceName = "VitruvianStandardModules.skill.md";
     private const string DefaultFileOperationSkill = """
 Determine the file operation type and extract parameters.
 Return ONLY valid JSON in this format: {"type":"read"|"write","path":"filename.ext","content":"content if write, null if read"}

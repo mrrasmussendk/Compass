@@ -1,8 +1,8 @@
-using Compass.Abstractions.Interfaces;
-using Compass.PluginHost;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginHost;
 using Xunit;
 
-namespace Compass.Tests;
+namespace VitruvianTests;
 
 public sealed class SandboxedModuleRunnerTests
 {

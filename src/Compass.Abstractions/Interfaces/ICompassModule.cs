@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Interfaces;
+namespace VitruvianAbstractions.Interfaces;
 
 /// <summary>
 /// Simplified module interface for capability execution.

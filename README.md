@@ -7,9 +7,9 @@ Third-party modules plug in via a single interface (`ICompassModule`). The host 
 **Try it now:**
 
 ```bash
-git clone https://github.com/mrrasmussendk/Compass.git
+git clone https://github.com/mrrasmussendk/Vitruviangit
 cd Compass
-dotnet run --framework net8.0 --project src/UtilityAi.Compass.Cli
+dotnet run --framework net8.0 --project src/UtilityAi.VitruvianCli
 ```
 
 ---
@@ -61,7 +61,7 @@ dotnet run --framework net8.0 --project src/UtilityAi.Compass.Cli
 ### Clone, build, and test
 
 ```bash
-git clone https://github.com/mrrasmussendk/Compass.git
+git clone https://github.com/mrrasmussendk/Vitruviangit
 cd Compass
 dotnet build
 dotnet test   # All tests should pass
@@ -103,7 +103,7 @@ COMPASS_MODEL_NAME=gpt-4
 ### Run Compass
 
 ```bash
-dotnet run --project src/UtilityAi.Compass.Cli
+dotnet run --project src/UtilityAi.VitruvianCli
 ```
 
 ```
@@ -253,10 +253,10 @@ Compass is designed so that anyone can build and inject custom modules. The GOAP
 
 ### Step 1: Implement `ICompassModule`
 
-Create a class library targeting `net8.0` and reference `UtilityAi.Compass.Abstractions`:
+Create a class library targeting `net8.0` and reference `UtilityAi.VitruvianAbstractions`:
 
 ```csharp
-using UtilityAi.Compass.Abstractions.Interfaces;
+using UtilityAi.VitruvianAbstractions.Interfaces;
 
 public sealed class TranslationModule : ICompassModule
 {
@@ -303,7 +303,7 @@ For plugin-based deployment without recompiling the host:
 You can also use SDK attributes for governance metadata:
 
 ```csharp
-using UtilityAi.Compass.PluginSdk.Attributes;
+using UtilityAi.VitruvianPluginSdk.Attributes;
 
 [CompassCapability("translation", priority: 5)]
 [CompassGoals(GoalTag.Answer)]
@@ -331,7 +331,7 @@ public sealed class TranslationModule : ICompassModule { /* ... */ }
 ### Interactive Mode
 
 ```bash
-dotnet run --project src/UtilityAi.Compass.Cli
+dotnet run --project src/UtilityAi.VitruvianCli
 ```
 
 Type natural language requests:
@@ -465,24 +465,24 @@ File operations use a dedicated directory (default: `~/compass-workspace`). Over
 ## Repository Layout
 
 ```text
-UtilityAi.Compass.sln
+UtilityAi.Vitruviansln
 ├── src/
-│   ├── UtilityAi.Compass.Abstractions/     # Core interfaces (ICompassModule, IApprovalGate,
+│   ├── UtilityAi.VitruvianAbstractions/     # Core interfaces (ICompassModule, IApprovalGate,
 │   │                                        #   IModelClient), enums, facts, planning types
-│   ├── UtilityAi.Compass.Runtime/          # GoapPlanner, PlanExecutor, ModuleRouter,
+│   ├── UtilityAi.VitruvianRuntime/          # GoapPlanner, PlanExecutor, ModuleRouter,
 │   │                                        #   PermissionChecker, CompoundRequestOrchestrator
-│   ├── UtilityAi.Compass.StandardModules/  # Built-in modules (File, Conversation, Web,
+│   ├── UtilityAi.VitruvianStandardModules/  # Built-in modules (File, Conversation, Web,
 │   │                                        #   Summarization, Gmail, Shell)
-│   ├── UtilityAi.Compass.PluginSdk/        # SDK attributes for module metadata
+│   ├── UtilityAi.VitruvianPluginSdk/        # SDK attributes for module metadata
 │   │                                        #   (CompassCapability, CompassGoals, etc.)
-│   ├── UtilityAi.Compass.PluginHost/       # Plugin loading via AssemblyLoadContext,
+│   ├── UtilityAi.VitruvianPluginHost/       # Plugin loading via AssemblyLoadContext,
 │   │                                        #   SandboxedModuleRunner
-│   ├── UtilityAi.Compass.Hitl/             # ConsoleApprovalGate, HITL facts
-│   ├── UtilityAi.Compass.WeatherModule/    # Example standalone module
-│   └── UtilityAi.Compass.Cli/              # CLI entry point, RequestProcessor,
+│   ├── UtilityAi.VitruvianHitl/             # ConsoleApprovalGate, HITL facts
+│   ├── UtilityAi.VitruvianWeatherModule/    # Example standalone module
+│   └── UtilityAi.VitruvianCli/              # CLI entry point, RequestProcessor,
 │                                            #   ContextAwareModelClient, ModelClientFactory
 ├── tests/
-│   └── UtilityAi.Compass.Tests/            # 68 xUnit tests (planner, executor, router,
+│   └── UtilityAi.VitruvianTests/            # 68 xUnit tests (planner, executor, router,
 │                                            #   modules, permissions, sandboxing, HITL)
 └── docs/
     ├── SECURITY.md                          # Security model reference

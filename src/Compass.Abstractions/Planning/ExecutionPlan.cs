@@ -1,4 +1,4 @@
-namespace Compass.Abstractions.Planning;
+namespace VitruvianAbstractions.Planning;
 
 /// <summary>
 /// A single step within a GOAP-style execution plan.

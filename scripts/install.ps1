@@ -2,7 +2,7 @@
 .SYNOPSIS
     Compass installer for Windows (PowerShell).
 .DESCRIPTION
-    Interactive setup that writes environment variables to .env.compass.
+    Interactive setup that writes environment variables to .env.Vitruvian
     Equivalent to scripts/install.sh for Linux/macOS.
 #>
 [CmdletBinding()]
@@ -73,7 +73,7 @@ function Set-ActiveProfile {
 
 if (-not [string]::IsNullOrWhiteSpace($Profile)) {
     $resolvedProfile = Resolve-ProfileName $Profile
-    $profileFile = Join-Path $RootDir ".env.compass.$resolvedProfile"
+    $profileFile = Join-Path $RootDir ".env.Vitruvian$resolvedProfile"
     if (-not (Test-Path $profileFile)) {
         throw "Profile '$resolvedProfile' does not exist yet. Create it first by running the installer without parameters."
     }
@@ -95,7 +95,7 @@ Write-Host '  3) team'
 Write-Host '  4) prod'
 $profileChoice = Read-Host '>'
 $resolvedProfile = Resolve-ProfileName $profileChoice
-$ProfileEnvFile = Join-Path $RootDir ".env.compass.$resolvedProfile"
+$ProfileEnvFile = Join-Path $RootDir ".env.Vitruvian$resolvedProfile"
 
 if ($onboardingAction -eq '2') {
     if (-not (Test-Path $ProfileEnvFile)) {
@@ -183,10 +183,10 @@ Write-Host "Configuration saved to: $EnvFile"
 Write-Host "Profile configuration saved to: $ProfileEnvFile"
 Write-Host ''
 Write-Host 'Next steps:'
-$hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Compass.sln')) -and (Test-Path (Join-Path $RootDir 'src\UtilityAi.Compass.Cli'))
+$hasSourceLayout = (Test-Path (Join-Path $RootDir 'UtilityAi.Vitruviansln')) -and (Test-Path (Join-Path $RootDir 'src\UtilityAi.VitruvianCli'))
 if ($hasSourceLayout) {
-    Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Compass.sln`""
-    Write-Host "  2. dotnet run --framework net10.0 --project `"$RootDir\src\UtilityAi.Compass.Cli`""
+    Write-Host "  1. dotnet build `"$RootDir\UtilityAi.Vitruviansln`""
+    Write-Host "  2. dotnet run --framework net10.0 --project `"$RootDir\src\UtilityAi.VitruvianCli`""
 }
 else {
     Write-Host '  1. Run: compass'

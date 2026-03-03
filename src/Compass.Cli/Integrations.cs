@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Compass.Abstractions.Interfaces;
+using VitruvianAbstractions.Interfaces;
 
-namespace Compass.Cli;
+namespace VitruvianCli;
 
 file static class IntegrationDefaults
 {

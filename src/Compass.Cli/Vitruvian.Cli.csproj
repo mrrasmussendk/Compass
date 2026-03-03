@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Compass.PluginHost\Compass.PluginHost.csproj" />
-    <ProjectReference Include="..\Compass.Hitl\Compass.Hitl.csproj" />
-    <ProjectReference Include="..\Compass.Runtime\Compass.Runtime.csproj" />
-    <ProjectReference Include="..\Compass.StandardModules\Compass.StandardModules.csproj" />
+    <ProjectReference Include="..\Compass.PluginHost\Vitruvian.PluginHost.csproj" />
+    <ProjectReference Include="..\Compass.Hitl\Vitruvian.Hitl.csproj" />
+    <ProjectReference Include="..\Compass.Runtime\Vitruvian.Runtime.csproj" />
+    <ProjectReference Include="..\Compass.StandardModules\Vitruvian.StandardModules.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,9 +18,10 @@
     <Nullable>enable</Nullable>
     <Version>0.0.1</Version>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>compass</ToolCommandName>
-    <PackageId>Compass</PackageId>
+    <ToolCommandName>vitruvian</ToolCommandName>
+    <PackageId>Vitruvian</PackageId>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RootNamespace>VitruvianCli</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
