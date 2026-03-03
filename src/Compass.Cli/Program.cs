@@ -297,12 +297,12 @@ if (modelConfiguration is null && !string.IsNullOrWhiteSpace(modelConfigurationE
 var builder = Host.CreateApplicationBuilder(args);
 var memoryConnectionString = Environment.GetEnvironmentVariable("COMPASS_MEMORY_CONNECTION_STRING");
 
-// Set up working directory - defaults to "compass-workspace" in user's home directory
+// Set up working directory - defaults to "vitruvian-workspace" in user's home directory
 var workingDirectory = Environment.GetEnvironmentVariable("COMPASS_WORKING_DIRECTORY");
 if (string.IsNullOrWhiteSpace(workingDirectory))
 {
     var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    workingDirectory = Path.Combine(homeDir, "compass-workspace");
+    workingDirectory = Path.Combine(homeDir, "vitruvian-workspace");
 }
 
 // Ensure working directory exists
