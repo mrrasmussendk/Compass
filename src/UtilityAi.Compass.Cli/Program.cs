@@ -342,9 +342,12 @@ builder.Services.AddSingleton<ICompassModule>(sp =>
 builder.Services.AddSingleton<ICompassModule>(sp =>
     new ShellCommandModule(sp.GetService<IModelClient>(), workingDirectory));
 
-// Register module router
+// Register module router with configuration options
 builder.Services.AddSingleton<ModuleRouter>(sp =>
-    new ModuleRouter(sp.GetService<IModelClient>()));
+{
+    var options = sp.GetService<Microsoft.Extensions.Options.IOptions<CompassOptions>>()?.Value?.Router ?? new RouterOptions();
+    return new ModuleRouter(sp.GetService<IModelClient>(), options);
+});
 
 var host = builder.Build();
 

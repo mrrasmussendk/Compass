@@ -54,9 +54,10 @@ public sealed class GoapPlanner
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
-            // Fall through to single-step fallback.
+            // Log and fall through to single-step fallback
+            Console.WriteLine($"[PLANNER] Plan creation failed: {ex.Message}. Falling back to single-step plan.");
         }
 
         return SingleStepPlan(planId, request, FallbackDomain(request));
@@ -93,7 +94,7 @@ public sealed class GoapPlanner
 
     private ExecutionPlan? ParsePlanResponse(string planId, string originalRequest, string response)
     {
-        var json = CleanJson(response);
+        var json = JsonUtilities.CleanMarkdownCodeFences(response);
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.ValueKind != JsonValueKind.Array)
             return null;
@@ -142,41 +143,12 @@ public sealed class GoapPlanner
 
     private string? FallbackDomain(string request)
     {
-        var lower = request.ToLowerInvariant();
-        var words = lower.Split([' ', '.', ',', '!', '?'], StringSplitOptions.RemoveEmptyEntries);
-
         var best = _modules
-            .Select(m => new { m.Domain, Score = ScoreModule(words, m.Description.ToLowerInvariant()) })
+            .Select(m => new { m.Domain, Score = TextMatchingUtilities.CalculateMatchScore(request, m.Description) })
             .OrderByDescending(x => x.Score)
             .FirstOrDefault();
 
         return best?.Score > 0 ? best.Domain : _modules.FirstOrDefault()?.Domain;
-    }
-
-    private static int ScoreModule(string[] words, string description)
-    {
-        var descWords = description.Split([' ', '.', ','], StringSplitOptions.RemoveEmptyEntries);
-        return words.Where(w => w.Length >= 3).Sum(w => descWords.Count(dw => dw.Contains(w) || w.Contains(dw)));
-    }
-
-    private static string CleanJson(string text)
-    {
-        var trimmed = text.Trim();
-        if (trimmed.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
-        {
-            trimmed = trimmed[7..];
-            var end = trimmed.IndexOf("```", StringComparison.Ordinal);
-            if (end > 0) trimmed = trimmed[..end];
-        }
-        else if (trimmed.StartsWith("```"))
-        {
-            var lines = trimmed.Split('\n');
-            if (lines.Length >= 3)
-                trimmed = string.Join('\n', lines.Skip(1).Take(lines.Length - 2));
-            else
-                trimmed = string.Join('\n', lines.Skip(1));
-        }
-        return trimmed.Trim();
     }
 
     private sealed record ModuleInfo(string Domain, string Description);

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using UtilityAi.Compass.Abstractions.Facts;
 using UtilityAi.Compass.Abstractions.Interfaces;
+using UtilityAi.Compass.Runtime.DI;
 
 namespace UtilityAi.Compass.Runtime.Routing;
 
@@ -12,10 +13,12 @@ public sealed class ModuleRouter
 {
     private readonly IModelClient? _modelClient;
     private readonly List<ModuleDescriptor> _modules = new();
+    private readonly RouterOptions _options;
 
-    public ModuleRouter(IModelClient? modelClient = null)
+    public ModuleRouter(IModelClient? modelClient = null, RouterOptions? options = null)
     {
         _modelClient = modelClient;
+        _options = options ?? new RouterOptions();
     }
 
     /// <summary>
@@ -55,22 +58,9 @@ public sealed class ModuleRouter
 
         try
         {
-            // Clean up response - remove markdown code blocks if present
-            var jsonText = response.Trim();
-            if (jsonText.StartsWith("```"))
-            {
-                var lines = jsonText.Split('\n');
-                jsonText = string.Join('\n', lines.Skip(1).Take(lines.Length - 2));
-            }
-            if (jsonText.StartsWith("```json"))
-            {
-                jsonText = jsonText.Substring(7);
-                var endIndex = jsonText.IndexOf("```");
-                if (endIndex > 0)
-                    jsonText = jsonText.Substring(0, endIndex);
-            }
+            var jsonText = JsonUtilities.CleanMarkdownCodeFences(response);
 
-            Console.WriteLine($"[ROUTER] Attempting to parse JSON: {jsonText.Trim()}");
+            Console.WriteLine($"[ROUTER] Attempting to parse JSON: {jsonText}");
 
             var options = new JsonSerializerOptions
             {
@@ -91,7 +81,9 @@ public sealed class ModuleRouter
                 Console.WriteLine($"[ROUTER] Reason: {selection.Reason}");
 
                 // Require higher confidence for non-conversation modules to avoid mis-routing
-                var requiredConfidence = selection.Domain == "conversation" ? 0.3 : 0.6;
+                var requiredConfidence = selection.Domain == "conversation"
+                    ? _options.ConversationConfidenceThreshold
+                    : _options.SpecializedConfidenceThreshold;
 
                 if (selection.Confidence >= requiredConfidence)
                 {
@@ -155,15 +147,11 @@ Return ONLY valid JSON, no extra text: {""domain"":""<domain>"",""confidence"":0
     private string? FallbackSelection(string request)
     {
         // Simple keyword matching as fallback when LLM is unavailable
-        // Score each module based on keyword overlap with request and description
-        var lowerRequest = request.ToLowerInvariant();
-        var requestWords = lowerRequest.Split(new[] { ' ', '.', ',', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
-
         var scoredModules = _modules
             .Select(m => new
             {
                 Module = m,
-                Score = CalculateMatchScore(requestWords, m.Description.ToLowerInvariant())
+                Score = TextMatchingUtilities.CalculateMatchScore(request, m.Description)
             })
             .OrderByDescending(x => x.Score)
             .ThenBy(x => x.Module.Cost) // Prefer lower cost when scores are equal
@@ -192,27 +180,6 @@ Return ONLY valid JSON, no extra text: {""domain"":""<domain>"",""confidence"":0
 
         Console.WriteLine($"[ROUTER] Fallback selected: {conversationModule} (no keyword matches)");
         return conversationModule;
-    }
-
-    private static int CalculateMatchScore(string[] requestWords, string description)
-    {
-        var descriptionWords = description.Split(new[] { ' ', '.', ',', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
-        var score = 0;
-
-        foreach (var requestWord in requestWords)
-        {
-            if (requestWord.Length < 3) continue; // Skip short words like "of", "a", "to"
-
-            foreach (var descWord in descriptionWords)
-            {
-                if (descWord.Contains(requestWord) || requestWord.Contains(descWord))
-                {
-                    score += 1;
-                }
-            }
-        }
-
-        return score;
     }
 
     private sealed record ModuleDescriptor(string Domain, string Description, double Cost, double Risk);

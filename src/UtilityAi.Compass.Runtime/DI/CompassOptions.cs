@@ -36,4 +36,27 @@ public sealed class CompassOptions
 
     /// <summary>Gets or sets the polling interval for the scheduler background service. Defaults to 15 seconds.</summary>
     public TimeSpan? SchedulerPollInterval { get; set; }
+
+    /// <summary>Gets or sets the maximum number of conversation turns to keep in memory. Defaults to 10.</summary>
+    public int MaxConversationTurns { get; set; } = 10;
+
+    /// <summary>Gets or sets the context window size (number of prior step outputs) for plan execution. Defaults to 4.</summary>
+    public int ContextWindowSize { get; set; } = 4;
+
+    /// <summary>
+    /// Router configuration settings.
+    /// </summary>
+    public RouterOptions Router { get; set; } = new();
+}
+
+/// <summary>
+/// Configuration options for module routing.
+/// </summary>
+public sealed class RouterOptions
+{
+    /// <summary>Gets or sets the minimum confidence threshold for conversation module selection. Defaults to 0.3.</summary>
+    public double ConversationConfidenceThreshold { get; set; } = 0.3;
+
+    /// <summary>Gets or sets the minimum confidence threshold for specialized module selection. Defaults to 0.6.</summary>
+    public double SpecializedConfidenceThreshold { get; set; } = 0.6;
 }

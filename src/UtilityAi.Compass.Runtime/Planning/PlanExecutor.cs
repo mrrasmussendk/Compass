@@ -35,15 +35,15 @@ public sealed class PlanExecutor
     /// </summary>
     /// <param name="modules">Map of domain → module instance.</param>
     /// <param name="approvalGate">Optional HITL gate; when provided, write/execute steps require approval.</param>
-    /// <param name="contextWindowSize">Max number of prior step outputs injected as context into subsequent steps.</param>
+    /// <param name="contextWindowSize">Max number of prior step outputs injected as context into subsequent steps. Defaults to 4.</param>
     public PlanExecutor(
         Dictionary<string, ICompassModule> modules,
         IApprovalGate? approvalGate = null,
-        int contextWindowSize = 4)
+        int? contextWindowSize = null)
     {
         _modules = modules;
         _approvalGate = approvalGate;
-        _contextWindowSize = contextWindowSize;
+        _contextWindowSize = contextWindowSize ?? 4;
     }
 
     /// <summary>
