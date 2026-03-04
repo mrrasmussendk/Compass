@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vitruvian.PluginSdk\Vitruvian.PluginSdk.csproj" />
+    <ProjectReference Include="..\Vitruvian.Abstractions\Vitruvian.Abstractions.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.1.3</Version>
+    <PackageId>Vitruvian.WeatherModule</PackageId>
+    <Description>Vitruvian plugin module that fetches current weather data from the web.</Description>
+    <RootNamespace>VitruvianWeatherModule</RootNamespace>
+  </PropertyGroup>
+
+</Project>

@@ -2,7 +2,7 @@
 
 Vitruvian is a modular, GOAP-driven AI assistant framework built on .NET. It uses **Goal-Oriented Action Planning** to decompose user requests into dependency-aware execution plans, runs independent steps in parallel, and enforces human-in-the-loop approval, caching, and memory — all before any side-effecting action fires.
 
-Third-party modules plug in via a single interface (`ICompassModule`). The host handles planning, routing, governance, and security so module authors focus only on capability logic.
+Third-party modules plug in via a single interface (`IVitruvianModule`). The host handles planning, routing, governance, and security so module authors focus only on capability logic.
 
 **Try it now:**
 
@@ -24,7 +24,7 @@ dotnet run --framework net8.0 --project src/VitruvianCli
   - [Key Components](#key-components)
   - [Execution Flow](#execution-flow)
 - [Building Your Own Module](#building-your-own-module)
-  - [Step 1: Implement ICompassModule](#step-1-implement-icompassmodule)
+  - [Step 1: Implement IVitruvianModule](#step-1-implement-iVitruvianmodule)
   - [Step 2: Register via DI](#step-2-register-via-di)
   - [Step 3: Drop-in Plugin (Optional)](#step-3-drop-in-plugin-optional)
   - [Module Best Practices](#module-best-practices)
@@ -73,31 +73,31 @@ Set environment variables for your preferred AI provider:
 
 **OpenAI:**
 ```bash
-export COMPASS_MODEL_PROVIDER=OpenAI
-export COMPASS_OPENAI_API_KEY=sk-...
-export COMPASS_MODEL_NAME=gpt-4  # Optional, defaults to gpt-4
+export VITRUVIAN_MODEL_PROVIDER=OpenAI
+export VITRUVIAN_OPENAI_API_KEY=sk-...
+export VITRUVIAN_MODEL_NAME=gpt-4  # Optional, defaults to gpt-4
 ```
 
 **Anthropic:**
 ```bash
-export COMPASS_MODEL_PROVIDER=Anthropic
-export COMPASS_ANTHROPIC_API_KEY=sk-ant-...
-export COMPASS_MODEL_NAME=claude-3-5-sonnet-20241022  # Optional
+export VITRUVIAN_MODEL_PROVIDER=Anthropic
+export VITRUVIAN_ANTHROPIC_API_KEY=sk-ant-...
+export VITRUVIAN_MODEL_NAME=claude-3-5-sonnet-20241022  # Optional
 ```
 
 **Google Gemini:**
 ```bash
-export COMPASS_MODEL_PROVIDER=Gemini
-export COMPASS_GEMINI_API_KEY=...
-export COMPASS_MODEL_NAME=gemini-2.0-flash-exp  # Optional
+export VITRUVIAN_MODEL_PROVIDER=Gemini
+export VITRUVIAN_GEMINI_API_KEY=...
+export VITRUVIAN_MODEL_NAME=gemini-2.0-flash-exp  # Optional
 ```
 
-Or create a `.env.compass` file in the project root — it is loaded automatically:
+Or create a `.env.Vitruvian` file in the project root — it is loaded automatically:
 
 ```bash
-COMPASS_MODEL_PROVIDER=OpenAI
-COMPASS_OPENAI_API_KEY=sk-...
-COMPASS_MODEL_NAME=gpt-4
+VITRUVIAN_MODEL_PROVIDER=OpenAI
+VITRUVIAN_OPENAI_API_KEY=sk-...
+VITRUVIAN_MODEL_NAME=gpt-4
 ```
 
 ### Run Vitruvian
@@ -109,7 +109,7 @@ dotnet run --project src/VitruvianCli
 ```
 Vitruvian CLI started. Type a request (or 'quit' to exit):
 Model provider configured: OpenAi (gpt-4)
-Working directory: ~/compass-workspace
+Working directory: ~/Vitruvian-workspace
 >
 ```
 
@@ -133,7 +133,7 @@ Try some requests:
 | **Plan Memory** | Every completed plan and its results are stored in memory for future reference and context. |
 | **Context Window** | A sliding window of recent step outputs is injected into downstream steps, giving each step awareness of prior results. |
 | **Conversation History** | In-memory conversation history (last 10 turns) provides context-aware routing and execution across turns. |
-| **Module Extensibility** | Implement `ICompassModule`, register via DI or drop a DLL into `plugins/` — the GOAP planner discovers it automatically. |
+| **Module Extensibility** | Implement `IVitruvianModule`, register via DI or drop a DLL into `plugins/` — the GOAP planner discovers it automatically. |
 | **Security** | Linux-style permissions, HITL approval, and sandboxed execution with resource limits. |
 
 ---
@@ -185,12 +185,12 @@ Vitruvian uses a **Goal-Oriented Action Planning (GOAP)** architecture. Every us
 
 ### Key Components
 
-#### `ICompassModule` — The Module Contract
+#### `IVitruvianModule` — The Module Contract
 
 Every capability — built-in or third-party — implements this single interface:
 
 ```csharp
-public interface ICompassModule
+public interface IVitruvianModule
 {
     string Domain { get; }        // Unique identifier, e.g. "file-operations"
     string Description { get; }   // Natural language description for the planner
@@ -218,7 +218,7 @@ Groups steps into dependency waves. Steps within a wave run in parallel via `Tas
 1. **Cache check** — skip execution if an identical result exists
 2. **HITL gate** — write/delete/execute operations require human approval
 3. **Context window** — recent step outputs are injected for downstream awareness
-4. **Module execution** — delegates to `ICompassModule.ExecuteAsync`
+4. **Module execution** — delegates to `IVitruvianModule.ExecuteAsync`
 5. **Cache store** — result is cached for future reuse
 
 After all steps complete, the plan result is persisted to in-memory storage.
@@ -251,14 +251,14 @@ Uses LLM-based reasoning to select the best module for a request. Falls back to 
 
 Vitruvian is designed so that anyone can build and inject custom modules. The GOAP planner automatically discovers registered modules and includes them in planning.
 
-### Step 1: Implement `ICompassModule`
+### Step 1: Implement `IVitruvianModule`
 
 Create a class library targeting `net8.0` and reference `VitruvianAbstractions`:
 
 ```csharp
 using VitruvianAbstractions.Interfaces;
 
-public sealed class TranslationModule : ICompassModule
+public sealed class TranslationModule : IVitruvianModule
 {
     private readonly IModelClient? _modelClient;
 
@@ -286,7 +286,7 @@ public sealed class TranslationModule : ICompassModule
 Add your module to the DI container in `Program.cs`. The `RequestProcessor` picks it up automatically:
 
 ```csharp
-builder.Services.AddSingleton<ICompassModule>(sp =>
+builder.Services.AddSingleton<IVitruvianModule>(sp =>
     new TranslationModule(sp.GetService<IModelClient>()));
 ```
 
@@ -305,12 +305,12 @@ You can also use SDK attributes for governance metadata:
 ```csharp
 using VitruvianPluginSdk.Attributes;
 
-[CompassCapability("translation", priority: 5)]
-[CompassGoals(GoalTag.Answer)]
-[CompassLane(Lane.Execute)]
-[CompassCost(0.1)]
-[CompassRisk(0.0)]
-public sealed class TranslationModule : ICompassModule { /* ... */ }
+[VitruvianCapability("translation", priority: 5)]
+[VitruvianGoals(GoalTag.Answer)]
+[VitruvianLane(Lane.Execute)]
+[VitruvianCost(0.1)]
+[VitruvianRisk(0.0)]
+public sealed class TranslationModule : IVitruvianModule { /* ... */ }
 ```
 
 ### Module Best Practices
@@ -380,7 +380,7 @@ Modules declare required access using `[RequiresPermission]`. The runtime valida
 ```csharp
 [RequiresPermission(ModuleAccess.Read)]
 [RequiresPermission(ModuleAccess.Write, resource: "files/*")]
-public sealed class SecureFileModule : ICompassModule
+public sealed class SecureFileModule : IVitruvianModule
 {
     public string Domain => "secure-files";
     public string Description => "Secure file operations with declared permissions";
@@ -437,28 +437,28 @@ Default limits: 30 s CPU, 256 MB memory, 60 s wall time, no file system / networ
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `COMPASS_MODEL_PROVIDER` | AI provider: `OpenAI`, `Anthropic`, or `Gemini` | — |
-| `COMPASS_OPENAI_API_KEY` | OpenAI API key | — |
-| `COMPASS_ANTHROPIC_API_KEY` | Anthropic API key | — |
-| `COMPASS_GEMINI_API_KEY` | Google Gemini API key | — |
-| `COMPASS_MODEL_NAME` | Specific model to use | Provider default |
-| `COMPASS_WORKING_DIRECTORY` | File operations directory | `~/compass-workspace` |
-| `COMPASS_MEMORY_CONNECTION_STRING` | SQLite connection string for durable memory | In-memory |
+| `VITRUVIAN_MODEL_PROVIDER` | AI provider: `OpenAI`, `Anthropic`, or `Gemini` | — |
+| `VITRUVIAN_OPENAI_API_KEY` | OpenAI API key | — |
+| `VITRUVIAN_ANTHROPIC_API_KEY` | Anthropic API key | — |
+| `VITRUVIAN_GEMINI_API_KEY` | Google Gemini API key | — |
+| `VITRUVIAN_MODEL_NAME` | Specific model to use | Provider default |
+| `VITRUVIAN_WORKING_DIRECTORY` | File operations directory | `~/Vitruvian-workspace` |
+| `VITRUVIAN_MEMORY_CONNECTION_STRING` | SQLite connection string for durable memory | In-memory |
 
-### .env.compass File
+### .env.Vitruvian File
 
-Create a `.env.compass` file in the project root (loaded automatically):
+Create a `.env.Vitruvian` file in the project root (loaded automatically):
 
 ```bash
-COMPASS_MODEL_PROVIDER=OpenAI
-COMPASS_OPENAI_API_KEY=sk-...
-COMPASS_MODEL_NAME=gpt-4
-COMPASS_WORKING_DIRECTORY=/custom/path
+VITRUVIAN_MODEL_PROVIDER=OpenAI
+VITRUVIAN_OPENAI_API_KEY=sk-...
+VITRUVIAN_MODEL_NAME=gpt-4
+VITRUVIAN_WORKING_DIRECTORY=/custom/path
 ```
 
 ### Working Directory
 
-File operations use a dedicated directory (default: `~/compass-workspace`). Override with `COMPASS_WORKING_DIRECTORY`.
+File operations use a dedicated directory (default: `~/Vitruvian-workspace`). Override with `VITRUVIAN_WORKING_DIRECTORY`.
 
 ---
 
@@ -467,14 +467,14 @@ File operations use a dedicated directory (default: `~/compass-workspace`). Over
 ```text
 Vitruviansln
 ├── src/
-│   ├── VitruvianAbstractions/     # Core interfaces (ICompassModule, IApprovalGate,
+│   ├── VitruvianAbstractions/     # Core interfaces (IVitruvianModule, IApprovalGate,
 │   │                                        #   IModelClient), enums, facts, planning types
 │   ├── VitruvianRuntime/          # GoapPlanner, PlanExecutor, ModuleRouter,
 │   │                                        #   PermissionChecker, CompoundRequestOrchestrator
 │   ├── VitruvianStandardModules/  # Built-in modules (File, Conversation, Web,
 │   │                                        #   Summarization, Gmail, Shell)
 │   ├── VitruvianPluginSdk/        # SDK attributes for module metadata
-│   │                                        #   (CompassCapability, CompassGoals, etc.)
+│   │                                        #   (VitruvianCapability, VitruvianGoals, etc.)
 │   ├── VitruvianPluginHost/       # Plugin loading via AssemblyLoadContext,
 │   │                                        #   SandboxedModuleRunner
 │   ├── VitruvianHitl/             # ConsoleApprovalGate, HITL facts

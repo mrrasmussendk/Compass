@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Compass installer for Windows (PowerShell).
+    Vitruvian installer for Windows (PowerShell).
 .DESCRIPTION
     Interactive setup that writes environment variables to .env.Vitruvian
     Equivalent to scripts/install.sh for Linux/macOS.
@@ -13,8 +13,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $RootDir = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
-$EnvFile = Join-Path $RootDir '.env.compass'
-$DefaultSqliteFileConnection = 'Data Source=appdb/compass-memory.db'
+$EnvFile = Join-Path $RootDir '.env.Vitruvian'
+$DefaultSqliteFileConnection = 'Data Source=appdb/Vitruvian-memory.db'
 
 function Resolve-ProfileName {
     param([string]$Value)
@@ -67,7 +67,7 @@ function Get-CachedValue {
 function Set-ActiveProfile {
     param([string]$Name)
     @(
-        "`$env:COMPASS_PROFILE='$Name'"
+        "`$env:VITRUVIAN_PROFILE='$Name'"
     ) | Set-Content -Path $EnvFile -Encoding UTF8
 }
 
@@ -83,7 +83,7 @@ if (-not [string]::IsNullOrWhiteSpace($Profile)) {
     exit 0
 }
 
-Write-Host 'Compass installer'
+Write-Host 'Vitruvian installer'
 Write-Host 'Select onboarding action:'
 Write-Host '  1) Create/update profile configuration'
 Write-Host '  2) Switch active profile'
@@ -153,17 +153,17 @@ switch ($storageChoice) {
     '1' { $memoryConnection = $DefaultSqliteFileConnection }
     ''  { $memoryConnection = $DefaultSqliteFileConnection }
     '2' {
-        $memoryConnection = Read-Host 'Enter COMPASS_MEMORY_CONNECTION_STRING'
+        $memoryConnection = Read-Host 'Enter VITRUVIAN_MEMORY_CONNECTION_STRING'
         if ([string]::IsNullOrWhiteSpace($memoryConnection)) { throw 'A third-party connection string is required for this option.' }
     }
     default { throw 'Invalid storage choice' }
 }
 
 $lines = @(
-    "`$env:COMPASS_MODEL_PROVIDER='$provider'"
+    "`$env:VITRUVIAN_MODEL_PROVIDER='$provider'"
     "`$env:${keyName}='$apiKey'"
-    "`$env:COMPASS_MODEL_NAME='$selectedModel'"
-    "`$env:COMPASS_MEMORY_CONNECTION_STRING='$memoryConnection'"
+    "`$env:VITRUVIAN_MODEL_NAME='$selectedModel'"
+    "`$env:VITRUVIAN_MEMORY_CONNECTION_STRING='$memoryConnection'"
 )
 
 if ($deployChoice -eq '2') {
@@ -176,15 +176,15 @@ if ($deployChoice -eq '2') {
     $lines += "`$env:DISCORD_CHANNEL_ID='$discordChannel'"
 }
 elseif ($deployChoice -eq '3') {
-    $webSocketUrl = Read-Host 'Enter COMPASS_WEBSOCKET_URL [ws://0.0.0.0:5005/compass/]'
-    if ([string]::IsNullOrWhiteSpace($webSocketUrl)) { $webSocketUrl = 'ws://0.0.0.0:5005/compass/' }
-    $webSocketPublicUrl = Read-Host "Enter COMPASS_WEBSOCKET_PUBLIC_URL [$webSocketUrl]"
+    $webSocketUrl = Read-Host 'Enter VITRUVIAN_WEBSOCKET_URL [ws://0.0.0.0:5005/Vitruvian/]'
+    if ([string]::IsNullOrWhiteSpace($webSocketUrl)) { $webSocketUrl = 'ws://0.0.0.0:5005/Vitruvian/' }
+    $webSocketPublicUrl = Read-Host "Enter VITRUVIAN_WEBSOCKET_PUBLIC_URL [$webSocketUrl]"
     if ([string]::IsNullOrWhiteSpace($webSocketPublicUrl)) { $webSocketPublicUrl = $webSocketUrl }
-    $webSocketDomain = Read-Host 'Enter COMPASS_WEBSOCKET_DOMAIN [dev]'
+    $webSocketDomain = Read-Host 'Enter VITRUVIAN_WEBSOCKET_DOMAIN [dev]'
     if ([string]::IsNullOrWhiteSpace($webSocketDomain)) { $webSocketDomain = 'dev' }
-    $lines += "`$env:COMPASS_WEBSOCKET_URL='$webSocketUrl'"
-    $lines += "`$env:COMPASS_WEBSOCKET_PUBLIC_URL='$webSocketPublicUrl'"
-    $lines += "`$env:COMPASS_WEBSOCKET_DOMAIN='$webSocketDomain'"
+    $lines += "`$env:VITRUVIAN_WEBSOCKET_URL='$webSocketUrl'"
+    $lines += "`$env:VITRUVIAN_WEBSOCKET_PUBLIC_URL='$webSocketPublicUrl'"
+    $lines += "`$env:VITRUVIAN_WEBSOCKET_DOMAIN='$webSocketDomain'"
 }
 
 $lines | Set-Content -Path $ProfileEnvFile -Encoding UTF8
@@ -201,11 +201,11 @@ if ($hasSourceLayout) {
     Write-Host "  2. dotnet run --framework net10.0 --project `"$RootDir\src\VitruvianCli`""
 }
 else {
-    Write-Host '  1. Run: compass'
+    Write-Host '  1. Run: Vitruvian'
     Write-Host '  2. Use /help to view available commands.'
 }
 Write-Host ''
-Write-Host 'The host loads .env.compass automatically — no need to source the file.'
+Write-Host 'The host loads .env.Vitruvian automatically — no need to source the file.'
 Write-Host 'To switch profiles quickly, run: .\scripts\install.ps1 -Profile <dev|personal|team|prod>'
 Write-Host 'If Discord variables are configured, the host will start in Discord mode automatically.'
-Write-Host 'If COMPASS_WEBSOCKET_URL is configured, the host will start in WebSocket mode before Discord mode.'
+Write-Host 'If VITRUVIAN_WEBSOCKET_URL is configured, the host will start in WebSocket mode before Discord mode.'

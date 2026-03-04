@@ -2,31 +2,31 @@
 
 ## Audit
 
-- `compass audit list`
-- `compass audit show <id> [--json]`
-- `compass --audit list` / `compass --audit show <id> [--json]` (alias form)
+- `Vitruvian audit list`
+- `Vitruvian audit show <id> [--json]`
+- `Vitruvian --audit list` / `Vitruvian --audit show <id> [--json]` (alias form)
 
-Audit data is read from `COMPASS_MEMORY_CONNECTION_STRING` when configured for SQLite.
+Audit data is read from `VITRUVIAN_MEMORY_CONNECTION_STRING` when configured for SQLite.
 
 ### Typical flow
 
 1. Configure memory:
-   - `COMPASS_MEMORY_CONNECTION_STRING=Data Source=/path/to/compass.db;Pooling=False`
-2. Run requests in Compass.
-3. List records with `compass audit list`.
-4. Inspect one record with `compass audit show <id> --json`.
+   - `VITRUVIAN_MEMORY_CONNECTION_STRING=Data Source=/path/to/Vitruvian.db;Pooling=False`
+2. Run requests in Vitruvian.
+3. List records with `Vitruvian audit list`.
+4. Inspect one record with `Vitruvian audit show <id> --json`.
 
 ## Replay
 
-- `compass replay <id> [--no-exec]`
-- `compass --replay <id> [--no-exec]` (alias form)
+- `Vitruvian replay <id> [--no-exec]`
+- `Vitruvian --replay <id> [--no-exec]` (alias form)
 
 Replay is selection-focused and defaults to no side effects in this build.
 
 ## Doctor
 
-- `compass doctor [--json]`
-- `compass --doctor [--json]` (alias form)
+- `Vitruvian doctor [--json]`
+- `Vitruvian --doctor [--json]` (alias form)
 
 Doctor reports operational posture findings such as:
 
@@ -36,6 +36,6 @@ Doctor reports operational posture findings such as:
 
 ### Recommended operator baseline
 
-- Set `COMPASS_MEMORY_CONNECTION_STRING`
-- Set `COMPASS_SECRET_PROVIDER`
-- Run `compass doctor --json` in CI to fail or alert on insecure posture
+- Set `VITRUVIAN_MEMORY_CONNECTION_STRING`
+- Set `VITRUVIAN_SECRET_PROVIDER`
+- Run `Vitruvian doctor --json` in CI to fail or alert on insecure posture

@@ -1,6 +1,6 @@
 # Compound Request Handling
 
-Compass supports **compound requests** — user messages that contain multiple independent intents in a single sentence.
+Vitruvian supports **compound requests** — user messages that contain multiple independent intents in a single sentence.
 
 ## Example
 
@@ -76,7 +76,7 @@ The LLM returns a JSON array:
 
 ### Per-Sub-Task Execution
 
-Each sub-task runs through the **complete** Compass pipeline independently:
+Each sub-task runs through the **complete** Vitruvian pipeline independently:
 
 1. **Sensors** classify the sub-task's intent (GoalTag) and lane
 2. **Modules** propose actions based on the classified intent

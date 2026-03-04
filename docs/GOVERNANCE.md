@@ -1,6 +1,6 @@
 # Governance
 
-Compass executes proposals through an explicit governance pipeline:
+Vitruvian executes proposals through an explicit governance pipeline:
 
 1. Proposal generation
 2. Goal/lane and workflow filtering
@@ -35,9 +35,9 @@ This keeps behavior stable under noisy utility differences.
 
 Each CLI execution path now surfaces a deterministic explanation source:
 
-- `compass inspect-module` explains manifest/signing/capability findings
-- `compass policy explain <request>` reports matching default policy behavior
-- `compass audit list` / `compass audit show` expose persisted execution records
+- `Vitruvian inspect-module` explains manifest/signing/capability findings
+- `Vitruvian policy explain <request>` reports matching default policy behavior
+- `Vitruvian audit list` / `Vitruvian audit show` expose persisted execution records
 
 This preserves compatibility while adding additive governance entry points.
 

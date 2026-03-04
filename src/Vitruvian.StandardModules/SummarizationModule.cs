@@ -1,0 +1,42 @@
+using VitruvianAbstractions;
+using VitruvianAbstractions.Interfaces;
+using VitruvianPluginSdk.Attributes;
+
+namespace VitruvianStandardModules;
+
+/// <summary>
+/// Summarization module implementing IVitruvianModule.
+/// Summarizes text, conversations, or documents into concise overviews.
+/// </summary>
+[RequiresPermission(ModuleAccess.Read)]
+public sealed class SummarizationModule : IVitruvianModule
+{
+    private readonly IModelClient? _modelClient;
+
+    public string Domain => "summarization";
+    public string Description => "Summarize text, conversations, or documents into concise overviews";
+
+    public SummarizationModule(IModelClient? modelClient = null)
+    {
+        _modelClient = modelClient;
+    }
+
+    public async Task<string> ExecuteAsync(string request, string? userId, CancellationToken ct)
+    {
+        if (_modelClient is null)
+            return "No model configured. Run 'Vitruvian --setup' or scripts/install.sh (Linux/macOS) / scripts/install.ps1 (Windows).";
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        var systemMessage = "You are a summarization assistant. Provide a clear and concise summary of the content the user provides, including key points.";
+
+        var response = await _modelClient.CompleteAsync(
+            systemMessage: systemMessage,
+            userMessage: request,
+            cancellationToken: ct);
+
+        Console.WriteLine($"[PERF]   SimpleSummarization LLM call: {sw.ElapsedMilliseconds}ms");
+
+        return response;
+    }
+}

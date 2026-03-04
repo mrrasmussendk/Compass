@@ -1,11 +1,11 @@
 # Policy
 
-Compass supports additive policy commands:
+Vitruvian supports additive policy commands:
 
-- `compass policy validate <policyFile>`
-- `compass policy explain <request>`
-- `compass --policy validate <policyFile>` (alias form)
-- `compass --policy explain <request>` (alias form)
+- `Vitruvian policy validate <policyFile>`
+- `Vitruvian policy explain <request>`
+- `Vitruvian --policy validate <policyFile>` (alias form)
+- `Vitruvian --policy explain <request>` (alias form)
 
 ## Validation schema (current minimum)
 
@@ -40,7 +40,7 @@ Requests containing `write`, `update`, or `delete` are treated as approval-requi
 ## Example
 
 ```bash
-compass policy explain "delete build artifacts under /tmp"
+Vitruvian policy explain "delete build artifacts under /tmp"
 ```
 
 Expected output:

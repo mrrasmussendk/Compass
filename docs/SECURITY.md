@@ -1,6 +1,6 @@
 # Security
 
-Compass implements a layered security model spanning **module permissions**, **human-in-the-loop approval**, **module sandboxing**, and **installation controls**. Every layer follows a **deny-by-default** posture — modules must explicitly declare what they need, and the runtime enforces those declarations before execution.
+Vitruvian implements a layered security model spanning **module permissions**, **human-in-the-loop approval**, **module sandboxing**, and **installation controls**. Every layer follows a **deny-by-default** posture — modules must explicitly declare what they need, and the runtime enforces those declarations before execution.
 
 ---
 
@@ -17,7 +17,7 @@ Compass implements a layered security model spanning **module permissions**, **h
 
 ## Permission Model
 
-Compass enforces a Linux-style **user / group / other** permission system for module execution. Modules declare the access levels they require via attributes, and the runtime validates those declarations against the active `IPermissionContext` before execution.
+Vitruvian enforces a Linux-style **user / group / other** permission system for module execution. Modules declare the access levels they require via attributes, and the runtime validates those declarations against the active `IPermissionContext` before execution.
 
 ### Access Levels
 
@@ -32,21 +32,21 @@ The `ModuleAccess` flags enum defines three permission levels that can be combin
 
 ### Declaring Permissions
 
-Modules declare required permissions using the `[RequiresPermission]` attribute from `UtilityAi.Compass.PluginSdk`:
+Modules declare required permissions using the `[RequiresPermission]` attribute from `UtilityAi.Vitruvian.PluginSdk`:
 
 ```csharp
-using UtilityAi.Compass.PluginSdk.Attributes;
+using UtilityAi.Vitruvian.PluginSdk.Attributes;
 
 [RequiresPermission(ModuleAccess.Read)]
 [RequiresPermission(ModuleAccess.Write, resource: "files/*")]
-public sealed class MyFileModule : ICompassModule { /* ... */ }
+public sealed class MyFileModule : IVitruvianModule { /* ... */ }
 ```
 
 The attribute supports an optional `resource` parameter for scoping permissions to specific paths or patterns.
 
 ### Runtime Enforcement
 
-`PermissionChecker` (in `UtilityAi.Compass.Runtime`) reads the `[RequiresPermission]` attributes from the module type and validates them against the current `IPermissionContext`:
+`PermissionChecker` (in `UtilityAi.Vitruvian.Runtime`) reads the `[RequiresPermission]` attributes from the module type and validates them against the current `IPermissionContext`:
 
 ```csharp
 var checker = new PermissionChecker(permissionContext);
@@ -110,7 +110,7 @@ Module requests operation
 
 ### Console Implementation
 
-`ConsoleApprovalGate` (in `UtilityAi.Compass.Hitl`) provides a CLI-based approval prompt:
+`ConsoleApprovalGate` (in `UtilityAi.Vitruvian.Hitl`) provides a CLI-based approval prompt:
 
 ```csharp
 IApprovalGate gate = new ConsoleApprovalGate(
@@ -169,7 +169,7 @@ The `ISandboxPolicy` interface defines the constraints for sandboxed execution:
 
 ### Sandboxed Execution
 
-`SandboxedModuleRunner` (in `UtilityAi.Compass.PluginHost`) enforces the sandbox policy during module execution:
+`SandboxedModuleRunner` (in `UtilityAi.Vitruvian.PluginHost`) enforces the sandbox policy during module execution:
 
 ```csharp
 var policy = new DefaultSandboxPolicy
@@ -202,15 +202,15 @@ context.Unload(); // Release when done
 
 ## Installation Controls
 
-Compass defaults to deny-by-default module installation protections:
+Vitruvian defaults to deny-by-default module installation protections:
 
-- Required plugin manifest: `compass-manifest.json`
+- Required plugin manifest: `Vitruvian-manifest.json`
 - Unsigned assemblies are blocked by default
 - Override for local development only: `--allow-unsigned`
 
 ### Manifest Schema
 
-`compass-manifest.json` must include:
+`Vitruvian-manifest.json` must include:
 
 | Field | Type | Required |
 |-------|------|----------|
@@ -232,9 +232,9 @@ Optional fields:
 ### Install Behavior
 
 - **`.dll` install**: Must contain a UtilityAI module type, manifest must exist alongside the DLL, required secrets must be set or entered at the install prompt, and the assembly must be signed unless `--allow-unsigned` is passed.
-- **`.nupkg` install**: Must contain compatible assemblies, the package root must contain `compass-manifest.json`, and the same signing and secrets requirements apply.
+- **`.nupkg` install**: Must contain compatible assemblies, the package root must contain `Vitruvian-manifest.json`, and the same signing and secrets requirements apply.
 
-Secrets entered at the install prompt are scoped to the current Compass process only.
+Secrets entered at the install prompt are scoped to the current Vitruvian process only.
 
 ---
 
@@ -243,8 +243,8 @@ Secrets entered at the install prompt are scoped to the current Compass process 
 Use the `inspect-module` command to review a module's security posture before installation:
 
 ```bash
-compass inspect-module <path|package@version>
-compass inspect-module <path|package@version> --json
+Vitruvian inspect-module <path|package@version>
+Vitruvian inspect-module <path|package@version> --json
 ```
 
 Inspection reports include:

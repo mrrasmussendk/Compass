@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_FILE="$ROOT_DIR/.env.compass"
-DEFAULT_SQLITE_FILE_CONNECTION="Data Source=appdb/compass-memory.db"
+ENV_FILE="$ROOT_DIR/.env.Vitruvian"
+DEFAULT_SQLITE_FILE_CONNECTION="Data Source=appdb/Vitruvian-memory.db"
 HAS_SOURCE_LAYOUT="false"
 if [[ -f "$ROOT_DIR/Vitruviansln" && -d "$ROOT_DIR/src/VitruvianCli" ]]; then
   HAS_SOURCE_LAYOUT="true"
@@ -51,7 +51,7 @@ read_cached_value() {
 write_active_profile() {
   local profile_name="$1"
   {
-    echo "export COMPASS_PROFILE=${profile_name}"
+    echo "export VITRUVIAN_PROFILE=${profile_name}"
   } > "$ENV_FILE"
 }
 
@@ -68,7 +68,7 @@ if [[ $# -ge 1 ]]; then
   exit 0
 fi
 
-echo "Compass installer"
+echo "Vitruvian installer"
 echo "Select onboarding action:"
 echo "  1) Create/update profile configuration"
 echo "  2) Switch active profile"
@@ -150,7 +150,7 @@ case "$storage_choice" in
     memory_connection="$DEFAULT_SQLITE_FILE_CONNECTION"
     ;;
   2)
-    read -r -p "Enter COMPASS_MEMORY_CONNECTION_STRING: " memory_connection
+    read -r -p "Enter VITRUVIAN_MEMORY_CONNECTION_STRING: " memory_connection
     if [[ -z "${memory_connection}" ]]; then
       echo "A third-party connection string is required for this option."
       exit 1
@@ -163,10 +163,10 @@ case "$storage_choice" in
 esac
 
 {
-  echo "export COMPASS_MODEL_PROVIDER=${provider}"
+  echo "export VITRUVIAN_MODEL_PROVIDER=${provider}"
   echo "export ${key_name}=${api_key}"
-  echo "export COMPASS_MODEL_NAME=${selected_model}"
-  echo "export COMPASS_MEMORY_CONNECTION_STRING='${memory_connection}'"
+  echo "export VITRUVIAN_MODEL_NAME=${selected_model}"
+  echo "export VITRUVIAN_MEMORY_CONNECTION_STRING='${memory_connection}'"
 } > "$profile_env_file"
 
 if [[ "$deploy_choice" == "2" ]]; then
@@ -181,16 +181,16 @@ if [[ "$deploy_choice" == "2" ]]; then
     echo "export DISCORD_CHANNEL_ID=${discord_channel}"
   } >> "$profile_env_file"
 elif [[ "$deploy_choice" == "3" ]]; then
-  read -r -p "Enter COMPASS_WEBSOCKET_URL [ws://0.0.0.0:5005/compass/]: " websocket_url
-  websocket_url="${websocket_url:-ws://0.0.0.0:5005/compass/}"
-  read -r -p "Enter COMPASS_WEBSOCKET_PUBLIC_URL [${websocket_url}]: " websocket_public_url
+  read -r -p "Enter VITRUVIAN_WEBSOCKET_URL [ws://0.0.0.0:5005/Vitruvian/]: " websocket_url
+  websocket_url="${websocket_url:-ws://0.0.0.0:5005/Vitruvian/}"
+  read -r -p "Enter VITRUVIAN_WEBSOCKET_PUBLIC_URL [${websocket_url}]: " websocket_public_url
   websocket_public_url="${websocket_public_url:-$websocket_url}"
-  read -r -p "Enter COMPASS_WEBSOCKET_DOMAIN [dev]: " websocket_domain
+  read -r -p "Enter VITRUVIAN_WEBSOCKET_DOMAIN [dev]: " websocket_domain
   websocket_domain="${websocket_domain:-dev}"
   {
-    echo "export COMPASS_WEBSOCKET_URL=${websocket_url}"
-    echo "export COMPASS_WEBSOCKET_PUBLIC_URL=${websocket_public_url}"
-    echo "export COMPASS_WEBSOCKET_DOMAIN=${websocket_domain}"
+    echo "export VITRUVIAN_WEBSOCKET_URL=${websocket_url}"
+    echo "export VITRUVIAN_WEBSOCKET_PUBLIC_URL=${websocket_public_url}"
+    echo "export VITRUVIAN_WEBSOCKET_DOMAIN=${websocket_domain}"
   } >> "$profile_env_file"
 fi
 
@@ -211,15 +211,15 @@ if [[ "$HAS_SOURCE_LAYOUT" == "true" ]]; then
 EOF
 else
   cat <<EOF
-  1. Run: compass
+  1. Run: Vitruvian
   2. Use /help to view available commands.
 EOF
 fi
 
 cat <<EOF
 
-The host loads .env.compass automatically — no need to source the file.
+The host loads .env.Vitruvian automatically — no need to source the file.
 To switch profiles quickly, run: ./scripts/install.sh <dev|personal|team|prod>
 If Discord variables are configured, the host will start in Discord mode automatically.
-If COMPASS_WEBSOCKET_URL is configured, the host will start in WebSocket mode before Discord mode.
+If VITRUVIAN_WEBSOCKET_URL is configured, the host will start in WebSocket mode before Discord mode.
 EOF

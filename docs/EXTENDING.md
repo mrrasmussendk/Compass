@@ -1,24 +1,24 @@
-# Extending UtilityAi.Compass
+# Extending UtilityAi.Vitruvian
 
-This guide is for plugin authors extending Compass with new capabilities.
+This guide is for plugin authors extending Vitruvian with new capabilities.
 
 ## 1) Create a plugin project
 
 1. Create a `net10.0` class library
-2. Reference `UtilityAi.Compass.PluginSdk`
+2. Reference `UtilityAi.Vitruvian.PluginSdk`
 3. Implement `ICapabilityModule` (optionally `ISensor` / `ICliAction`)
 
 ## 2) Annotate capability metadata
 
 Use SDK attributes so governance can route and score proposals:
 
-- `CompassCapability`
-- `CompassGoals`
-- `CompassLane`
-- `CompassCost`
-- `CompassRisk`
-- `CompassCooldown`
-- `CompassConflicts`
+- `VitruvianCapability`
+- `VitruvianGoals`
+- `VitruvianLane`
+- `VitruvianCost`
+- `VitruvianRisk`
+- `VitruvianCooldown`
+- `VitruvianConflicts`
 
 ## 3) Declare permissions
 
@@ -27,8 +27,8 @@ required permissions using the `[RequiresPermission]` attribute. The runtime
 enforces these declarations before execution — undeclared access is denied.
 
 ```csharp
-using UtilityAi.Compass.Abstractions;
-using UtilityAi.Compass.PluginSdk.Attributes;
+using UtilityAi.Vitruvian.Abstractions;
+using UtilityAi.Vitruvian.PluginSdk.Attributes;
 
 [RequiresPermission(ModuleAccess.Read)]
 [RequiresPermission(ModuleAccess.Write, resource: "files/*")]
@@ -54,7 +54,7 @@ enforcement model and runtime API.
 Build/publish the plugin and place outputs in a `plugins/` folder next to the host executable, or install via CLI:
 
 ```bash
-compass --install-module /absolute/path/MyPlugin.dll
+Vitruvian --install-module /absolute/path/MyPlugin.dll
 ```
 
 ## 5) Example

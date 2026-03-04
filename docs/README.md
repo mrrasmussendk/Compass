@@ -1,12 +1,12 @@
-# UtilityAi.Compass
+# UtilityAi.Vitruvian
 
 A modular orchestration framework built on top of [UtilityAi](https://github.com/mrrasmussendk/UtilityAi) that adds governance, plugin hosting, goal routing, and human-in-the-loop support.
 
 ## Documentation paths
 
-- **Using Compass**: [USING.md](USING.md)
-- **Extending Compass**: [EXTENDING.md](EXTENDING.md)
-- **Contributing to Compass**: [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Using Vitruvian**: [USING.md](USING.md)
+- **Extending Vitruvian**: [EXTENDING.md](EXTENDING.md)
+- **Contributing to Vitruvian**: [CONTRIBUTING.md](CONTRIBUTING.md)
 - **Installation details**: [INSTALL.md](INSTALL.md)
 - **Governance pipeline**: [GOVERNANCE.md](GOVERNANCE.md)
 - **Policy reference**: [POLICY.md](POLICY.md)
@@ -21,20 +21,20 @@ See [INSTALL.md](INSTALL.md) for prerequisites, setup, and step-by-step installa
 
 | Project | Description |
 |---|---|
-| `UtilityAi.Compass.Abstractions` | Shared enums, facts, and interfaces |
-| `UtilityAi.Compass.Runtime` | Core sensors, modules, selection strategy, DI extensions |
-| `UtilityAi.Compass.PluginSdk` | Attributes and metadata provider for plugin authors |
-| `UtilityAi.Compass.PluginHost` | Assembly-based plugin loader and DI integration |
-| `UtilityAi.Compass.Hitl` | Human-in-the-loop gate module and facts |
-| `UtilityAi.Compass.StandardModules` | Built-in reusable capability modules |
-| `UtilityAi.Compass.WeatherModule` | Example weather-focused module |
-| `UtilityAi.Compass.Cli` | CLI host/tooling and module workflows |
-| `UtilityAi.Compass.Cli` | Console host and primary entry point |
+| `UtilityAi.Vitruvian.Abstractions` | Shared enums, facts, and interfaces |
+| `UtilityAi.Vitruvian.Runtime` | Core sensors, modules, selection strategy, DI extensions |
+| `UtilityAi.Vitruvian.PluginSdk` | Attributes and metadata provider for plugin authors |
+| `UtilityAi.Vitruvian.PluginHost` | Assembly-based plugin loader and DI integration |
+| `UtilityAi.Vitruvian.Hitl` | Human-in-the-loop gate module and facts |
+| `UtilityAi.Vitruvian.StandardModules` | Built-in reusable capability modules |
+| `UtilityAi.Vitruvian.WeatherModule` | Example weather-focused module |
+| `UtilityAi.Vitruvian.Cli` | CLI host/tooling and module workflows |
+| `UtilityAi.Vitruvian.Cli` | Console host and primary entry point |
 
 ## Quick Start
 
 ```csharp
-builder.Services.AddUtilityAiCompass(opts =>
+builder.Services.AddUtilityAiVitruvian(opts =>
 {
     opts.EnableGovernanceFinalizer = true;
 });
@@ -47,13 +47,13 @@ builder.Services.AddSingleton<IProposalMetadataProvider>(sp =>
 
 - **GoalTag**: Classifies user intent (Answer, Clarify, Summarize, Execute, Approve, Stop)
 - **Lane**: Routes proposals to processing pipelines (Interpret, Plan, Execute, Communicate, Safety, Housekeeping)
-- **CompassGovernedSelectionStrategy**: Selects proposals based on goal/lane filtering, conflict resolution, cooldowns, and cost/risk penalties
+- **VitruvianGovernedSelectionStrategy**: Selects proposals based on goal/lane filtering, conflict resolution, cooldowns, and cost/risk penalties
 - **PluginLoader**: Discovers `ICapabilityModule`, `ISensor`, `IOrchestrationSink`, and `ICliAction` implementations from assemblies
 - **HitlGateModule**: Intercepts destructive requests (delete, deploy, override) and routes them through a human approval channel
 
 ## CLI Actions
 
-Compass provides discoverable command-line **read**, **write**, and **update** actions that integrate with the shared UtilityAI intent detection and routing pipeline.
+Vitruvian provides discoverable command-line **read**, **write**, and **update** actions that integrate with the shared UtilityAI intent detection and routing pipeline.
 
 ### CliVerb Enum
 
@@ -70,8 +70,8 @@ Classifies CLI operations:
 Implement `ICliAction` to define a discoverable CLI action:
 
 ```csharp
-using UtilityAi.Compass.Abstractions;
-using UtilityAi.Compass.Abstractions.CliAction;
+using UtilityAi.Vitruvian.Abstractions;
+using UtilityAi.Vitruvian.Abstractions.CliAction;
 
 public class ReadConfigAction : ICliAction
 {
@@ -90,18 +90,18 @@ The `CliIntentSensor` automatically detects read/write/update intent from user i
 
 ### Routing
 
-The `CliActionModule` proposes matching `ICliAction` instances as UtilityAI `Proposal` objects. Actions are scored based on verb match and route match, then selected through the standard `CompassGovernedSelectionStrategy` (with goal/lane filtering, conflict resolution, cooldowns, and cost/risk penalties).
+The `CliActionModule` proposes matching `ICliAction` instances as UtilityAI `Proposal` objects. Actions are scored based on verb match and route match, then selected through the standard `VitruvianGovernedSelectionStrategy` (with goal/lane filtering, conflict resolution, cooldowns, and cost/risk penalties).
 
 ### Using CLI Actions from Plugins
 
 Plugins can define CLI actions by implementing `ICliAction`. These are automatically discovered by the `PluginLoader` and registered in the DI container:
 
 ```csharp
-using UtilityAi.Compass.Abstractions;
-using UtilityAi.Compass.Abstractions.CliAction;
-using UtilityAi.Compass.PluginSdk.Attributes;
+using UtilityAi.Vitruvian.Abstractions;
+using UtilityAi.Vitruvian.Abstractions.CliAction;
+using UtilityAi.Vitruvian.PluginSdk.Attributes;
 
-[CompassCliVerb(CliVerb.Write, "users")]
+[VitruvianCliVerb(CliVerb.Write, "users")]
 public class CreateUserAction : ICliAction
 {
     public CliVerb Verb => CliVerb.Write;

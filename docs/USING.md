@@ -1,6 +1,6 @@
-# Using UtilityAi.Compass
+# Using UtilityAi.Vitruvian
 
-This guide is for running Compass as a host application.
+This guide is for running Vitruvian as a host application.
 
 ## 1) Install and configure
 
@@ -9,12 +9,12 @@ Follow [INSTALL.md](INSTALL.md) for prerequisites, build/test, and provider setu
 ## 2) Run the main host
 
 ```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
+dotnet run --framework net10.0 --project src/UtilityAi.Vitruvian.Cli
 ```
 
 ## 3) Understand runtime behavior
 
-For each request, Compass:
+For each request, Vitruvian:
 
 1. Uses sensors to classify intent (`GoalTag`) and routing (`Lane`)
 2. Collects proposals from built-in and plugin modules
@@ -26,18 +26,18 @@ For each request, Compass:
 Run the CLI:
 
 ```bash
-dotnet run --framework net10.0 --project src/UtilityAi.Compass.Cli
+dotnet run --framework net10.0 --project src/UtilityAi.Vitruvian.Cli
 ```
 
 Common commands:
 
 ```bash
-compass --setup
-compass --list-modules
-compass --install-module /absolute/path/MyPlugin.dll
+Vitruvian --setup
+Vitruvian --list-modules
+Vitruvian --install-module /absolute/path/MyPlugin.dll
 ```
 
-If a plugin manifest includes `requiredSecrets`, Compass prompts for missing values during interactive install and fails installation when a required value is not supplied.
+If a plugin manifest includes `requiredSecrets`, Vitruvian prompts for missing values during interactive install and fails installation when a required value is not supplied.
 
 Example Gmail prompts you can try in the main host:
 
@@ -46,7 +46,7 @@ Example Gmail prompts you can try in the main host:
 
 ## 5) Compound requests
 
-Compass handles compound requests automatically when a model client is configured. You can combine multiple independent tasks in a single message:
+Vitruvian handles compound requests automatically when a model client is configured. You can combine multiple independent tasks in a single message:
 
 - `create file u.txt with gold then give me the colors of the rainbow`
 - `write hello to greeting.txt and then summarize today's news`

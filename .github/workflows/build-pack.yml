@@ -44,10 +44,10 @@ jobs:
           from pathlib import Path
 
           projects = [
-              Path("src/Compass.Abstractions/Vitruvian.Abstractions.csproj"),
-              Path("src/Compass.PluginSdk/Vitruvian.PluginSdk.csproj"),
-              Path("src/Compass.Cli/Vitruvian.Cli.csproj"),
-              Path("src/Compass.WeatherModule/Vitruvian.WeatherModule.csproj"),
+              Path("src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj"),
+              Path("src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj"),
+              Path("src/Vitruvian.Cli/Vitruvian.Cli.csproj"),
+              Path("src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj"),
           ]
 
           for project in projects:
@@ -98,7 +98,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/Compass.Abstractions/Vitruvian.Abstractions.csproj src/Compass.PluginSdk/Vitruvian.PluginSdk.csproj src/Compass.Cli/Vitruvian.Cli.csproj src/Compass.WeatherModule/Vitruvian.WeatherModule.csproj
+          git add src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj src/Vitruvian.Cli/Vitruvian.Cli.csproj src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj
           git commit -m "chore: bump package versions [skip ci]"
           git push
 
@@ -117,16 +117,16 @@ jobs:
         run: dotnet test Vitruvian.sln -c Release --no-build --filter "FullyQualifiedName!~PackagingTests"
 
       - name: Pack Vitruvian tool
-        run: dotnet pack src/Compass.Cli/Vitruvian.Cli.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.Cli/Vitruvian.Cli.csproj -c Release -o artifacts
 
       - name: Pack Abstractions SDK
-        run: dotnet pack src/Compass.Abstractions/Vitruvian.Abstractions.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj -c Release -o artifacts
 
       - name: Pack Plugin SDK
-        run: dotnet pack src/Compass.PluginSdk/Vitruvian.PluginSdk.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj -c Release -o artifacts
 
       - name: Pack Weather module
-        run: dotnet pack src/Compass.WeatherModule/Vitruvian.WeatherModule.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj -c Release -o artifacts
 
       - name: Publish to NuGet
         if: matrix.os == 'ubuntu-latest' && (inputs.bump_and_publish == true || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')))
