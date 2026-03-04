@@ -310,8 +310,12 @@ using VitruvianPluginSdk.Attributes;
 [VitruvianLane(Lane.Execute)]
 [VitruvianCost(0.1)]
 [VitruvianRisk(0.0)]
+[RequiresApiKey("TRANSLATION_API_KEY")]
 public sealed class TranslationModule : IVitruvianModule { /* ... */ }
 ```
+
+When installing a plugin, Vitruvian prompts for missing keys declared via `[RequiresApiKey(...)]`
+(and any `RequiredSecrets` in `vitruvian-manifest.json`) and sets them as environment variables for the running process.
 
 ### Module Best Practices
 
@@ -323,6 +327,8 @@ public sealed class TranslationModule : IVitruvianModule { /* ... */ }
 | **Use `sealed`** | Mark your module class as `sealed` unless inheritance is intentional. |
 | **Keep `ExecuteAsync` focused** | One responsibility per module. The GOAP planner handles orchestration across modules. |
 | **Declare permissions** | Use `[RequiresPermission]` to declare what access your module needs. The runtime enforces this before execution. |
+| **Declare external secrets** | Use `[RequiresApiKey("MY_API_KEY")]` (repeatable) so installer can prompt for missing keys at install time. |
+| **Load local skills with fallback** | Use `ModuleSkillLoader.LoadMarkdownSkill(...)` to load local `.md` skill files from common paths, with a default fallback string. |
 
 ---
 
