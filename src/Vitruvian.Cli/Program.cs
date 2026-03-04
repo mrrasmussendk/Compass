@@ -444,7 +444,23 @@ else
         {
             var installResult = await ModuleInstaller.InstallWithResultAsync(spec, pluginsPath, unsigned, PromptForSecret);
             Console.WriteLine($"  {installResult.Message}");
-            Console.WriteLine("  Restart Vitruvian CLI to load the new module.");
+            if (installResult.Success)
+            {
+                var loaded = InstalledModuleLoader.LoadFromPluginsPath(pluginsPath, host.Services);
+                var registered = 0;
+                foreach (var module in loaded)
+                {
+                    if (!requestProcessor.IsModuleRegistered(module.Domain))
+                    {
+                        requestProcessor.RegisterModule(module);
+                        registered++;
+                    }
+                }
+
+                Console.WriteLine(registered > 0
+                    ? $"  {registered} new module(s) loaded and ready to use."
+                    : "  Module(s) loaded and ready to use.");
+            }
         },
         domain => requestProcessor.UnregisterModule(domain),
         ModuleInstaller.ScaffoldNewModule,
