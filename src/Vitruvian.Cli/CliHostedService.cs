@@ -17,6 +17,7 @@ public sealed class CliHostedService : BackgroundService
     private readonly Action _printCommands;
     private readonly Action _printInstalledModules;
     private readonly Func<string, bool, Task> _installModule;
+    private readonly Func<string, bool> _unregisterModule;
     private readonly Func<string, string, string> _scaffoldModule;
     private readonly IHostApplicationLifetime _lifetime;
 
@@ -26,6 +27,7 @@ public sealed class CliHostedService : BackgroundService
         Action printCommands,
         Action printInstalledModules,
         Func<string, bool, Task> installModule,
+        Func<string, bool> unregisterModule,
         Func<string, string, string> scaffoldModule,
         IScheduledTaskStore? taskStore = null,
         NaturalLanguageScheduleParser? scheduleParser = null)
@@ -35,6 +37,7 @@ public sealed class CliHostedService : BackgroundService
         _printCommands = printCommands;
         _printInstalledModules = printInstalledModules;
         _installModule = installModule;
+        _unregisterModule = unregisterModule;
         _scaffoldModule = scaffoldModule;
         _taskStore = taskStore;
         _scheduleParser = scheduleParser;
@@ -91,6 +94,15 @@ public sealed class CliHostedService : BackgroundService
                 continue;
             }
 
+            if (TryParseUnregisterCommand(trimmed, out var unregisterDomain))
+            {
+                var removed = _unregisterModule(unregisterDomain);
+                Console.WriteLine(removed
+                    ? $"  Module '{unregisterDomain}' unregistered."
+                    : $"  Module '{unregisterDomain}' not found.");
+                continue;
+            }
+
             if (ModuleInstaller.TryParseNewModuleCommand(input, out var moduleName, out var outputPath))
             {
                 Console.WriteLine($"  {_scaffoldModule(moduleName, outputPath)}");
@@ -124,6 +136,20 @@ public sealed class CliHostedService : BackgroundService
                 Console.WriteLine("  Error: The request timed out or was canceled.");
             }
         }
+    }
+
+    /// <summary>
+    /// Parses `/unregister-module &lt;domain&gt;` into the module domain to unregister.
+    /// </summary>
+    internal static bool TryParseUnregisterCommand(string input, out string domain)
+    {
+        domain = string.Empty;
+
+        if (!input.StartsWith("/unregister-module ", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        domain = input["/unregister-module ".Length..].Trim();
+        return !string.IsNullOrWhiteSpace(domain);
     }
 
     /// <summary>

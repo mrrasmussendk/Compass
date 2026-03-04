@@ -164,4 +164,52 @@ public sealed class GoapPlannerTests
 
         Assert.Equal("my original request", plan.OriginalRequest);
     }
+
+    [Fact]
+    public void UnregisterModule_WithExistingDomain_ReturnsTrue()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("file-ops", "File operations");
+
+        var removed = planner.UnregisterModule("file-ops");
+
+        Assert.True(removed);
+    }
+
+    [Fact]
+    public void UnregisterModule_WithNonExistentDomain_ReturnsFalse()
+    {
+        var planner = new GoapPlanner();
+
+        var removed = planner.UnregisterModule("does-not-exist");
+
+        Assert.False(removed);
+    }
+
+    [Fact]
+    public async Task UnregisterModule_RemovedModuleIsNoLongerPlanned()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("file-ops", "File operations for reading and writing files");
+        planner.RegisterModule("conversation", "General conversation and questions");
+
+        planner.UnregisterModule("file-ops");
+
+        var plan = await planner.CreatePlanAsync("read a file", CancellationToken.None);
+        Assert.Single(plan.Steps);
+        Assert.Equal("conversation", plan.Steps[0].ModuleDomain);
+    }
+
+    [Fact]
+    public async Task UnregisterModule_AllModulesRemoved_ReturnsSingleStepWithEmptyDomain()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("only-module", "The only module");
+
+        planner.UnregisterModule("only-module");
+
+        var plan = await planner.CreatePlanAsync("test", CancellationToken.None);
+        Assert.Single(plan.Steps);
+        Assert.Equal("", plan.Steps[0].ModuleDomain);
+    }
 }
