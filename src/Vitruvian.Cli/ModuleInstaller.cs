@@ -592,6 +592,13 @@ public static class ModuleInstaller
             }
 
             Environment.SetEnvironmentVariable(secretName, provided);
+
+            // Persist the secret to .env.Vitruvian so it survives process restarts.
+            try { EnvFileLoader.PersistSecret(secretName, provided); }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[WARN] Could not persist secret '{secretName}' to .env.Vitruvian: {ex.Message}");
+            }
         }
 
         error = string.Empty;
