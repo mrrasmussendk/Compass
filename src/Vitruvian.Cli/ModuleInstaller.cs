@@ -656,10 +656,9 @@ public static class ModuleInstaller
         => types
             .Where(IsUtilityAiModuleType)
             .SelectMany(static type => type.GetCustomAttributes<RequiresApiKeyAttribute>(inherit: true))
-            .Select(static attr => attr.EnvironmentVariable?.Trim())
-            .Where(static envVar => !string.IsNullOrWhiteSpace(envVar))
+            .Select(static attr => attr.EnvironmentVariable.Trim())
+            .Where(static envVar => envVar.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Cast<string>()
             .ToArray();
 
     private static bool IsPluginAssemblyEntry(ZipArchiveEntry entry)

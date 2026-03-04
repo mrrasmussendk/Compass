@@ -20,7 +20,7 @@ public static class ModuleSkillLoader
         if (string.IsNullOrWhiteSpace(fileName))
             throw new ArgumentException("File name cannot be empty.", nameof(fileName));
 
-        var assemblyDirectory = Path.GetDirectoryName(moduleType.Assembly.Location);
+        var assemblyDirectory = Path.GetDirectoryName(moduleType.Assembly.Location) ?? string.Empty;
         var searchRoots = new[]
         {
             assemblyDirectory,
