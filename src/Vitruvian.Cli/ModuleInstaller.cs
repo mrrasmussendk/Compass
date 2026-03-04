@@ -13,6 +13,7 @@ public static class ModuleInstaller
     private static readonly HttpClient _httpClient = new();
     private const string ManifestFileName = "vitruvian-manifest.json";
     private const string LegacyManifestFileName = "Vitruvian-manifest.json";
+    private const string SupportedModuleTargetFrameworks = "net8.0;net9.0;net10.0";
 
     public sealed record ModuleInstallResult(bool Success, string Message)
     {
@@ -209,7 +210,7 @@ public static class ModuleInstaller
             <Project Sdk="Microsoft.NET.Sdk">
 
               <PropertyGroup>
-                <TargetFramework>{{scaffoldTargetFramework}}</TargetFramework>
+                <TargetFrameworks>{{SupportedModuleTargetFrameworks}}</TargetFrameworks>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
                 <Version>1.0.0</Version>
