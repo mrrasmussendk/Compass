@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using VitruvianAbstractions.Scheduling;
+using VitruvianRuntime.Scheduling;
 
 namespace VitruvianRuntime.DI;
 
@@ -21,6 +23,12 @@ public static class ServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.AddSingleton(options);
+
+        if (options.EnableScheduler)
+        {
+            services.AddSingleton<IScheduledTaskStore, InMemoryScheduledTaskStore>();
+            services.AddSingleton<NaturalLanguageScheduleParser>();
+        }
 
         return services;
     }
