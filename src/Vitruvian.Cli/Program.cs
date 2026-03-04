@@ -7,16 +7,18 @@ using VitruvianRuntime;
 using VitruvianRuntime.Routing;
 using VitruvianAbstractions.Facts;
 using VitruvianAbstractions.Interfaces;
+using VitruvianAbstractions.Scheduling;
 using VitruvianPluginHost;
 using VitruvianPluginSdk.Attributes;
 using VitruvianRuntime.DI;
+using VitruvianRuntime.Scheduling;
 using VitruvianStandardModules;
 
 // Auto-load .env.Vitruvian so the host works without manually sourcing the file.
 EnvFileLoader.Load(overwriteExisting: true);
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
-void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], quit");
+void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], /schedule \"<interval>\" <request>, /list-tasks, /cancel-task <id>, quit");
 string? PromptForSecret(string secretName)
 {
     Console.Write($"Missing required secret '{secretName}'. Enter value (blank will fail install): ");
@@ -316,6 +318,7 @@ builder.Services.AddUtilityAiVitruvian(opts =>
 {
     opts.EnableGovernanceFinalizer = true;
     opts.EnableHitl = false;
+    opts.EnableScheduler = true;
     opts.MemoryConnectionString = memoryConnectionString;
     opts.WorkingDirectory = workingDirectory;
 });
@@ -373,6 +376,23 @@ var discordChannelId = Environment.GetEnvironmentVariable("DISCORD_CHANNEL_ID");
 var webSocketUrl = Environment.GetEnvironmentVariable("VITRUVIAN_WEBSOCKET_URL");
 var webSocketPublicUrl = Environment.GetEnvironmentVariable("VITRUVIAN_WEBSOCKET_PUBLIC_URL");
 var webSocketDomain = Environment.GetEnvironmentVariable("VITRUVIAN_WEBSOCKET_DOMAIN");
+
+// Resolve scheduler services (registered by AddUtilityAiVitruvian when EnableScheduler is true)
+var vitruvianOptions = host.Services.GetRequiredService<VitruvianOptions>();
+var taskStore = host.Services.GetService<IScheduledTaskStore>();
+var scheduleParser = host.Services.GetService<NaturalLanguageScheduleParser>();
+
+// Register the scheduler background service when enabled
+if (vitruvianOptions.EnableScheduler && taskStore is not null)
+{
+    var schedulerService = new SchedulerService(
+        taskStore,
+        requestProcessor.ProcessAsync,
+        vitruvianOptions,
+        msg => Console.WriteLine(msg));
+    _ = schedulerService.StartAsync(CancellationToken.None);
+}
+
 if (!string.IsNullOrWhiteSpace(webSocketUrl))
 {
     using var cts = new CancellationTokenSource();
@@ -414,70 +434,32 @@ else
         Console.WriteLine($"Model provider configured: {modelConfiguration.Provider} ({modelConfiguration.Model})");
     Console.WriteLine($"Working directory: {workingDirectory}");
 
-    // Conversation history removed with simplified architecture
-
-    while (true)
-    {
-        Console.Write("> ");
-        var input = Console.ReadLine();
-        if (string.IsNullOrWhiteSpace(input) || input.Equals("quit", StringComparison.OrdinalIgnoreCase))
-            break;
-
-        if (string.Equals(input.Trim(), "/help", StringComparison.OrdinalIgnoreCase))
+    var cliService = new CliHostedService(
+        requestProcessor,
+        host.Services.GetRequiredService<IHostApplicationLifetime>(),
+        PrintCommands,
+        PrintInstalledModules,
+        async (spec, unsigned) =>
         {
-            PrintCommands();
-            continue;
-        }
-
-        if (string.Equals(input.Trim(), "/setup", StringComparison.OrdinalIgnoreCase))
-        {
-            Console.WriteLine(ModuleInstaller.TryRunInstallScript()
-                ? "Vitruvian setup complete."
-                : "Vitruvian setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
-            continue;
-        }
-
-        if (string.Equals(input.Trim(), "/list-modules", StringComparison.OrdinalIgnoreCase))
-        {
-            PrintInstalledModules();
-            continue;
-        }
-
-        if (ModuleInstaller.TryParseInstallCommand(input, out var moduleSpec, out var allowUnsigned))
-        {
-            var installResult = await ModuleInstaller.InstallWithResultAsync(moduleSpec, pluginsPath, allowUnsigned, PromptForSecret);
+            var installResult = await ModuleInstaller.InstallWithResultAsync(spec, pluginsPath, unsigned, PromptForSecret);
             Console.WriteLine($"  {installResult.Message}");
             Console.WriteLine("  Restart Vitruvian CLI to load the new module.");
-            continue;
-        }
+        },
+        ModuleInstaller.ScaffoldNewModule,
+        taskStore,
+        scheduleParser);
 
-        if (ModuleInstaller.TryParseNewModuleCommand(input, out var moduleName, out var outputPath))
-        {
-            Console.WriteLine($"  {ModuleInstaller.ScaffoldNewModule(moduleName, outputPath)}");
-            continue;
-        }
+    // Register the CLI service as a hosted service and run the host.
+    // The host manages the CLI lifecycle alongside any other background services (e.g. scheduler).
+    await cliService.StartAsync(CancellationToken.None);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        try
-        {
-            Console.WriteLine($"[DEBUG] Calling ProcessAsync with input: '{input}'");
-            var responseText = await requestProcessor.ProcessAsync(input, cts.Token);
+    // Wait until the application is signalled to stop (by CliHostedService calling StopApplication or Ctrl+C)
+    var tcs = new TaskCompletionSource();
+    host.Services.GetRequiredService<IHostApplicationLifetime>()
+        .ApplicationStopping.Register(() => tcs.TrySetResult());
+    await tcs.Task;
 
-            Console.WriteLine($"  Response: {responseText}");
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.WriteLine($"  Error: {ex.Message}");
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.WriteLine($"  Error: {ex.Message}");
-        }
-        catch (OperationCanceledException)
-        {
-            Console.WriteLine("  Error: The request timed out or was canceled.");
-        }
-    }
+    await cliService.StopAsync(CancellationToken.None);
 }
 
 Console.WriteLine("Vitruvian CLI stopped.");
