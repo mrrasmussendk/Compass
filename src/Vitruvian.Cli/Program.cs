@@ -18,7 +18,7 @@ using VitruvianStandardModules;
 EnvFileLoader.Load(overwriteExisting: true);
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
-void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], /schedule \"<interval>\" <request>, /list-tasks, /cancel-task <id>, quit");
+void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /unregister-module <domain>, /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], /schedule \"<interval>\" <request>, /list-tasks, /cancel-task <id>, quit");
 string? PromptForSecret(string secretName)
 {
     Console.Write($"Missing required secret '{secretName}'. Enter value (blank will fail install): ");
@@ -98,6 +98,7 @@ if (startupArgs.Length >= 1 &&
     Console.WriteLine("  --setup");
     Console.WriteLine("  --list-modules");
     Console.WriteLine("  --install-module <path|package@version> [--allow-unsigned]");
+    Console.WriteLine("  --unregister-module <domain>");
     Console.WriteLine("  --inspect-module <path|package@version> [--json] (alias: inspect-module)");
     Console.WriteLine("  --doctor [--json] (alias: doctor)");
     Console.WriteLine("  --policy validate <policyFile> (alias: policy validate)");
@@ -445,6 +446,7 @@ else
             Console.WriteLine($"  {installResult.Message}");
             Console.WriteLine("  Restart Vitruvian CLI to load the new module.");
         },
+        domain => requestProcessor.UnregisterModule(domain),
         ModuleInstaller.ScaffoldNewModule,
         taskStore,
         scheduleParser);

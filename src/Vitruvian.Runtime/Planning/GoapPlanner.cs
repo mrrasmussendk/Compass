@@ -26,6 +26,16 @@ public sealed class GoapPlanner
     }
 
     /// <summary>
+    /// Unregisters a module by its domain name so it is no longer available for planning.
+    /// </summary>
+    /// <param name="domain">The domain identifier of the module to remove.</param>
+    /// <returns><c>true</c> if a module was found and removed; otherwise <c>false</c>.</returns>
+    public bool UnregisterModule(string domain)
+    {
+        return _modules.RemoveAll(m => m.Domain == domain) > 0;
+    }
+
+    /// <summary>
     /// Creates a GOAP-style execution plan for the given user request.
     /// When no model client is available, falls back to a single-step plan
     /// using keyword-based module matching.

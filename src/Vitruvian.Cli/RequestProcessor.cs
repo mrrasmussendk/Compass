@@ -60,6 +60,26 @@ public sealed class RequestProcessor
     }
 
     /// <summary>
+    /// Unregisters a module by its domain name so it is no longer available for routing,
+    /// planning, or execution.
+    /// </summary>
+    /// <param name="domain">The domain identifier of the module to remove.</param>
+    /// <returns><c>true</c> if a module was found and removed; otherwise <c>false</c>.</returns>
+    public bool UnregisterModule(string domain)
+    {
+        if (!_modules.Remove(domain))
+            return false;
+
+        _router.UnregisterModule(domain);
+        _planner.UnregisterModule(domain);
+
+        // Reset the executor so it is rebuilt with the updated module map
+        _executor = null;
+
+        return true;
+    }
+
+    /// <summary>
     /// Gets a context-aware version of a module that wraps its model client with conversation history.
     /// </summary>
     private IVitruvianModule GetContextAwareModule(string domain)

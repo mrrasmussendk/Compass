@@ -30,4 +30,29 @@ public sealed class CliHostedServiceTests
 
         Assert.False(result);
     }
+
+    [Theory]
+    [InlineData("/unregister-module conversation", "conversation")]
+    [InlineData("/unregister-module file-operations", "file-operations")]
+    [InlineData("/unregister-module  web-search ", "web-search")]
+    [InlineData("/UNREGISTER-MODULE my-module", "my-module")]
+    public void TryParseUnregisterCommand_ValidInput_ReturnsTrue(string input, string expectedDomain)
+    {
+        var result = CliHostedService.TryParseUnregisterCommand(input, out var domain);
+
+        Assert.True(result);
+        Assert.Equal(expectedDomain, domain);
+    }
+
+    [Theory]
+    [InlineData("/unregister-module")]
+    [InlineData("/unregister-module ")]
+    [InlineData("/help")]
+    [InlineData("unregister-module conversation")]  // missing /
+    public void TryParseUnregisterCommand_InvalidInput_ReturnsFalse(string input)
+    {
+        var result = CliHostedService.TryParseUnregisterCommand(input, out _);
+
+        Assert.False(result);
+    }
 }
