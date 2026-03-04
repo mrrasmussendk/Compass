@@ -99,4 +99,60 @@ public sealed class SimpleRequestProcessorTests
 
         Assert.Contains("No model configured", result);
     }
+
+    [Fact]
+    public void RegisterModule_ThenUnregister_ReturnsTrue()
+    {
+        var host = Host.CreateDefaultBuilder()
+            .UseContentRoot(Path.GetTempPath())
+            .ConfigureServices(services => { })
+            .Build();
+
+        var router = new ModuleRouter();
+        var processor = new RequestProcessor(host, router, null);
+        var module = new TestModule("installed-mod", "An installed module");
+
+        processor.RegisterModule(module);
+
+        Assert.True(processor.IsModuleRegistered("installed-mod"));
+        Assert.True(processor.UnregisterModule("installed-mod"));
+        Assert.False(processor.IsModuleRegistered("installed-mod"));
+    }
+
+    [Fact]
+    public void RegisterModule_CalledTwice_CanStillUnregister()
+    {
+        var host = Host.CreateDefaultBuilder()
+            .UseContentRoot(Path.GetTempPath())
+            .ConfigureServices(services => { })
+            .Build();
+
+        var router = new ModuleRouter();
+        var processor = new RequestProcessor(host, router, null);
+        var module1 = new TestModule("dup-mod", "First registration");
+        var module2 = new TestModule("dup-mod", "Second registration");
+
+        processor.RegisterModule(module1);
+        processor.RegisterModule(module2);
+
+        Assert.True(processor.IsModuleRegistered("dup-mod"));
+        Assert.True(processor.UnregisterModule("dup-mod"));
+        Assert.False(processor.IsModuleRegistered("dup-mod"));
+    }
+
+    [Fact]
+    public void IsModuleRegistered_WithNullOrWhitespace_ReturnsFalse()
+    {
+        var host = Host.CreateDefaultBuilder()
+            .UseContentRoot(Path.GetTempPath())
+            .ConfigureServices(services => { })
+            .Build();
+
+        var router = new ModuleRouter();
+        var processor = new RequestProcessor(host, router, null);
+
+        Assert.False(processor.IsModuleRegistered(null!));
+        Assert.False(processor.IsModuleRegistered(""));
+        Assert.False(processor.IsModuleRegistered("  "));
+    }
 }

@@ -50,6 +50,13 @@ public sealed class RequestProcessor
                             "This is a security best practice. Add [RequiresPermission] to declare intended access levels.");
         }
 
+        // Remove any previous registration to avoid duplicates in router/planner lists
+        if (_modules.ContainsKey(module.Domain))
+        {
+            _router.UnregisterModule(module.Domain);
+            _planner.UnregisterModule(module.Domain);
+        }
+
         _modules[module.Domain] = module;
 
         // Register with router (metadata is optional and defaults to 0.0 cost/risk)
@@ -57,6 +64,14 @@ public sealed class RequestProcessor
 
         // Register with planner so it knows available capabilities
         _planner.RegisterModule(module.Domain, module.Description);
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if a module with the given domain is currently registered.
+    /// </summary>
+    public bool IsModuleRegistered(string domain)
+    {
+        return !string.IsNullOrWhiteSpace(domain) && _modules.ContainsKey(domain);
     }
 
     /// <summary>
