@@ -698,8 +698,8 @@ public static class ModuleInstaller
             }
 
             loadFailureReason = string.Join("; ", ex.LoaderExceptions
-                .Where(static loaderException => loaderException is not null)
-                .Select(static loaderException => loaderException!.Message.Trim())
+                .OfType<Exception>()
+                .Select(static loaderException => loaderException.Message.Trim())
                 .Where(static message => message.Length > 0));
         }
         catch (FileNotFoundException ex)
