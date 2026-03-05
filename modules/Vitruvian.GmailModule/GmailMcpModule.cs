@@ -19,13 +19,6 @@ public sealed class GmailMcpModule : IVitruvianModule
     /// <summary>
     /// MCP tool connecting to a Gmail MCP server for reading and searching messages.
     /// </summary>
-    public static readonly ModelTool GmailMcpTool = new ModelToolBuilder("gmail", "Gmail operations via MCP")
-        .AddParameter("server_label", "gmail-mcp")
-        .AddParameter("connector_id", "connector_gmail")
-        .AddParameter("server_description", "Read, search, and draft Gmail messages")
-        .AddParameter("require_approval", "always")
-        .AddParameter("allowed_tools", "list_messages,get_message,search_messages,create_draft,list_labels")
-        .Build();
 
     public string Domain => "gmail-mcp";
     public string Description => "Read, search, and draft Gmail messages using MCP";
@@ -42,6 +35,14 @@ public sealed class GmailMcpModule : IVitruvianModule
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
+        ModelTool GmailMcpTool = new ModelToolBuilder("gmail", "Gmail operations via MCP")
+            .AddParameter("server_label", "gmail-mcp")
+            .AddParameter("connector_id", "connector_gmail")
+            .AddParameter("server_description", "Read, search, and draft Gmail messages")
+            .AddParameter("require_approval", "always")
+            .AddParameter("authorization", Environment.GetEnvironmentVariable("GOOGLE_API_TOKEN") ?? string.Empty)
+            .AddParameter("allowed_tools", "list_messages,get_message,search_messages,create_draft,list_labels")
+            .Build();
         var systemMessage =
             "You are a Gmail assistant. Use the Gmail MCP server to read, search, and draft emails. " +
             "You may create draft replies but never send messages directly.";
