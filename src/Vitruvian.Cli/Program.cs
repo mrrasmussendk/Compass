@@ -20,6 +20,13 @@ EnvFileLoader.Load(overwriteExisting: true);
 
 var pluginsPath = Path.Combine(AppContext.BaseDirectory, "plugins");
 void PrintCommands() => Console.WriteLine("Commands: /help, /setup, /list-modules, /install-module <path|package@version> [--allow-unsigned], /load-module <path-to-dll>, /unregister-module <domain|filename>, /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], /schedule \"<interval>\" <request>, /list-tasks, /cancel-task <id>, quit");
+string GetCurrentPersonaDisplay()
+{
+    var activePersona = Environment.GetEnvironmentVariable("VITRUVIAN_PROFILE");
+    return string.IsNullOrWhiteSpace(activePersona)
+        ? "default"
+        : activePersona.Trim();
+}
 string? PromptForSecret(string secretName)
 {
     Console.Write($"Missing required secret '{secretName}'. Enter value (blank will fail install): ");
@@ -297,9 +304,16 @@ if (startupArgs.Length >= 1 &&
     (string.Equals(startupArgs[0], "--setup", StringComparison.OrdinalIgnoreCase) ||
      string.Equals(startupArgs[0], "/setup", StringComparison.OrdinalIgnoreCase)))
 {
-    Console.WriteLine(ModuleInstaller.TryRunInstallScript()
-        ? "Vitruvian setup complete."
-        : "Vitruvian setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+    var setupCompleted = ModuleInstaller.TryRunInstallScript();
+    if (setupCompleted)
+    {
+        EnvFileLoader.Load(overwriteExisting: true);
+        Console.WriteLine($"Vitruvian setup complete. Current persona: {GetCurrentPersonaDisplay()}.");
+    }
+    else
+    {
+        Console.WriteLine("Vitruvian setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+    }
     return;
 }
 
@@ -461,6 +475,7 @@ else
     PrintCommands();
     if (modelConfiguration is not null)
         Console.WriteLine($"Model provider configured: {modelConfiguration.Provider} ({modelConfiguration.Model})");
+    Console.WriteLine($"Current persona: {GetCurrentPersonaDisplay()}");
     Console.WriteLine($"Working directory: {workingDirectory}");
 
     var cliService = new CliHostedService(
