@@ -37,6 +37,6 @@ public sealed class ModuleSkillLoaderTests
     public void LoadMarkdownSkill_WhenEmbeddedResourceExists_LoadsContent()
     {
         var loaded = ModuleSkillLoader.LoadMarkdownSkill(typeof(ModuleSkillLoaderTests), "module-skill.md", "fallback");
-        Assert.Equal("# Embedded Skill\nLoaded from manifest resource.", loaded.TrimEnd());
+        Assert.Equal("# Embedded Skill\nLoaded from manifest resource.", loaded.ReplaceLineEndings("\n").TrimEnd());
     }
 }

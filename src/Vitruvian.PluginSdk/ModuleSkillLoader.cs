@@ -62,7 +62,7 @@ public static class ModuleSkillLoader
 
         foreach (var candidateName in candidateNames.Where(static n => !string.IsNullOrWhiteSpace(n)).Distinct(StringComparer.Ordinal))
         {
-            using var stream = assembly.GetManifestResourceStream(candidateName!);
+            var stream = assembly.GetManifestResourceStream(candidateName!);
             if (stream is null)
                 continue;
 
@@ -76,7 +76,7 @@ public static class ModuleSkillLoader
                 && !resourceName.Equals(dottedFileName, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            using var stream = assembly.GetManifestResourceStream(resourceName);
+            var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream is null)
                 continue;
 
