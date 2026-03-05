@@ -69,10 +69,30 @@ void PrintInstalledModules()
 
     Console.WriteLine($"Standard modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", standardModules)}");
 
-    var installedModules = ModuleInstaller.ListInstalledModules(pluginsPath);
-    Console.WriteLine(installedModules.Count == 0
-        ? "No installed modules found."
-        : $"Installed modules:{Environment.NewLine}  - {string.Join($"{Environment.NewLine}  - ", installedModules)}");
+    using var tempProvider = new ServiceCollection().BuildServiceProvider();
+    var installedModules = InstalledModuleLoader.LoadModulesWithSources(pluginsPath, tempProvider);
+    var installedDlls = ModuleInstaller.ListInstalledModules(pluginsPath);
+    if (installedDlls.Count == 0)
+    {
+        Console.WriteLine("No installed modules found.");
+    }
+    else
+    {
+        Console.WriteLine("Installed modules:");
+        foreach (var (module, dllPath) in installedModules)
+        {
+            Console.WriteLine($"  - {module.Domain}  ({Path.GetFileName(dllPath)})");
+        }
+
+        // Show any DLLs that didn't produce loadable modules
+        var loadedDlls = installedModules.Select(m => Path.GetFileName(m.SourceDllPath)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var dll in installedDlls.Where(d => !loadedDlls.Contains(d)))
+        {
+            Console.WriteLine($"  - {dll}  (could not load)");
+        }
+
+        Console.WriteLine("Use '/unregister-module <domain>' to remove.");
+    }
 }
 
 Task<int> PrintAuditListAsync()
@@ -468,6 +488,16 @@ else
         },
         domain =>
         {
+            // If the user typed a DLL filename instead of a domain, resolve it
+            if (!requestProcessor.IsModuleRegistered(domain))
+            {
+                var match = pluginSources.FirstOrDefault(kvp =>
+                    string.Equals(Path.GetFileName(kvp.Value), domain, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(Path.GetFileNameWithoutExtension(kvp.Value), domain, StringComparison.OrdinalIgnoreCase));
+                if (match.Key is not null)
+                    domain = match.Key;
+            }
+
             if (!requestProcessor.UnregisterModule(domain))
                 return false;
 
