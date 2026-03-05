@@ -9,6 +9,7 @@ namespace VitruvianAbstractions.Interfaces;
 /// </summary>
 public static class ModelClientStructuredOutputExtensions
 {
+    private const int MaxSchemaDepth = 8;
     private static readonly JsonSerializerOptions DefaultSerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -81,9 +82,15 @@ public static class ModelClientStructuredOutputExtensions
         }
     }
 
+    /// <summary>
+    /// Builds a JSON schema node for a CLR type.
+    /// </summary>
+    /// <param name="type">The type to represent in schema form.</param>
+    /// <param name="depth">Current recursion depth for nested object/array types.</param>
+    /// <returns>A JSON schema object node for the provided type.</returns>
     private static JsonObject BuildSchema(Type type, int depth = 0)
     {
-        if (depth > 8)
+        if (depth > MaxSchemaDepth)
             return new JsonObject { ["type"] = "object", ["additionalProperties"] = false };
 
         if (type.IsEnum)
@@ -140,7 +147,7 @@ public static class ModelClientStructuredOutputExtensions
 
     private static bool TryGetArrayItemType(Type type, out Type itemType)
     {
-        itemType = default!;
+        itemType = typeof(object);
 
         if (type.IsArray)
         {
