@@ -1,5 +1,6 @@
 using VitruvianAbstractions.Interfaces;
 using Xunit;
+using System.Text.Json.Nodes;
 
 namespace VitruvianTests;
 
@@ -31,6 +32,12 @@ public sealed class ModelClientStructuredOutputExtensionsTests
         public required string Name { get; init; }
         public required string Email { get; init; }
         public bool DemoRequested { get; init; }
+    }
+
+    private sealed class ContactInfoWithOptionalNote
+    {
+        public required string Name { get; init; }
+        public string? Notes { get; init; }
     }
 
     [Fact]
@@ -76,5 +83,24 @@ public sealed class ModelClientStructuredOutputExtensionsTests
             () => client.GenerateStructuredAsync<ContactInfo>("Extract contact details"));
 
         Assert.Contains("Failed to parse structured output", ex.Message);
+    }
+
+    [Fact]
+    public async Task GenerateStructuredAsync_NullableProperties_AreNotMarkedRequiredInSchema()
+    {
+        var client = new CapturingModelClient("""{"name":"Jane","notes":null}""");
+
+        _ = await client.GenerateStructuredAsync<ContactInfoWithOptionalNote>("Extract contact details");
+
+        Assert.NotNull(client.LastRequest);
+        var schemaMarker = "JSON Schema:\n";
+        var index = client.LastRequest!.SystemMessage!.IndexOf(schemaMarker, StringComparison.Ordinal);
+        Assert.True(index >= 0);
+        var schemaJson = client.LastRequest.SystemMessage[(index + schemaMarker.Length)..];
+        var schema = JsonNode.Parse(schemaJson)!.AsObject();
+        var required = schema["required"]!.AsArray().Select(static item => item!.GetValue<string>()).ToList();
+
+        Assert.Contains("Name", required);
+        Assert.DoesNotContain("Notes", required);
     }
 }

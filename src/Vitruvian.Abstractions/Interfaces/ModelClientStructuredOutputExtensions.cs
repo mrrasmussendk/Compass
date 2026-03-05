@@ -13,6 +13,7 @@ public static class ModelClientStructuredOutputExtensions
     {
         PropertyNameCaseInsensitive = true
     };
+    private static readonly NullabilityInfoContext NullabilityContext = new();
 
     public static async Task<T> GenerateStructuredAsync<T>(
         this IModelClient modelClient,
@@ -124,7 +125,8 @@ public static class ModelClientStructuredOutputExtensions
 
             var propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
             properties[property.Name] = BuildSchema(propertyType, depth + 1);
-            required.Add(property.Name);
+            if (!IsNullableProperty(property))
+                required.Add(property.Name);
         }
 
         return new JsonObject
@@ -155,6 +157,17 @@ public static class ModelClientStructuredOutputExtensions
             itemType = type.GetGenericArguments()[0];
             return true;
         }
+
+        return false;
+    }
+
+    private static bool IsNullableProperty(PropertyInfo property)
+    {
+        if (Nullable.GetUnderlyingType(property.PropertyType) is not null)
+            return true;
+
+        if (!property.PropertyType.IsValueType)
+            return NullabilityContext.Create(property).WriteState == NullabilityState.Nullable;
 
         return false;
     }
