@@ -137,6 +137,12 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
 
             if (!string.IsNullOrWhiteSpace(modelRequest.SystemMessage))
                 body["instructions"] = modelRequest.SystemMessage;
+            if (modelRequest.Tools is { Count: > 0 })
+            {
+                var mappedTools = BuildOpenAiTools(modelRequest.Tools);
+                if (mappedTools.Count > 0)
+                    body["tools"] = mappedTools;
+            }
 
             // For reasoning models (GPT-5, o3), use low effort for faster responses
             var modelName = (modelRequest.ModelHint ?? config.Model).ToLowerInvariant();
@@ -195,6 +201,153 @@ file sealed class OpenAiModelClient(ModelConfiguration config, HttpClient httpCl
         {
             throw new InvalidOperationException($"Failed to call OpenAI API: {ex.Message}", ex);
         }
+    }
+
+    private static List<object> BuildOpenAiTools(IReadOnlyList<ModelTool> tools)
+    {
+        var mapped = new List<object>(tools.Count);
+        foreach (var tool in tools)
+        {
+            if (TryBuildMcpTool(tool, out var mcpTool))
+            {
+                mapped.Add(mcpTool);
+                continue;
+            }
+
+            mapped.Add(new Dictionary<string, object>
+            {
+                ["type"] = "function",
+                ["name"] = tool.Name,
+                ["description"] = tool.Description,
+                ["parameters"] = BuildFunctionParametersSchema(tool.Parameters)
+            });
+        }
+
+        return mapped;
+    }
+
+    private static Dictionary<string, object> BuildFunctionParametersSchema(IReadOnlyDictionary<string, string>? parameters)
+    {
+        var properties = new Dictionary<string, object>(StringComparer.Ordinal);
+        var required = new List<string>();
+
+        if (parameters is not null)
+        {
+            foreach (var parameter in parameters)
+            {
+                required.Add(parameter.Key);
+                var property = new Dictionary<string, object>
+                {
+                    ["type"] = "string"
+                };
+                if (!string.IsNullOrWhiteSpace(parameter.Value))
+                    property["description"] = parameter.Value;
+
+                properties[parameter.Key] = property;
+            }
+        }
+
+        return new Dictionary<string, object>
+        {
+            ["type"] = "object",
+            ["properties"] = properties,
+            ["required"] = required,
+            ["additionalProperties"] = false
+        };
+    }
+
+    private static bool TryBuildMcpTool(ModelTool tool, out Dictionary<string, object> mcpTool)
+    {
+        mcpTool = new Dictionary<string, object>();
+        var hasServerUrl = TryGetParameter(tool.Parameters, "server_url", out var serverUrl);
+        var hasConnectorId = TryGetParameter(tool.Parameters, "connector_id", out var connectorId);
+        var isMcp =
+            hasServerUrl ||
+            hasConnectorId ||
+            (TryGetParameter(tool.Parameters, "type", out var toolType) && string.Equals(toolType, "mcp", StringComparison.OrdinalIgnoreCase));
+        if (!isMcp || (!hasServerUrl && !hasConnectorId))
+            return false;
+
+        mcpTool["type"] = "mcp";
+        mcpTool["server_label"] = TryGetParameter(tool.Parameters, "server_label", out var serverLabel) ? serverLabel : tool.Name;
+
+        var serverDescription = TryGetParameter(tool.Parameters, "server_description", out var descriptionOverride)
+            ? descriptionOverride
+            : tool.Description;
+        if (!string.IsNullOrWhiteSpace(serverDescription))
+            mcpTool["server_description"] = serverDescription;
+        if (hasServerUrl)
+            mcpTool["server_url"] = serverUrl;
+        if (hasConnectorId)
+            mcpTool["connector_id"] = connectorId;
+        if (TryGetParameter(tool.Parameters, "authorization", out var authorization))
+            mcpTool["authorization"] = authorization;
+        if (TryGetParameter(tool.Parameters, "require_approval", out var requireApproval))
+            mcpTool["require_approval"] = ParseRequireApprovalValue(requireApproval);
+        if (TryGetParameter(tool.Parameters, "allowed_tools", out var allowedTools))
+        {
+            var toolNames = ParseAllowedTools(allowedTools);
+            if (toolNames.Length > 0)
+                mcpTool["allowed_tools"] = toolNames;
+        }
+
+        return true;
+    }
+
+    private static bool TryGetParameter(IReadOnlyDictionary<string, string>? parameters, string key, out string value)
+    {
+        value = string.Empty;
+        if (parameters is null)
+            return false;
+
+        foreach (var parameter in parameters)
+        {
+            if (string.Equals(parameter.Key, key, StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(parameter.Value))
+            {
+                value = parameter.Value;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static object ParseRequireApprovalValue(string value)
+    {
+        var normalized = value.Trim();
+        if (string.Equals(normalized, "always", StringComparison.OrdinalIgnoreCase))
+            return "always";
+        if (string.Equals(normalized, "never", StringComparison.OrdinalIgnoreCase))
+            return "never";
+
+        if (normalized.StartsWith('{') || normalized.StartsWith('['))
+        {
+            using var parsed = JsonDocument.Parse(normalized);
+            return parsed.RootElement.Clone();
+        }
+
+        return normalized;
+    }
+
+    private static string[] ParseAllowedTools(string value)
+    {
+        var normalized = value.Trim();
+        if (normalized.StartsWith('['))
+        {
+            using var parsed = JsonDocument.Parse(normalized);
+            return parsed.RootElement.ValueKind == JsonValueKind.Array
+                ? parsed.RootElement.EnumerateArray()
+                    .Where(element => element.ValueKind == JsonValueKind.String)
+                    .Select(element => element.GetString())
+                    .Where(static element => !string.IsNullOrWhiteSpace(element))
+                    .Cast<string>()
+                    .ToArray()
+                : [];
+        }
+
+        return normalized
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
     }
 }
 
