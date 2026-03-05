@@ -49,21 +49,21 @@ public static class InstalledModuleLoader
     public static IReadOnlyList<IVitruvianModule> CreateModulesFromAssembly(Assembly assembly, IServiceProvider services)
     {
         var modules = new List<IVitruvianModule>();
+        ICommandRunner? fallbackCommandRunner = null;
         foreach (var moduleType in assembly
                      .GetExportedTypes()
                      .Where(static type => typeof(IVitruvianModule).IsAssignableFrom(type)
-                                           && type is { IsAbstract: false, IsClass: true }))
+                                            && type is { IsAbstract: false, IsClass: true }))
         {
             try
             {
                 WarnOnMissingApiKeys(moduleType);
 
-                object? instance = RequiresCommandRunner(moduleType)
-                    ? ActivatorUtilities.CreateInstance(
-                        services,
-                        moduleType,
-                        services.GetService<ICommandRunner>() ?? new ProcessCommandRunner())
-                    : ActivatorUtilities.CreateInstance(services, moduleType);
+                object[] explicitArgs = RequiresCommandRunner(moduleType)
+                    ? [ResolveCommandRunner(services, ref fallbackCommandRunner)]
+                    : [];
+
+                var instance = ActivatorUtilities.CreateInstance(services, moduleType, explicitArgs);
 
                 if (instance is IVitruvianModule module)
                     modules.Add(module);
@@ -75,6 +75,13 @@ public static class InstalledModuleLoader
         }
 
         return modules;
+    }
+
+    private static ICommandRunner ResolveCommandRunner(IServiceProvider services, ref ICommandRunner? fallbackCommandRunner)
+    {
+        return services.GetService<ICommandRunner>()
+            ?? fallbackCommandRunner
+            ?? (fallbackCommandRunner = new ProcessCommandRunner());
     }
 
     private static bool RequiresCommandRunner(Type moduleType)
