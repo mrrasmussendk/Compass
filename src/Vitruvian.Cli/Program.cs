@@ -441,9 +441,6 @@ if (modulePreferences.IsModuleEnabled("web-search"))
 if (modulePreferences.IsModuleEnabled("summarization"))
     builder.Services.AddSingleton<IVitruvianModule>(sp =>
         new SummarizationModule(sp.GetService<IModelClient>()));
-if (modulePreferences.IsModuleEnabled("gmail"))
-    builder.Services.AddSingleton<IVitruvianModule>(sp =>
-        new GmailModule(sp.GetService<IModelClient>()));
 if (modulePreferences.IsModuleEnabled("shell-command"))
     builder.Services.AddSingleton<IVitruvianModule>(sp =>
         new ShellCommandModule(

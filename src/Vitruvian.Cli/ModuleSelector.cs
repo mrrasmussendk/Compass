@@ -43,9 +43,7 @@ public static class ModuleSelector
             new ModuleInfo("web-search", "Search the web for information",
                 "standard", GetApiKeysForType(typeof(WebSearchModule))),
             new ModuleInfo("summarization", "Summarize text and documents",
-                "standard", GetApiKeysForType(typeof(SummarizationModule))),
-            new ModuleInfo("gmail", "Read and compose Gmail messages",
-                "standard", GetApiKeysForType(typeof(GmailModule)))
+                "standard", GetApiKeysForType(typeof(SummarizationModule)))
         ];
     }
 

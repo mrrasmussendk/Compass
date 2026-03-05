@@ -20,8 +20,8 @@ public sealed class GmailMcpModule : IVitruvianModule
     /// MCP tool connecting to a Gmail MCP server for reading and searching messages.
     /// </summary>
     public static readonly ModelTool GmailMcpTool = new ModelToolBuilder("gmail", "Gmail operations via MCP")
-        .AddParameter("server_url", "https://mcp.googleapis.com/gmail")
         .AddParameter("server_label", "gmail-mcp")
+        .AddParameter("connector_id", "connector_gmail")
         .AddParameter("server_description", "Read, search, and draft Gmail messages")
         .AddParameter("require_approval", "always")
         .AddParameter("allowed_tools", "list_messages,get_message,search_messages,create_draft,list_labels")
