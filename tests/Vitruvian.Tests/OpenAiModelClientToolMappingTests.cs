@@ -124,6 +124,7 @@ public sealed class OpenAiModelClientToolMappingTests
 
         public CapturingHttpMessageHandler(string responsePayload)
         {
+            ArgumentNullException.ThrowIfNull(responsePayload);
             _responsePayload = responsePayload;
         }
 
