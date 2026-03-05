@@ -483,7 +483,8 @@ else
                     .ToList();
                 foreach (var co in coLocated)
                 {
-                    requestProcessor.UnregisterModule(co);
+                    if (!requestProcessor.UnregisterModule(co))
+                        Console.WriteLine($"  [WARN] Co-located module '{co}' was already unregistered.");
                     pluginSources.Remove(co);
                 }
 
