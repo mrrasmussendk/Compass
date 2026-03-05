@@ -367,9 +367,12 @@ foreach (var module in host.Services.GetServices<IVitruvianModule>())
     requestProcessor.RegisterModule(module);
 }
 
-foreach (var module in InstalledModuleLoader.LoadFromPluginsPath(pluginsPath, host.Services))
+// Track which DLL each plugin module was loaded from so we can delete it on unregister
+var pluginSources = new Dictionary<string, string>();
+foreach (var (module, sourceDllPath) in InstalledModuleLoader.LoadModulesWithSources(pluginsPath, host.Services))
 {
     requestProcessor.RegisterModule(module);
+    pluginSources[module.Domain] = sourceDllPath;
 }
 
 var discordToken = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
@@ -446,13 +449,14 @@ else
             Console.WriteLine($"  {installResult.Message}");
             if (installResult.Success)
             {
-                var loaded = InstalledModuleLoader.LoadFromPluginsPath(pluginsPath, host.Services);
+                var loaded = InstalledModuleLoader.LoadModulesWithSources(pluginsPath, host.Services);
                 var registered = 0;
-                foreach (var module in loaded)
+                foreach (var (module, sourceDllPath) in loaded)
                 {
                     if (!requestProcessor.IsModuleRegistered(module.Domain))
                     {
                         requestProcessor.RegisterModule(module);
+                        pluginSources[module.Domain] = sourceDllPath;
                         registered++;
                     }
                 }
@@ -462,7 +466,39 @@ else
                     : "  Module(s) loaded and ready to use.");
             }
         },
-        domain => requestProcessor.UnregisterModule(domain),
+        domain =>
+        {
+            if (!requestProcessor.UnregisterModule(domain))
+                return false;
+
+            // If the module came from a plugin DLL, delete the DLL so it is not reloaded on restart
+            if (pluginSources.TryGetValue(domain, out var dllPath))
+            {
+                pluginSources.Remove(domain);
+
+                // Unregister any other modules that were loaded from the same DLL
+                var coLocated = pluginSources
+                    .Where(kvp => string.Equals(kvp.Value, dllPath, StringComparison.OrdinalIgnoreCase))
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                foreach (var co in coLocated)
+                {
+                    requestProcessor.UnregisterModule(co);
+                    pluginSources.Remove(co);
+                }
+
+                try
+                {
+                    File.Delete(dllPath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"  [WARN] Could not delete plugin DLL '{Path.GetFileName(dllPath)}': {ex.Message}");
+                }
+            }
+
+            return true;
+        },
         ModuleInstaller.ScaffoldNewModule,
         taskStore,
         scheduleParser);
