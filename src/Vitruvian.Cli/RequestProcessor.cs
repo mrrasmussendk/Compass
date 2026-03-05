@@ -123,7 +123,7 @@ public sealed class RequestProcessor
             ShellCommandModule _ => new ShellCommandModule(
                 contextAwareClient,
                 GetDefaultWorkingDirectory(),
-                commandRunner: _host.Services.GetService<ICommandRunner>()),
+                commandRunner: _host.Services.GetRequiredService<ICommandRunner>()),
             FileOperationsModule fileModule => new FileOperationsModule(contextAwareClient, GetDefaultWorkingDirectory()),
             _ => module // Return original if we don't know how to wrap it
         };
