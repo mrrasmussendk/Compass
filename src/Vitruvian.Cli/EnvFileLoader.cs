@@ -16,6 +16,7 @@ namespace VitruvianCli;
 public static class EnvFileLoader
 {
     private const string FileName = ".env.Vitruvian";
+    private const string LegacyProfileFileNamePrefix = ".env.Vitruvian";
     private const string ProfileVariableName = "VITRUVIAN_PROFILE";
 
     /// <summary>
@@ -44,7 +45,8 @@ public static class EnvFileLoader
         if (string.IsNullOrWhiteSpace(profile))
             return;
 
-        var profilePath = FindFile(searchDirectories, $"{FileName}.{profile}");
+        var profilePath = FindFile(searchDirectories, $"{FileName}.{profile}")
+                          ?? FindFile(searchDirectories, $"{LegacyProfileFileNamePrefix}{profile}");
         if (profilePath is null || string.Equals(profilePath, path, StringComparison.OrdinalIgnoreCase))
             return;
 
