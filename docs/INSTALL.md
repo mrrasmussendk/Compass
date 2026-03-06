@@ -204,6 +204,10 @@ Vitruvian.sln
 │   ├── Vitruvian.StandardModules/   ← Built-in modules (File, Conversation, Web, …)
 │   ├── Vitruvian.WeatherModule/     ← Example standalone module
 │   └── Vitruvian.Cli/               ← CLI entry point, RequestProcessor
+├── modules/
+│   ├── Vitruvian.GmailModule/       ← Gmail MCP module
+│   ├── Vitruvian.GoogleDriveModule/ ← Google Drive MCP module
+│   └── Vitruvian.GoogleCalendarModule/ ← Google Calendar MCP module
 ├── tests/
 │   └── Vitruvian.Tests/             ← xUnit tests
 ├── docs/                            ← Detailed documentation
