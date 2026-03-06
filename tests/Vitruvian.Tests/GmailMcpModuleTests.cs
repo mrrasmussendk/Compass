@@ -61,7 +61,7 @@ public sealed class GmailMcpModuleTests
 
         Assert.NotNull(tool.Parameters);
         Assert.True(tool.Parameters.ContainsKey("require_approval"));
-        Assert.Equal("always", tool.Parameters["require_approval"]);
+        Assert.Equal("never", tool.Parameters["require_approval"]);
     }
 
     [Fact]
