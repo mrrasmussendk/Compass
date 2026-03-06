@@ -76,6 +76,18 @@ public sealed class CliHostedService : BackgroundService
                 continue;
             }
 
+            if (string.Equals(trimmed, "/setup", StringComparison.OrdinalIgnoreCase))
+            {
+                RunSetup();
+                continue;
+            }
+
+            if (string.Equals(trimmed, "/reload-env", StringComparison.OrdinalIgnoreCase))
+            {
+                ReloadEnvironment();
+                continue;
+            }
+
             if (string.Equals(trimmed, "/list-modules", StringComparison.OrdinalIgnoreCase))
             {
                 _printInstalledModules();
@@ -279,6 +291,30 @@ public sealed class CliHostedService : BackgroundService
         Console.WriteLine(removed
             ? $"  Task {taskId} cancelled."
             : $"  Task {taskId} not found.");
+    }
+
+    private static void RunSetup()
+    {
+        var setupCompleted = ModuleInstaller.TryRunInstallScript();
+        if (setupCompleted)
+        {
+            Console.WriteLine("  Setup completed successfully. Reload configuration with /reload-env");
+        }
+        else
+        {
+            Console.WriteLine("  Vitruvian setup script could not be started. Ensure scripts/install.sh or scripts/install.ps1 exists next to the app.");
+        }
+    }
+
+    private static void ReloadEnvironment()
+    {
+        EnvFileLoader.Load(startDirectory: AppContext.BaseDirectory, overwriteExisting: true);
+        Console.WriteLine("  Environment reloaded from .env.Vitruvian");
+        Console.WriteLine($"  Current persona: {ConsoleHelper.GetCurrentPersonaDisplay()}");
+        if (ModelConfiguration.TryCreateFromEnvironment(out var config, out var error) && config is not null)
+            Console.WriteLine($"  Model provider configured: {config.Provider} ({config.Model})");
+        else if (!string.IsNullOrWhiteSpace(error))
+            Console.WriteLine($"  Model configuration warning: {error}");
     }
 
     /// <summary>

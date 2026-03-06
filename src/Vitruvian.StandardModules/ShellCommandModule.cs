@@ -201,20 +201,30 @@ IMPORTANT: This system is running Unix/Linux/macOS. Use Unix-native commands:
             CommandTimeout,
             ct);
 
-        if (!string.IsNullOrWhiteSpace(result.StartError))
-            return $"Failed to start command '{invocation.Command}': {result.StartError}";
+        return result switch
+        {
+            CommandExecutionResult.StartFailure failure =>
+                $"Failed to start command '{invocation.Command}': {failure.ErrorMessage}",
 
-        if (result.TimedOut)
-            return $"Command timed out after {CommandTimeout.TotalSeconds:0} seconds.";
+            CommandExecutionResult.Timeout =>
+                $"Command timed out after {CommandTimeout.TotalSeconds:0} seconds.",
 
-        var combined = string.IsNullOrWhiteSpace(result.StandardError)
-            ? result.StandardOutput
-            : $"{result.StandardOutput}\n{result.StandardError}";
+            CommandExecutionResult.Success success => FormatSuccessOutput(success),
+
+            _ => throw new InvalidOperationException($"Unexpected result type: {result.GetType().Name}")
+        };
+    }
+
+    private static string FormatSuccessOutput(CommandExecutionResult.Success success)
+    {
+        var combined = string.IsNullOrWhiteSpace(success.StandardError)
+            ? success.StandardOutput
+            : $"{success.StandardOutput}\n{success.StandardError}";
         var trimmed = combined.Trim();
         if (trimmed.Length > MaxOutputLength)
             trimmed = $"{trimmed[..MaxOutputLength]}\n...[output truncated]";
 
-        return $"ExitCode: {result.ExitCode ?? -1}\n{(string.IsNullOrWhiteSpace(trimmed) ? "(no output)" : trimmed)}";
+        return $"ExitCode: {success.ExitCode}\n{(string.IsNullOrWhiteSpace(trimmed) ? "(no output)" : trimmed)}";
     }
 
     private static IEnumerable<string> LoadAllowedCommandsFromEnvironment()

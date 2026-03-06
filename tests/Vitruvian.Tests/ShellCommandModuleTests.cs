@@ -43,7 +43,8 @@ public sealed class ShellCommandModuleTests
             Args = args;
             WorkingDirectory = workingDirectory;
             Timeout = timeout;
-            return Task.FromResult(new CommandExecutionResult(0, "ok", string.Empty));
+            return Task.FromResult<CommandExecutionResult>(
+                new CommandExecutionResult.Success(0, "ok", string.Empty));
         }
     }
 

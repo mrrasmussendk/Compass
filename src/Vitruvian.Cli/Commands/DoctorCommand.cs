@@ -23,6 +23,12 @@ public sealed class DoctorCommand : ICliCommand
     {
         var hasUnsigned = ModuleInstaller.ListInstalledModules(_pluginsPath).Any();
         var findings = new List<string>();
+
+        // Run environment validation
+        var validationResult = EnvironmentValidator.ValidateEnvironment();
+        findings.AddRange(validationResult.MissingVariables);
+        findings.AddRange(validationResult.Warnings);
+
         if (hasUnsigned)
             findings.Add("Installed modules should be inspected with `Vitruvian inspect-module` and signed by default.");
         if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("VITRUVIAN_MEMORY_CONNECTION_STRING")))
@@ -33,7 +39,8 @@ public sealed class DoctorCommand : ICliCommand
         var report = new
         {
             Status = findings.Count == 0 ? "healthy" : "needs-attention",
-            Findings = findings
+            Findings = findings,
+            EnvironmentValid = validationResult.IsValid
         };
 
         if (args.Any(a => string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase)))
@@ -43,8 +50,18 @@ public sealed class DoctorCommand : ICliCommand
         else
         {
             Console.WriteLine($"Doctor status: {report.Status}");
-            foreach (var finding in report.Findings)
-                Console.WriteLine($"  - {finding}");
+            Console.WriteLine($"Environment validation: {(validationResult.IsValid ? "✓ Passed" : "✗ Failed")}");
+            Console.WriteLine();
+            if (findings.Count > 0)
+            {
+                Console.WriteLine("Findings:");
+                foreach (var finding in findings)
+                    Console.WriteLine($"  - {finding}");
+            }
+            else
+            {
+                Console.WriteLine("✓ No issues found. Your Vitruvian installation is healthy!");
+            }
         }
 
         return Task.FromResult(0);

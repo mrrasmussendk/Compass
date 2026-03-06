@@ -43,7 +43,7 @@ public static class ConsoleHelper
     /// </summary>
     public static void PrintCommands()
     {
-        Console.WriteLine("Commands: /help, /setup, /list-modules, /configure-modules, /install-module <path|package@version> [--allow-unsigned], /load-module <path-to-dll>, /unregister-module <domain|filename>, /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], /schedule \"<interval>\" <request>, /list-tasks, /cancel-task <id>, quit");
+        Console.WriteLine("Commands: /help, /setup, /reload-env, /list-modules, /configure-modules, /install-module <path|package@version> [--allow-unsigned], /load-module <path-to-dll>, /unregister-module <domain|filename>, /inspect-module <path|package@version> [--json], /doctor [--json], /policy validate <policyFile>, /policy explain <request>, /audit list, /audit show <id> [--json], /replay <id> [--no-exec], /new-module <Name> [OutputPath], /schedule \"<interval>\" <request>, /list-tasks, /cancel-task <id>, quit");
     }
 
     /// <summary>

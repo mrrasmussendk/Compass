@@ -35,6 +35,10 @@ public static class ModuleInstaller
             : new ProcessStartInfo("bash", $"\"{scriptPath}\"");
 
         startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardInput = false;
+        startInfo.RedirectStandardOutput = false;
+        startInfo.RedirectStandardError = false;
+
         var process = Process.Start(startInfo);
         if (process is null)
             return false;

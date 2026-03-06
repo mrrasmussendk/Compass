@@ -15,6 +15,11 @@ public sealed class ProcessCommandRunner : ICommandRunner
         TimeSpan timeout,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(args);
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeout, TimeSpan.Zero);
+
         using var process = new Process
         {
             StartInfo = new ProcessStartInfo
@@ -38,11 +43,7 @@ public sealed class ProcessCommandRunner : ICommandRunner
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
-            return new CommandExecutionResult(
-                ExitCode: null,
-                StandardOutput: string.Empty,
-                StandardError: string.Empty,
-                StartError: ex.Message);
+            return new CommandExecutionResult.StartFailure(ex.Message);
         }
 
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -60,19 +61,15 @@ public sealed class ProcessCommandRunner : ICommandRunner
             if (!cancellationToken.IsCancellationRequested && !process.HasExited)
             {
                 process.Kill(entireProcessTree: true);
-                return new CommandExecutionResult(
-                    ExitCode: null,
-                    StandardOutput: string.Empty,
-                    StandardError: string.Empty,
-                    TimedOut: true);
+                return new CommandExecutionResult.Timeout();
             }
 
             throw;
         }
 
-        return new CommandExecutionResult(
-            ExitCode: process.ExitCode,
-            StandardOutput: await stdoutTask,
-            StandardError: await stderrTask);
+        return new CommandExecutionResult.Success(
+            process.ExitCode,
+            await stdoutTask,
+            await stderrTask);
     }
 }

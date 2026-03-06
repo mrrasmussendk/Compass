@@ -12,8 +12,22 @@ public static class OnboardingFlow
     /// </summary>
     public static (ModelConfiguration? Configuration, string? Error) EnsureConfigured()
     {
+        // Validate environment first
+        var validationResult = EnvironmentValidator.ValidateEnvironment();
+
         if (ModelConfiguration.TryCreateFromEnvironment(out var modelConfiguration, out var configError))
+        {
+            // Even if model is configured, show warnings if any
+            if (validationResult.Warnings.Count > 0)
+            {
+                foreach (var warning in validationResult.Warnings)
+                {
+                    if (!warning.Contains(".env.Vitruvian file found")) // Skip this one if already configured
+                        Console.WriteLine($"⚠ {warning}");
+                }
+            }
             return (modelConfiguration, configError);
+        }
 
         // Check if there's an env file somewhere
         if (EnvFileLoader.FindFile([Directory.GetCurrentDirectory(), AppContext.BaseDirectory]) is not null)
@@ -27,6 +41,13 @@ public static class OnboardingFlow
 
         Console.WriteLine("No Vitruvian configuration found. Starting guided setup...");
         Console.WriteLine();
+
+        // Show validation issues
+        if (!validationResult.IsValid || validationResult.Warnings.Count > 0)
+        {
+            EnvironmentValidator.PrintValidationResults(validationResult);
+        }
+
         Console.WriteLine("This will:");
         Console.WriteLine("  1. Configure your AI model provider (OpenAI, Anthropic, or Gemini)");
         Console.WriteLine("  2. Set up API keys and preferences");
