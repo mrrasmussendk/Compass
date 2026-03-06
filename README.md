@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="docs/logo.svg" alt="Vitruvian Logo" width="200"/>
+</div>
+
 # Vitruvian — .NET GOAP Agent Runtime
 
 **.NET GOAP agent runtime** that decomposes user requests into dependency-aware execution plans, runs independent steps in parallel, and enforces human-in-the-loop approval, caching, and memory — all before any side-effecting action fires.
