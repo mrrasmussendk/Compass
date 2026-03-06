@@ -10,6 +10,7 @@ Welcome to the **Vitruvian Agent Runtime** documentation. This folder contains d
 |---|---|
 | **Install and run** Vitruvian | [Installation](INSTALL.md) → [Using Vitruvian](USING.md) |
 | **Understand the architecture** | [Architecture](ARCHITECTURE.md) |
+| **See available built-in modules** | [Modules](MODULES.md) |
 | **Build a plugin module** | [Extending Vitruvian](EXTENDING.md) |
 | **Understand governance & scoring** | [Governance](GOVERNANCE.md) |
 | **Review the security model** | [Security](SECURITY.md) |
@@ -26,6 +27,7 @@ Welcome to the **Vitruvian Agent Runtime** documentation. This folder contains d
 
 - **[Installation](INSTALL.md)** — Prerequisites, building, guided & manual setup, plugin installation, troubleshooting.
 - **[Using Vitruvian](USING.md)** — Running the CLI, runtime behaviour, available commands, compound requests.
+- **[Modules](MODULES.md)** — Built-in standard modules and Google MCP modules (Gmail, Google Drive, Google Calendar).
 
 ### Architecture & Design
 
@@ -62,6 +64,10 @@ Vitruvian.sln
 │   ├── Vitruvian.StandardModules/   ← Built-in modules (File, Conversation, Web, …)
 │   ├── Vitruvian.WeatherModule/     ← Example standalone module
 │   └── Vitruvian.Cli/               ← CLI entry point, RequestProcessor
+├── modules/
+│   ├── Vitruvian.GmailModule/       ← Gmail MCP module
+│   ├── Vitruvian.GoogleDriveModule/ ← Google Drive MCP module
+│   └── Vitruvian.GoogleCalendarModule/ ← Google Calendar MCP module
 ├── tests/
 │   └── Vitruvian.Tests/             ← xUnit tests
 ├── docs/                            ← You are here
