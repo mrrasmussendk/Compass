@@ -96,6 +96,13 @@ public static class ModuleSelector
         var reader = input ?? Console.In;
         var writer = output ?? Console.Out;
 
+        // Ensure all available modules default to enabled when not yet configured.
+        foreach (var mod in availableModules)
+        {
+            if (!currentPreferences.EnabledModules.ContainsKey(mod.Domain))
+                currentPreferences.SetModuleEnabled(mod.Domain, true);
+        }
+
         writer.WriteLine();
         writer.WriteLine("=== Module Configuration ===");
         writer.WriteLine("Select which modules to enable. Enter a number to toggle, or a command:");
