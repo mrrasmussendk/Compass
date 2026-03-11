@@ -10,12 +10,18 @@ namespace VitruvianAbstractions.Planning;
 /// <param name="Description">Human-readable description of what this step accomplishes.</param>
 /// <param name="Input">The request text to pass to the module.</param>
 /// <param name="DependsOn">Step IDs that must complete before this step can execute.</param>
+/// <param name="Complexity">
+/// Optional complexity hint for this step. When set, model clients may use it to
+/// select an appropriate model (e.g. a faster/cheaper model for <see cref="VitruvianAbstractions.Complexity.Low"/>
+/// complexity steps). This is entirely optional — framework users are not required to set or act on it.
+/// </param>
 public sealed record PlanStep(
     string StepId,
     string ModuleDomain,
     string Description,
     string Input,
-    IReadOnlyList<string> DependsOn
+    IReadOnlyList<string> DependsOn,
+    Complexity? Complexity = null
 );
 
 /// <summary>
