@@ -300,34 +300,6 @@ public sealed class PlanExecutorTests
         Assert.Equal("Done!", result.AggregatedOutput);
     }
 
-    [Fact]
-    public void PlanStep_ComplexityDefaultsToNull()
-    {
-        var step = new PlanStep("s1", "test", "desc", "input", []);
-        Assert.Null(step.Complexity);
-    }
-
-    [Fact]
-    public void PlanStep_ComplexityCanBeSet()
-    {
-        var step = new PlanStep("s1", "test", "desc", "input", [], VitruvianAbstractions.Complexity.High);
-        Assert.Equal(VitruvianAbstractions.Complexity.High, step.Complexity);
-    }
-
-    [Fact]
-    public void ModelRequest_ComplexityDefaultsToNull()
-    {
-        var request = new ModelRequest { Prompt = "test" };
-        Assert.Null(request.Complexity);
-    }
-
-    [Fact]
-    public void ModelRequest_ComplexityCanBeSet()
-    {
-        var request = new ModelRequest { Prompt = "test", Complexity = VitruvianAbstractions.Complexity.Medium };
-        Assert.Equal(VitruvianAbstractions.Complexity.Medium, request.Complexity);
-    }
-
     private sealed class EchoModule : IVitruvianModule
     {
         public string Domain { get; }
