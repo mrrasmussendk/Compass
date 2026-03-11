@@ -65,7 +65,7 @@ Try some requests:
 
 | Feature | Description |
 |---------|-------------|
-| **GOAP Planning** | Decomposes requests into dependency-aware plans *before* execution. Multi-step tasks are broken into steps that run in parallel when independent. |
+| **GOAP Planning** | Decomposes requests into dependency-aware plans *before* execution. Multi-step tasks are broken into steps that run in parallel when independent. Each step gets an optional complexity hint for model routing. |
 | **Multithreaded Execution** | Independent plan steps execute concurrently via `Task.WhenAll`. Dependent steps wait for their prerequisites. |
 | **Human-in-the-Loop (HITL)** | Write, delete, and execute operations are gated through `IApprovalGate`. Default-deny on timeout. Full audit trail. |
 | **Result Caching** | Identical `(module, input)` pairs return cached output, avoiding redundant LLM calls or side effects. |
@@ -109,6 +109,35 @@ The two core abstractions:
 - **`GoapPlanner`** — takes a request and the list of registered modules, produces an `ExecutionPlan` with `PlanStep` nodes and `DependsOn` edges.
 
 For a deeper dive see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Complexity-Based Model Routing
+
+Each `PlanStep` carries an optional `Complexity` hint (`Low`, `Medium`, `High`) that the GOAP planner assigns automatically when building multi-step plans. The hint flows through to `ModelRequest.Complexity`, allowing `IModelClient` implementations to route requests to different underlying models based on task difficulty.
+
+| Complexity | Intended Use | Example Model |
+|------------|-------------|---------------|
+| `Low` | Simple lookups, formatting, trivial transforms | `gpt-4o-mini` |
+| `Medium` | Moderate reasoning, composition, multi-fact answers | Default model |
+| `High` | Deep reasoning, multi-step logic, creative tasks | `gpt-4o`, `claude-sonnet-4` |
+
+### Routing in IModelClient
+
+```csharp
+public Task<ModelResponse> GenerateAsync(ModelRequest request, CancellationToken ct)
+{
+    var model = request.Complexity switch
+    {
+        Complexity.Low    => "gpt-4o-mini",
+        Complexity.High   => "gpt-4o",
+        _                 => _defaultModel
+    };
+    // route to selected model...
+}
+```
+
+The complexity hint is entirely optional — when `null`, the default model is used. Single-step and fallback plans leave it unset. No existing code is affected.
 
 ---
 
