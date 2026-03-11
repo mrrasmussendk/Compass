@@ -18,6 +18,13 @@ public sealed record ModelRequest
     public double? Temperature { get; init; }
     public IReadOnlyList<ModelTool>? Tools { get; init; }
 
+    /// <summary>
+    /// Optional complexity hint from the plan step. Model client implementations
+    /// may use this to select a more or less capable model. When <c>null</c>, the
+    /// default model is used.
+    /// </summary>
+    public Complexity? Complexity { get; init; }
+
     public ModelRequest() { }
 }
 

@@ -212,4 +212,88 @@ public sealed class GoapPlannerTests
         Assert.Single(plan.Steps);
         Assert.Equal("", plan.Steps[0].ModuleDomain);
     }
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmReturnsComplexity_ParsesCorrectly()
+    {
+        var json = """[{"step_id":"s1","module":"conversation","description":"Answer","input":"hello","depends_on":[],"complexity":"high"}]""";
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("hello", CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Equal(VitruvianAbstractions.Complexity.High, plan.Steps[0].Complexity);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmReturnsComplexityCaseInsensitive_ParsesCorrectly()
+    {
+        var json = """[{"step_id":"s1","module":"conversation","description":"Answer","input":"hello","depends_on":[],"complexity":"Medium"}]""";
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("hello", CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Equal(VitruvianAbstractions.Complexity.Medium, plan.Steps[0].Complexity);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmOmitsComplexity_DefaultsToNull()
+    {
+        var json = """[{"step_id":"s1","module":"conversation","description":"Answer","input":"hello","depends_on":[]}]""";
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("hello", CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Null(plan.Steps[0].Complexity);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmReturnsInvalidComplexity_DefaultsToNull()
+    {
+        var json = """[{"step_id":"s1","module":"conversation","description":"Answer","input":"hello","depends_on":[],"complexity":"extreme"}]""";
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("hello", CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Null(plan.Steps[0].Complexity);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_FallbackPlan_ComplexityIsNull()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("hello", CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Null(plan.Steps[0].Complexity);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_MultiStepWithMixedComplexity_ParsesEach()
+    {
+        var json = """
+        [
+            {"step_id":"s1","module":"file-ops","description":"Read file","input":"read data.txt","depends_on":[],"complexity":"low"},
+            {"step_id":"s2","module":"conversation","description":"Analyze content","input":"analyze the data","depends_on":["s1"],"complexity":"high"}
+        ]
+        """;
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("file-ops", "File operations");
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("read and analyze data.txt", CancellationToken.None);
+
+        Assert.Equal(2, plan.Steps.Count);
+        Assert.Equal(VitruvianAbstractions.Complexity.Low, plan.Steps[0].Complexity);
+        Assert.Equal(VitruvianAbstractions.Complexity.High, plan.Steps[1].Complexity);
+    }
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using VitruvianAbstractions;
 using VitruvianAbstractions.Interfaces;
 using VitruvianAbstractions.Planning;
 
@@ -56,7 +57,7 @@ public sealed class GoapPlanner
         try
         {
             var systemPrompt = BuildPlannerPrompt();
-            var userPrompt = $"User request: {request}\n\nProduce a plan as a JSON array. Each element: {{\"step_id\":\"s1\",\"module\":\"<domain>\",\"description\":\"<what>\",\"input\":\"<request text>\",\"depends_on\":[]}}. Independent steps should have empty depends_on so they can run in parallel. Return ONLY valid JSON.";
+            var userPrompt = $"User request: {request}\n\nProduce a plan as a JSON array. Each element: {{\"step_id\":\"s1\",\"module\":\"<domain>\",\"description\":\"<what>\",\"input\":\"<request text>\",\"depends_on\":[],\"complexity\":\"low|medium|high\"}}. Independent steps should have empty depends_on so they can run in parallel. The complexity field indicates how complex the step is: \"low\" for simple lookups or direct responses, \"medium\" for moderate reasoning, \"high\" for deep analysis or creative tasks. Return ONLY valid JSON.";
 
             var response = await _modelClient.CompleteAsync(systemPrompt, userPrompt, cancellationToken: ct);
             var plan = ParsePlanResponse(planId, request, response);
@@ -100,6 +101,8 @@ public sealed class GoapPlanner
             4. Steps that need output from a prior step must list its step_id in "depends_on".
             5. Always include a brief "description" of what the step accomplishes.
             6. The "input" field should be a self-contained request the module can execute.
+            7. Assign a "complexity" to each step: "low" for simple lookups or direct responses,
+               "medium" for moderate reasoning or composition, "high" for deep analysis or creative tasks.
 
             Return ONLY a JSON array, no markdown fences or extra text.
             """;
@@ -134,7 +137,16 @@ public sealed class GoapPlanner
             if (!_modules.Any(m => m.Domain == module))
                 continue;
 
-            steps.Add(new PlanStep(stepId, module, desc, input, deps));
+            // Parse optional complexity hint
+            Complexity? complexity = null;
+            if (el.TryGetProperty("complexity", out var comp) && comp.ValueKind == JsonValueKind.String)
+            {
+                var compStr = comp.GetString();
+                if (Enum.TryParse<Complexity>(compStr, ignoreCase: true, out var parsed))
+                    complexity = parsed;
+            }
+
+            steps.Add(new PlanStep(stepId, module, desc, input, deps, complexity));
         }
 
         return steps.Count > 0

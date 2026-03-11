@@ -283,6 +283,23 @@ public sealed class PlanExecutorTests
         Assert.Contains("Prior step context", result.StepResults[1].Output);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_StepWithComplexity_ExecutesNormally()
+    {
+        var module = new TestModule("conversation", "General conversation", "Done!");
+        var modules = new Dictionary<string, IVitruvianModule> { ["conversation"] = module };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "hello", [
+            new PlanStep("s1", "conversation", "Answer greeting", "hello", [], VitruvianAbstractions.Complexity.Low)
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal("Done!", result.AggregatedOutput);
+    }
+
     private sealed class EchoModule : IVitruvianModule
     {
         public string Domain { get; }

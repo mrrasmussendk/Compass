@@ -89,6 +89,21 @@ public enum ModuleAccess
     Execute = 4
 }
 
+/// <summary>
+/// Indicates the estimated complexity of a plan step.
+/// Model clients may use this hint to select an appropriate model
+/// (e.g. a cheaper/faster model for <see cref="Low"/> complexity tasks).
+/// </summary>
+public enum Complexity
+{
+    /// <summary>Simple, straightforward task requiring minimal reasoning.</summary>
+    Low,
+    /// <summary>Moderately complex task requiring some reasoning or composition.</summary>
+    Medium,
+    /// <summary>Complex task requiring deep reasoning, multi-step logic, or creativity.</summary>
+    High
+}
+
 /// <summary>Classifies the type of operation a module performs, used for HITL gating.</summary>
 public enum OperationType
 {
