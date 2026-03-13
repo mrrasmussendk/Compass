@@ -2,14 +2,14 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using VitruvianAbstractions;
-using VitruvianCli;
-using VitruvianCli.Commands;
-using VitruvianRuntime;
-using VitruvianRuntime.Routing;
 using VitruvianAbstractions.Interfaces;
 using VitruvianAbstractions.Scheduling;
+using VitruvianCli;
+using VitruvianCli.Commands;
 using VitruvianPluginHost;
+using VitruvianRuntime;
 using VitruvianRuntime.DI;
+using VitruvianRuntime.Routing;
 using VitruvianRuntime.Scheduling;
 using VitruvianStandardModules;
 
@@ -118,7 +118,24 @@ var host = builder.Build();
 
 // Create and configure the request processor
 var router = host.Services.GetRequiredService<ModuleRouter>();
-var requestProcessor = new RequestProcessor(host, router, modelClient, approvalGate);
+var commandRunner = host.Services.GetService<ICommandRunner>();
+var requestProcessor = new RequestProcessor(
+    router,
+    modelClient,
+    approvalGate,
+    logger: Console.WriteLine,
+    moduleContextFactory: (module, contextClient) => module switch
+    {
+        ConversationModule => new ConversationModule(contextClient),
+        WebSearchModule => new WebSearchModule(contextClient),
+        SummarizationModule => new SummarizationModule(contextClient),
+        ShellCommandModule => new ShellCommandModule(
+            contextClient,
+            workingDirectory,
+            commandRunner: commandRunner ?? new ProcessCommandRunner()),
+        FileOperationsModule => new FileOperationsModule(contextClient, workingDirectory),
+        _ => module // Return original if we don't know how to wrap it
+    });
 
 // Register all modules with the router
 foreach (var module in host.Services.GetServices<IVitruvianModule>())

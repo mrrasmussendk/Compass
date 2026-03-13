@@ -296,4 +296,46 @@ public sealed class GoapPlannerTests
         Assert.Equal(VitruvianAbstractions.Complexity.Low, plan.Steps[0].Complexity);
         Assert.Equal(VitruvianAbstractions.Complexity.High, plan.Steps[1].Complexity);
     }
+
+    [Fact]
+    public void BuildPlannerPrompt_DefaultTemplate_ContainsModuleList()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("file-ops", "File operations");
+        planner.RegisterModule("conversation", "General conversation");
+
+        var prompt = planner.BuildPlannerPrompt();
+
+        Assert.Contains("file-ops: File operations", prompt);
+        Assert.Contains("conversation: General conversation", prompt);
+        Assert.Contains("GOAP", prompt);
+    }
+
+    [Fact]
+    public void BuildPlannerPrompt_CustomTemplate_ReplacesModulesPlaceholder()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("file-ops", "File operations");
+        planner.PlannerPromptTemplate = "Custom planner prompt.\n\nModules:\n{modules}\n\nEnd.";
+
+        var prompt = planner.BuildPlannerPrompt();
+
+        Assert.Contains("Custom planner prompt.", prompt);
+        Assert.Contains("file-ops: File operations", prompt);
+        Assert.Contains("End.", prompt);
+        Assert.DoesNotContain("{modules}", prompt);
+    }
+
+    [Fact]
+    public void BuildPlannerPrompt_CustomTemplate_NullFallsBackToDefault()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("conversation", "General conversation");
+        planner.PlannerPromptTemplate = null;
+
+        var prompt = planner.BuildPlannerPrompt();
+
+        Assert.Contains("GOAP", prompt);
+        Assert.Contains("conversation: General conversation", prompt);
+    }
 }
