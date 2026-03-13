@@ -32,4 +32,8 @@
     <ProjectReference Include="..\..\modules\Vitruvian.GoogleDriveModule\Vitruvian.GoogleDriveModule.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures\module-skill.md" />
+  </ItemGroup>
+
 </Project>
