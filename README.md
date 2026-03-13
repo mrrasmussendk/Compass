@@ -66,6 +66,8 @@ Try some requests:
 | Feature | Description |
 |---------|-------------|
 | **GOAP Planning** | Decomposes requests into dependency-aware plans *before* execution. Multi-step tasks are broken into steps that run in parallel when independent. Each step gets an optional complexity hint for model routing. |
+| **Conditions & Fallbacks** | Steps can declare preconditions (dependency-success gate) and postconditions (keyword match on output). A `FallbackStepId` names an alternative step that runs only when the primary fails. |
+| **Replanning** | When a plan fails and a model client is available, the executor asks the planner to produce a revised plan (`ReplanAsync`) and retries automatically (configurable via `MaxReplans`). |
 | **Multithreaded Execution** | Independent plan steps execute concurrently via `Task.WhenAll`. Dependent steps wait for their prerequisites. |
 | **Human-in-the-Loop (HITL)** | Write, delete, and execute operations are gated through `IApprovalGate`. Default-deny on timeout. Full audit trail. |
 | **Result Caching** | Identical `(module, input)` pairs return cached output, avoiding redundant LLM calls or side effects. |
@@ -86,13 +88,20 @@ Every user request passes through three phases:
        ▼
   ┌──────────┐
   │   PLAN   │  GoapPlanner builds an ExecutionPlan
-  └────┬─────┘  (PlanSteps + dependency edges)
+  └────┬─────┘  (PlanSteps + dependency edges + conditions)
        │
        ▼
   ┌──────────┐  PlanExecutor runs steps in waves:
-  │ EXECUTE  │  • Cache check → HITL gate → Context injection
-  │          │  • Module.ExecuteAsync → Cache store
+  │ EXECUTE  │  • Precondition gate → Cache check → HITL gate
+  │          │  • Context injection → Module.ExecuteAsync
+  │          │  • Postcondition gate → Cache store
+  │          │  • On failure → run fallback step (if defined)
   └────┬─────┘  Independent steps run in parallel
+       │
+       ▼
+  ┌──────────┐  If plan failed and ReplanCallback is set:
+  │ REPLAN?  │  GoapPlanner.ReplanAsync produces a revised plan
+  └────┬─────┘  (up to MaxReplans attempts, default 1)
        │
        ▼
   ┌──────────┐
@@ -106,7 +115,7 @@ Every user request passes through three phases:
 The two core abstractions:
 
 - **`IVitruvianModule`** — every capability (built-in or third-party) implements this single interface.
-- **`GoapPlanner`** — takes a request and the list of registered modules, produces an `ExecutionPlan` with `PlanStep` nodes and `DependsOn` edges.
+- **`GoapPlanner`** — takes a request and the list of registered modules, produces an `ExecutionPlan` with `PlanStep` nodes, `DependsOn` edges, optional conditions, and fallback references. Also provides `ReplanAsync` to produce a revised plan after a failure.
 
 For a deeper dive see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -138,6 +147,46 @@ public Task<ModelResponse> GenerateAsync(ModelRequest request, CancellationToken
 ```
 
 The complexity hint is entirely optional — when `null`, the default model is used. Single-step and fallback plans leave it unset. No existing code is affected.
+
+---
+
+## Conditions, Fallbacks & Replanning
+
+The GOAP planner can attach optional **preconditions**, **postconditions**, and **fallback steps** to any plan step. These let the executor validate step feasibility, detect soft failures, and recover — all without leaving the current plan.
+
+### Preconditions
+
+A `Precondition` is a natural-language description of what must hold before a step runs. When set, the executor checks that every step listed in `DependsOn` succeeded. If any dependency failed, the step is skipped and marked as failed.
+
+### Postconditions
+
+A `Postcondition` is a keyword or phrase that must appear (case-insensitive) in the step output for the result to be considered successful. This catches situations where a module returns a response but the content indicates failure (e.g. "not found").
+
+### Fallback Steps
+
+A `FallbackStepId` names an alternative step in the same plan. Fallback steps are excluded from normal wave execution and only triggered when the primary step fails (precondition, postcondition, module error, or HITL denial). The fallback result is recorded under the original step ID so downstream dependencies continue to resolve.
+
+### Replanning
+
+When the overall plan fails and a model client is available, the `PlanExecutor` invokes `GoapPlanner.ReplanAsync` to produce a revised plan based on a summary of what failed. The executor then runs the new plan. The number of replan attempts is controlled by `MaxReplans` (default: 1 when wired through `RequestProcessor`).
+
+### Example Plan
+
+```json
+[
+  {"step_id":"s1","module":"web-search","description":"Search web","input":"find info",
+   "depends_on":[],"postcondition":"found","fallback_step_id":"s1-fb"},
+  {"step_id":"s1-fb","module":"conversation","description":"Answer from knowledge",
+   "input":"answer from what you know","depends_on":[]},
+  {"step_id":"s2","module":"conversation","description":"Summarize","input":"summarize",
+   "depends_on":["s1"],"precondition":"search must succeed"}
+]
+```
+
+In this plan:
+- **s1** searches the web. If the output doesn't contain "found", the postcondition fails.
+- **s1-fb** runs only if s1 fails, answering from built-in knowledge instead.
+- **s2** depends on s1. Its precondition ensures it is skipped if the search (or its fallback) didn't succeed.
 
 ---
 
