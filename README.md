@@ -445,6 +445,7 @@ All detailed documentation lives in the [`docs/`](docs/) folder:
 |----------|----------|-------------|
 | [Installation](docs/INSTALL.md) | Everyone | Prerequisites, build, guided & manual setup, plugin installation |
 | [Using Vitruvian](docs/USING.md) | Users | Running the CLI, runtime behaviour, compound requests |
+| [Modules](docs/MODULES.md) | Users / Developers | Built-in standard modules and Google MCP modules |
 | [Architecture](docs/ARCHITECTURE.md) | Developers | GOAP pipeline, key components, execution flow |
 | [Extending](docs/EXTENDING.md) | Plugin authors | Writing modules, SDK attributes, permissions, API keys |
 | [Governance](docs/GOVERNANCE.md) | Operators / Developers | Scoring model, hysteresis, explainability |
@@ -470,6 +471,10 @@ Vitruvian.sln
 │   ├── Vitruvian.StandardModules/   ← Built-in modules (File, Conversation, Web, …)
 │   ├── Vitruvian.WeatherModule/     ← Example standalone module
 │   └── Vitruvian.Cli/               ← CLI entry point, RequestProcessor, ModelClientFactory
+├── modules/
+│   ├── Vitruvian.GmailModule/       ← Gmail MCP module
+│   ├── Vitruvian.GoogleDriveModule/ ← Google Drive MCP module
+│   └── Vitruvian.GoogleCalendarModule/ ← Google Calendar MCP module
 ├── tests/
 │   └── Vitruvian.Tests/             ← xUnit tests
 ├── docs/                            ← Detailed documentation (see table above)
