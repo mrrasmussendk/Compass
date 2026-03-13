@@ -64,7 +64,7 @@ public sealed class GoapPlanner
         try
         {
             var systemPrompt = BuildPlannerPrompt();
-            var userPrompt = $"User request: {request}\n\nProduce a plan as a JSON array. Each element: {{\"step_id\":\"s1\",\"module\":\"<domain>\",\"description\":\"<what>\",\"input\":\"<request text>\",\"depends_on\":[],\"complexity\":\"low|medium|high\"}}. Independent steps should have empty depends_on so they can run in parallel. The complexity field indicates how complex the step is: \"low\" for simple lookups or direct responses, \"medium\" for moderate reasoning, \"high\" for deep analysis or creative tasks. Return ONLY valid JSON.";
+            var userPrompt = $"User request: {request}\n\nProduce a plan as a JSON array. Each element: {{\"step_id\":\"s1\",\"module\":\"<domain>\",\"description\":\"<what>\",\"input\":\"<request text>\",\"depends_on\":[],\"complexity\":\"low|medium|high\",\"precondition\":\"<optional condition that must hold before this step runs>\",\"postcondition\":\"<optional keyword/phrase that must appear in the output>\",\"fallback_step_id\":\"<optional step_id of a fallback step>\"}}. Independent steps should have empty depends_on so they can run in parallel. The complexity field indicates how complex the step is: \"low\" for simple lookups or direct responses, \"medium\" for moderate reasoning, \"high\" for deep analysis or creative tasks. Return ONLY valid JSON.";
 
             var response = await _modelClient.CompleteAsync(systemPrompt, userPrompt, cancellationToken: ct);
             var plan = ParsePlanResponse(planId, request, response);
@@ -82,6 +82,47 @@ public sealed class GoapPlanner
         }
 
         return SingleStepPlan(planId, request, FallbackDomain(request));
+    }
+
+    /// <summary>
+    /// Creates a new plan that accounts for the failures observed in a previous plan result.
+    /// When no model client is available, falls back to a single-step plan using keyword matching.
+    /// </summary>
+    /// <param name="originalRequest">The original user request.</param>
+    /// <param name="failedResult">The result of the failed plan execution.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A new <see cref="ExecutionPlan"/> that avoids the failures.</returns>
+    public async Task<ExecutionPlan> ReplanAsync(string originalRequest, PlanResult failedResult, CancellationToken ct)
+    {
+        var planId = Guid.NewGuid().ToString("N")[..12];
+
+        if (_modules.Count == 0)
+            return SingleStepPlan(planId, originalRequest, domain: null);
+
+        if (_modelClient is null)
+            return SingleStepPlan(planId, originalRequest, FallbackDomain(originalRequest));
+
+        try
+        {
+            var systemPrompt = BuildPlannerPrompt();
+            var failureSummary = BuildFailureSummary(failedResult);
+            var userPrompt = $"The previous plan failed. Here is what happened:\n{failureSummary}\n\nOriginal user request: {originalRequest}\n\nProduce a revised plan as a JSON array that avoids the failures above. Use different modules or approaches where the previous plan failed. Each element: {{\"step_id\":\"s1\",\"module\":\"<domain>\",\"description\":\"<what>\",\"input\":\"<request text>\",\"depends_on\":[],\"complexity\":\"low|medium|high\",\"precondition\":\"<optional condition>\",\"postcondition\":\"<optional expected output keyword>\",\"fallback_step_id\":\"<optional fallback step>\"}}. Return ONLY valid JSON.";
+
+            var response = await _modelClient.CompleteAsync(systemPrompt, userPrompt, cancellationToken: ct);
+            var plan = ParsePlanResponse(planId, originalRequest, response);
+            if (plan is not null)
+                return plan;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[PLANNER] Replan failed: {ex.Message}. Falling back to single-step plan.");
+        }
+
+        return SingleStepPlan(planId, originalRequest, FallbackDomain(originalRequest));
     }
 
     // ------------------------------------------------------------------
@@ -113,6 +154,14 @@ public sealed class GoapPlanner
             6. The "input" field should be a self-contained request the module can execute.
             7. Assign a "complexity" to each step: "low" for simple lookups or direct responses,
                "medium" for moderate reasoning or composition, "high" for deep analysis or creative tasks.
+            8. Optionally add a "precondition" describing what must be true before the step runs.
+               When a precondition is set, every dependency step must have succeeded or the step
+               will be skipped.
+            9. Optionally add a "postcondition" — a keyword or phrase that must appear in the
+               step output for it to be considered successful.
+            10. Optionally add a "fallback_step_id" referencing another step that should execute
+                only if this step fails. The fallback step must also be in the plan array and will
+                be skipped during normal execution.
 
             Return ONLY a JSON array, no markdown fences or extra text.
             """;
@@ -156,7 +205,23 @@ public sealed class GoapPlanner
                     complexity = parsed;
             }
 
-            steps.Add(new PlanStep(stepId, module, desc, input, deps, complexity));
+            // Parse optional precondition
+            string? precondition = null;
+            if (el.TryGetProperty("precondition", out var pre) && pre.ValueKind == JsonValueKind.String)
+                precondition = pre.GetString();
+
+            // Parse optional postcondition
+            string? postcondition = null;
+            if (el.TryGetProperty("postcondition", out var post) && post.ValueKind == JsonValueKind.String)
+                postcondition = post.GetString();
+
+            // Parse optional fallback step ID
+            string? fallbackStepId = null;
+            if (el.TryGetProperty("fallback_step_id", out var fb) && fb.ValueKind == JsonValueKind.String)
+                fallbackStepId = fb.GetString();
+
+            steps.Add(new PlanStep(stepId, module, desc, input, deps, complexity,
+                precondition, postcondition, fallbackStepId));
         }
 
         return steps.Count > 0
@@ -185,6 +250,20 @@ public sealed class GoapPlanner
 
         return best?.Score > 0 ? best.Domain : _modules.FirstOrDefault()?.Domain;
     }
+
+    private static string BuildFailureSummary(PlanResult failedResult)
+    {
+        var lines = new List<string>();
+        foreach (var sr in failedResult.StepResults)
+        {
+            var status = sr.Success ? "succeeded" : "FAILED";
+            lines.Add($"- Step {sr.StepId} ({sr.ModuleDomain}): {status} — {Truncate(sr.Output, 150)}");
+        }
+        return string.Join("\n", lines);
+    }
+
+    private static string Truncate(string text, int maxLength)
+        => text.Length <= maxLength ? text : text[..maxLength] + "...";
 
     private sealed record ModuleInfo(string Domain, string Description);
 }

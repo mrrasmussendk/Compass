@@ -300,6 +300,308 @@ public sealed class PlanExecutorTests
         Assert.Equal("Done!", result.AggregatedOutput);
     }
 
+    // ---------------------------------------------------------------
+    // Precondition tests
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ExecuteAsync_PreconditionMet_StepExecutes()
+    {
+        var readModule = new TestModule("file-ops", "File operations", "file content");
+        var convModule = new TestModule("conversation", "Conversation", "summary");
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["file-ops"] = readModule,
+            ["conversation"] = convModule
+        };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "read and summarize", [
+            new PlanStep("s1", "file-ops", "Read file", "read notes.txt", []),
+            new PlanStep("s2", "conversation", "Summarize", "summarize content", ["s1"],
+                Precondition: "file read succeeded")
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal("summary", result.StepResults[1].Output);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PreconditionNotMet_DependencyFailed_StepSkipped()
+    {
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["failing"] = new FailingModule(),
+            ["conversation"] = new TestModule("conversation", "Conversation", "should not run")
+        };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "failing", "Will fail", "do something", []),
+            new PlanStep("s2", "conversation", "Process result", "process", ["s1"],
+                Precondition: "s1 must succeed")
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.False(result.StepResults[1].Success);
+        Assert.Contains("Precondition not met", result.StepResults[1].Output);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_NoPrecondition_StepRunsEvenIfDependencyFailed()
+    {
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["failing"] = new FailingModule(),
+            ["conversation"] = new TestModule("conversation", "Conversation", "still works")
+        };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "failing", "Will fail", "do something", []),
+            new PlanStep("s2", "conversation", "Will succeed", "hello", ["s1"])
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        // Without precondition, s2 still runs despite s1 failure
+        Assert.True(result.StepResults[1].Success);
+        Assert.Equal("still works", result.StepResults[1].Output);
+    }
+
+    // ---------------------------------------------------------------
+    // Postcondition tests
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ExecuteAsync_PostconditionSatisfied_StepSucceeds()
+    {
+        var module = new TestModule("conversation", "Conversation", "The answer is 42");
+        var modules = new Dictionary<string, IVitruvianModule> { ["conversation"] = module };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "conversation", "Answer", "question", [],
+                Postcondition: "42")
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PostconditionNotSatisfied_StepFails()
+    {
+        var module = new TestModule("conversation", "Conversation", "I don't know");
+        var modules = new Dictionary<string, IVitruvianModule> { ["conversation"] = module };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "conversation", "Answer", "question", [],
+                Postcondition: "42")
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Contains("Postcondition not met", result.StepResults[0].Output);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PostconditionCaseInsensitive_StepSucceeds()
+    {
+        var module = new TestModule("conversation", "Conversation", "SUCCESS: done");
+        var modules = new Dictionary<string, IVitruvianModule> { ["conversation"] = module };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "conversation", "Do task", "task", [],
+                Postcondition: "success")
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(result.Success);
+    }
+
+    // ---------------------------------------------------------------
+    // Fallback step tests
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ExecuteAsync_FallbackStep_ExecutedOnPrimaryFailure()
+    {
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["failing"] = new FailingModule(),
+            ["conversation"] = new TestModule("conversation", "Conversation", "fallback answer")
+        };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "failing", "Will fail", "do something", [],
+                FallbackStepId: "s1-fb"),
+            new PlanStep("s1-fb", "conversation", "Fallback answer", "answer from knowledge", [])
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(result.Success);
+        // The result for s1 should show it was a fallback
+        var s1Result = result.StepResults.First(r => r.StepId == "s1");
+        Assert.True(s1Result.WasFallback);
+        Assert.Equal("fallback answer", s1Result.Output);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_FallbackStep_SkippedDuringNormalExecution()
+    {
+        var primaryModule = new TestModule("primary", "Primary module", "primary result");
+        var fallbackModule = new TestModule("fallback", "Fallback module", "fallback result");
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["primary"] = primaryModule,
+            ["fallback"] = fallbackModule
+        };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "primary", "Primary step", "do something", [],
+                FallbackStepId: "s1-fb"),
+            new PlanStep("s1-fb", "fallback", "Fallback step", "fallback", [])
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal("primary result", result.StepResults.First(r => r.StepId == "s1").Output);
+        Assert.Equal(0, fallbackModule.ExecutionCount); // Fallback was never executed
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PostconditionFailure_TriggersFallback()
+    {
+        var primaryModule = new TestModule("primary", "Primary module", "wrong output");
+        var fallbackModule = new TestModule("fallback", "Fallback module", "correct output with keyword");
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["primary"] = primaryModule,
+            ["fallback"] = fallbackModule
+        };
+        var executor = new PlanExecutor(modules);
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "primary", "Primary step", "do something", [],
+                Postcondition: "keyword", FallbackStepId: "s1-fb"),
+            new PlanStep("s1-fb", "fallback", "Fallback step", "try fallback", [])
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(result.Success);
+        var s1Result = result.StepResults.First(r => r.StepId == "s1");
+        Assert.True(s1Result.WasFallback);
+        Assert.Contains("keyword", s1Result.Output);
+    }
+
+    // ---------------------------------------------------------------
+    // Replan tests
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ExecuteAsync_ReplanOnFailure_ExecutesNewPlan()
+    {
+        var failingModule = new FailingModule();
+        var convModule = new TestModule("conversation", "Conversation", "replanned answer");
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["failing"] = failingModule,
+            ["conversation"] = convModule
+        };
+        var executor = new PlanExecutor(modules);
+
+        var replanCalled = false;
+        executor.MaxReplans = 1;
+        executor.ReplanCallback = (request, failedResult, ct) =>
+        {
+            replanCalled = true;
+            // Return a revised plan that uses conversation instead of the failing module
+            var newPlan = new ExecutionPlan("p2", request, [
+                new PlanStep("s1", "conversation", "Answer directly", request, [])
+            ]);
+            return Task.FromResult<ExecutionPlan?>(newPlan);
+        };
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "failing", "Will fail", "do something", [])
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.True(replanCalled);
+        Assert.True(result.Success);
+        Assert.Equal("replanned answer", result.AggregatedOutput);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ReplanDisabled_NoReplanAttempt()
+    {
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["failing"] = new FailingModule()
+        };
+        var executor = new PlanExecutor(modules);
+
+        var replanCalled = false;
+        executor.MaxReplans = 0; // Disabled
+        executor.ReplanCallback = (_, _, _) =>
+        {
+            replanCalled = true;
+            return Task.FromResult<ExecutionPlan?>(null);
+        };
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "failing", "Will fail", "do something", [])
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.False(replanCalled);
+        Assert.False(result.Success);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ReplanCallbackReturnsNull_StopsReplanning()
+    {
+        var modules = new Dictionary<string, IVitruvianModule>
+        {
+            ["failing"] = new FailingModule()
+        };
+        var executor = new PlanExecutor(modules);
+
+        executor.MaxReplans = 3;
+        var callCount = 0;
+        executor.ReplanCallback = (_, _, _) =>
+        {
+            callCount++;
+            return Task.FromResult<ExecutionPlan?>(null);
+        };
+
+        var plan = new ExecutionPlan("p1", "test", [
+            new PlanStep("s1", "failing", "Will fail", "do something", [])
+        ]);
+
+        var result = await executor.ExecuteAsync(plan, null, CancellationToken.None);
+
+        Assert.Equal(1, callCount); // Called once, returned null, stopped
+        Assert.False(result.Success);
+    }
+
     private sealed class EchoModule : IVitruvianModule
     {
         public string Domain { get; }

@@ -15,13 +15,32 @@ namespace VitruvianAbstractions.Planning;
 /// select an appropriate model (e.g. a faster/cheaper model for <see cref="VitruvianAbstractions.Complexity.Low"/>
 /// complexity steps). This is entirely optional — framework users are not required to set or act on it.
 /// </param>
+/// <param name="Precondition">
+/// Optional natural-language precondition that must hold before this step executes.
+/// When set, every step listed in <see cref="DependsOn"/> must have succeeded; otherwise
+/// the step is skipped and marked as failed.
+/// </param>
+/// <param name="Postcondition">
+/// Optional keyword or phrase that must appear (case-insensitive) in the step output
+/// for the result to be considered successful. When the check fails the step is marked
+/// as failed, even if the module itself did not throw.
+/// </param>
+/// <param name="FallbackStepId">
+/// Optional step ID of a fallback step to execute when this step fails for any reason
+/// (precondition, postcondition, module error, or HITL denial). The referenced step
+/// must exist in the same plan and is only executed as a fallback — it is skipped during
+/// normal wave-based execution.
+/// </param>
 public sealed record PlanStep(
     string StepId,
     string ModuleDomain,
     string Description,
     string Input,
     IReadOnlyList<string> DependsOn,
-    Complexity? Complexity = null
+    Complexity? Complexity = null,
+    string? Precondition = null,
+    string? Postcondition = null,
+    string? FallbackStepId = null
 );
 
 /// <summary>
@@ -48,13 +67,15 @@ public sealed record ExecutionPlan(
 /// <param name="Output">The output text produced by the module.</param>
 /// <param name="ExecutedAt">Timestamp when execution started.</param>
 /// <param name="Duration">How long the step took to execute.</param>
+/// <param name="WasFallback">Whether this result came from executing a fallback step.</param>
 public sealed record PlanStepResult(
     string StepId,
     string ModuleDomain,
     bool Success,
     string Output,
     DateTimeOffset ExecutedAt,
-    TimeSpan Duration
+    TimeSpan Duration,
+    bool WasFallback = false
 );
 
 /// <summary>

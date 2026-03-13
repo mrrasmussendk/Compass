@@ -174,6 +174,17 @@ public sealed class RequestProcessor
                 contextAwareModules[kvp.Key] = GetContextAwareModule(kvp.Key);
             }
             _executor = new PlanExecutor(contextAwareModules, _approvalGate);
+
+            // Wire up replanning: when a plan fails, ask the planner to create a revised plan
+            if (_modelClient is not null)
+            {
+                _executor.MaxReplans = 1;
+                _executor.ReplanCallback = async (originalRequest, failedResult, ct2) =>
+                {
+                    Log($"[GOAP] Plan {failedResult.PlanId} failed — attempting replan");
+                    return await _planner.ReplanAsync(originalRequest, failedResult, ct2);
+                };
+            }
         }
 
         var execStart = sw.ElapsedMilliseconds;

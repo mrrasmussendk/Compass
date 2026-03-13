@@ -338,4 +338,136 @@ public sealed class GoapPlannerTests
         Assert.Contains("GOAP", prompt);
         Assert.Contains("conversation: General conversation", prompt);
     }
+
+    // ---------------------------------------------------------------
+    // Condition & fallback parsing tests
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmReturnsPrecondition_ParsesCorrectly()
+    {
+        var json = """[{"step_id":"s1","module":"file-ops","description":"Read file","input":"read data.txt","depends_on":[]},{"step_id":"s2","module":"conversation","description":"Summarize","input":"summarize","depends_on":["s1"],"precondition":"file must be read successfully"}]""";
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("file-ops", "File operations");
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("read and summarize", CancellationToken.None);
+
+        Assert.Equal(2, plan.Steps.Count);
+        Assert.Null(plan.Steps[0].Precondition);
+        Assert.Equal("file must be read successfully", plan.Steps[1].Precondition);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmReturnsPostcondition_ParsesCorrectly()
+    {
+        var json = """[{"step_id":"s1","module":"conversation","description":"Answer","input":"what is 2+2?","depends_on":[],"postcondition":"4"}]""";
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("what is 2+2?", CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Equal("4", plan.Steps[0].Postcondition);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmReturnsFallbackStepId_ParsesCorrectly()
+    {
+        var json = """
+        [
+            {"step_id":"s1","module":"web-search","description":"Search web","input":"find info","depends_on":[],"fallback_step_id":"s1-fb"},
+            {"step_id":"s1-fb","module":"conversation","description":"Answer from knowledge","input":"answer","depends_on":[]}
+        ]
+        """;
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("web-search", "Web search");
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("find some info", CancellationToken.None);
+
+        Assert.Equal(2, plan.Steps.Count);
+        Assert.Equal("s1-fb", plan.Steps[0].FallbackStepId);
+        Assert.Null(plan.Steps[1].FallbackStepId);
+    }
+
+    [Fact]
+    public async Task CreatePlanAsync_LlmOmitsConditions_DefaultsToNull()
+    {
+        var json = """[{"step_id":"s1","module":"conversation","description":"Answer","input":"hello","depends_on":[]}]""";
+        var planner = new GoapPlanner(new StubModelClient(json));
+        planner.RegisterModule("conversation", "General conversation");
+
+        var plan = await planner.CreatePlanAsync("hello", CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Null(plan.Steps[0].Precondition);
+        Assert.Null(plan.Steps[0].Postcondition);
+        Assert.Null(plan.Steps[0].FallbackStepId);
+    }
+
+    [Fact]
+    public void BuildPlannerPrompt_DefaultTemplate_ContainsConditionRules()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("conversation", "General conversation");
+
+        var prompt = planner.BuildPlannerPrompt();
+
+        Assert.Contains("precondition", prompt);
+        Assert.Contains("postcondition", prompt);
+        Assert.Contains("fallback_step_id", prompt);
+    }
+
+    // ---------------------------------------------------------------
+    // Replan tests
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public async Task ReplanAsync_NoModules_ReturnsSingleStepWithEmptyDomain()
+    {
+        var planner = new GoapPlanner();
+        var failedResult = new PlanResult("p1", false, [
+            new PlanStepResult("s1", "unknown", false, "Error: failed", DateTimeOffset.UtcNow, TimeSpan.Zero)
+        ], "Error: failed");
+
+        var plan = await planner.ReplanAsync("test request", failedResult, CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Equal("", plan.Steps[0].ModuleDomain);
+    }
+
+    [Fact]
+    public async Task ReplanAsync_NoModelClient_FallsBackToKeywordMatching()
+    {
+        var planner = new GoapPlanner();
+        planner.RegisterModule("conversation", "General conversation and questions");
+        var failedResult = new PlanResult("p1", false, [
+            new PlanStepResult("s1", "web-search", false, "Error: timeout", DateTimeOffset.UtcNow, TimeSpan.Zero)
+        ], "Error: timeout");
+
+        var plan = await planner.ReplanAsync("answer a question", failedResult, CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Equal("conversation", plan.Steps[0].ModuleDomain);
+    }
+
+    [Fact]
+    public async Task ReplanAsync_WithModelClient_CreatesRevisedPlan()
+    {
+        var revisedJson = """[{"step_id":"s1","module":"conversation","description":"Answer directly","input":"answer from knowledge","depends_on":[]}]""";
+        var planner = new GoapPlanner(new StubModelClient(revisedJson));
+        planner.RegisterModule("conversation", "General conversation");
+        planner.RegisterModule("web-search", "Web search");
+
+        var failedResult = new PlanResult("p1", false, [
+            new PlanStepResult("s1", "web-search", false, "Error: network timeout", DateTimeOffset.UtcNow, TimeSpan.Zero)
+        ], "Error: network timeout");
+
+        var plan = await planner.ReplanAsync("find some info", failedResult, CancellationToken.None);
+
+        Assert.Single(plan.Steps);
+        Assert.Equal("conversation", plan.Steps[0].ModuleDomain);
+        Assert.NotEqual("p1", plan.PlanId); // New plan ID
+    }
 }
