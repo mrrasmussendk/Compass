@@ -1,4 +1,5 @@
 using VitruvianAbstractions.Interfaces;
+using VitruvianRuntime.DI;
 using VitruvianRuntime.Routing;
 using Xunit;
 
@@ -198,5 +199,48 @@ public sealed class ModuleRouterTests
 
         var result = await router.SelectModuleAsync("test request", CancellationToken.None);
         Assert.Null(result);
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_DefaultTemplate_ContainsModuleList()
+    {
+        var router = new ModuleRouter();
+        var module = new TestModule("file-operations", "File read/write operations");
+        router.RegisterModule(module);
+
+        var prompt = router.BuildSystemPrompt();
+
+        Assert.Contains("file-operations: File read/write operations", prompt);
+        Assert.Contains("module router", prompt, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_CustomTemplate_ReplacesModulesPlaceholder()
+    {
+        var options = new RouterOptions { SystemPromptTemplate = "Custom router.\nAvailable:\n{modules}\nDone." };
+        var router = new ModuleRouter(options: options);
+        var module = new TestModule("conversation", "General conversation");
+        router.RegisterModule(module);
+
+        var prompt = router.BuildSystemPrompt();
+
+        Assert.Contains("Custom router.", prompt);
+        Assert.Contains("conversation: General conversation", prompt);
+        Assert.Contains("Done.", prompt);
+        Assert.DoesNotContain("{modules}", prompt);
+    }
+
+    [Fact]
+    public void BuildSystemPrompt_NullTemplate_FallsBackToDefault()
+    {
+        var options = new RouterOptions { SystemPromptTemplate = null };
+        var router = new ModuleRouter(options: options);
+        var module = new TestModule("file-operations", "File operations");
+        router.RegisterModule(module);
+
+        var prompt = router.BuildSystemPrompt();
+
+        Assert.Contains("module router", prompt, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("file-operations: File operations", prompt);
     }
 }

@@ -125,4 +125,78 @@ public sealed class SimpleRequestProcessorTests
         Assert.False(processor.IsModuleRegistered(""));
         Assert.False(processor.IsModuleRegistered("  "));
     }
+
+    [Fact]
+    public async Task ProcessAsync_WithLogger_LogsMessages()
+    {
+        var logs = new List<string>();
+        var modelClient = new StubModelClient("fallback response");
+        var router = new ModuleRouter(modelClient);
+        var processor = new RequestProcessor(router, modelClient, logger: msg => logs.Add(msg));
+
+        await processor.ProcessAsync("test", CancellationToken.None);
+
+        Assert.NotEmpty(logs);
+        Assert.Contains(logs, l => l.Contains("[GOAP]"));
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithNullLogger_DoesNotThrow()
+    {
+        var modelClient = new StubModelClient("ok");
+        var router = new ModuleRouter(modelClient);
+        var processor = new RequestProcessor(router, modelClient, logger: null);
+
+        var result = await processor.ProcessAsync("test", CancellationToken.None);
+
+        Assert.Equal("ok", result);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithModuleContextFactory_WrapsModules()
+    {
+        var wrapperCalled = false;
+        var modelClient = new StubModelClient(
+            """[{"step_id":"s1","module":"test-module","description":"test","input":"test","depends_on":[]}]""");
+        var router = new ModuleRouter(modelClient);
+        var module = new TestModule("test-module", "Test module", "wrapped response");
+        var processor = new RequestProcessor(
+            router,
+            modelClient,
+            moduleContextFactory: (mod, client) =>
+            {
+                wrapperCalled = true;
+                return mod; // Return original module (just tracking the call)
+            });
+        processor.RegisterModule(module);
+
+        var result = await processor.ProcessAsync("test request", CancellationToken.None);
+
+        Assert.True(wrapperCalled);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithoutModuleContextFactory_UsesOriginalModules()
+    {
+        var modelClient = new StubModelClient(
+            """[{"step_id":"s1","module":"test-module","description":"test","input":"test","depends_on":[]}]""");
+        var router = new ModuleRouter(modelClient);
+        var module = new TestModule("test-module", "Test module", "original response");
+        var processor = new RequestProcessor(router, modelClient, moduleContextFactory: null);
+        processor.RegisterModule(module);
+
+        var result = await processor.ProcessAsync("test request", CancellationToken.None);
+
+        Assert.Equal("original response", result);
+    }
+
+    [Fact]
+    public void Planner_IsAccessible()
+    {
+        var modelClient = new StubModelClient("ok");
+        var router = new ModuleRouter(modelClient);
+        var processor = new RequestProcessor(router, modelClient);
+
+        Assert.NotNull(processor.Planner);
+    }
 }
