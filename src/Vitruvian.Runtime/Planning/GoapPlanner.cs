@@ -15,6 +15,13 @@ public sealed class GoapPlanner
     private readonly IModelClient? _modelClient;
     private readonly List<ModuleInfo> _modules = [];
 
+    /// <summary>
+    /// Gets or sets an optional custom system prompt template for the planner.
+    /// Use <c>{modules}</c> as a placeholder for the available module list.
+    /// When <c>null</c>, the built-in default prompt is used.
+    /// </summary>
+    public string? PlannerPromptTemplate { get; set; }
+
     public GoapPlanner(IModelClient? modelClient = null)
     {
         _modelClient = modelClient;
@@ -81,9 +88,12 @@ public sealed class GoapPlanner
     // Internals
     // ------------------------------------------------------------------
 
-    private string BuildPlannerPrompt()
+    internal string BuildPlannerPrompt()
     {
         var moduleList = string.Join("\n", _modules.Select(m => $"- {m.Domain}: {m.Description}"));
+
+        if (PlannerPromptTemplate is not null)
+            return PlannerPromptTemplate.Replace("{modules}", moduleList);
 
         return $"""
             You are a GOAP (Goal-Oriented Action Planning) planner.

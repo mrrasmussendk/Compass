@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Hosting;
 using VitruvianAbstractions.Scheduling;
+using VitruvianRuntime;
 using VitruvianRuntime.Scheduling;
 
 namespace VitruvianCli;

@@ -1,15 +1,10 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using VitruvianAbstractions;
-using VitruvianAbstractions.Facts;
 using VitruvianAbstractions.Interfaces;
 using VitruvianAbstractions.Planning;
-using VitruvianRuntime;
 using VitruvianRuntime.Planning;
 using VitruvianRuntime.Routing;
-using VitruvianStandardModules;
 
-namespace VitruvianCli;
+namespace VitruvianRuntime;
 
 /// <summary>
 /// GOAP-style request processor that creates a plan before executing.
@@ -17,28 +12,50 @@ namespace VitruvianCli;
 /// </summary>
 public sealed class RequestProcessor
 {
-    private readonly IHost _host;
     private readonly ModuleRouter _router;
     private readonly IModelClient? _modelClient;
     private readonly IApprovalGate? _approvalGate;
     private readonly Dictionary<string, IVitruvianModule> _modules = new();
     private readonly List<(string User, string Assistant)> _conversationHistory = new();
     private readonly GoapPlanner _planner;
+    private readonly Action<string>? _logger;
+    private readonly Func<IVitruvianModule, IModelClient, IVitruvianModule>? _moduleContextFactory;
     private PlanExecutor? _executor;
 
     private const int MaxConversationTurns = 10;
 
-    public RequestProcessor(IHost host, ModuleRouter router, IModelClient? modelClient, IApprovalGate? approvalGate = null)
+    /// <summary>
+    /// Initialises a new <see cref="RequestProcessor"/>.
+    /// </summary>
+    /// <param name="router">The module router used for request routing.</param>
+    /// <param name="modelClient">Optional model client for LLM-based planning and fallback.</param>
+    /// <param name="approvalGate">Optional HITL gate for write/execute operations.</param>
+    /// <param name="logger">Optional log sink; when provided, diagnostic messages are written here instead of being discarded.</param>
+    /// <param name="moduleContextFactory">
+    /// Optional factory that wraps a module with a context-aware model client.
+    /// Receives the original module and a <see cref="ContextAwareModelClient"/> and returns
+    /// a replacement module instance. When <c>null</c>, modules are used as-is.
+    /// </param>
+    public RequestProcessor(
+        ModuleRouter router,
+        IModelClient? modelClient,
+        IApprovalGate? approvalGate = null,
+        Action<string>? logger = null,
+        Func<IVitruvianModule, IModelClient, IVitruvianModule>? moduleContextFactory = null)
     {
-        _host = host;
         _router = router;
         _modelClient = modelClient;
         _approvalGate = approvalGate;
         _planner = new GoapPlanner(modelClient);
+        _logger = logger;
+        _moduleContextFactory = moduleContextFactory;
     }
 
     /// <summary>Gets the current plan executor (created lazily after the first module is registered).</summary>
     internal PlanExecutor? Executor => _executor;
+
+    /// <summary>Gets the GOAP planner used by this processor.</summary>
+    internal GoapPlanner Planner => _planner;
 
     public void RegisterModule(IVitruvianModule module)
     {
@@ -46,7 +63,7 @@ public sealed class RequestProcessor
         var requiredAccess = PermissionChecker.GetRequiredAccess(module.GetType());
         if (requiredAccess == ModuleAccess.None)
         {
-            Console.WriteLine($"[WARNING] Module '{module.Domain}' does not declare [RequiresPermission] attributes. " +
+            Log($"[WARNING] Module '{module.Domain}' does not declare [RequiresPermission] attributes. " +
                             "This is a security best practice. Add [RequiresPermission] to declare intended access levels.");
         }
 
@@ -105,27 +122,15 @@ public sealed class RequestProcessor
         if (!_modules.TryGetValue(domain, out var module))
             return null!;
 
-        // If we don't have a model client, just return the original module
-        if (_modelClient is null)
+        // If we don't have a model client or no factory, just return the original module
+        if (_modelClient is null || _moduleContextFactory is null)
             return module;
 
         // Wrap the model client with context
         var contextAwareClient = new ContextAwareModelClient(_modelClient, _conversationHistory);
 
-        // Create a new instance of the module with the context-aware client
-        // This is a bit hacky but works without changing all modules
-        return module switch
-        {
-            ConversationModule _ => new ConversationModule(contextAwareClient),
-            WebSearchModule _ => new WebSearchModule(contextAwareClient),
-            SummarizationModule _ => new SummarizationModule(contextAwareClient),
-            ShellCommandModule _ => new ShellCommandModule(
-                contextAwareClient,
-                GetDefaultWorkingDirectory(),
-                commandRunner: _host.Services.GetRequiredService<ICommandRunner>()),
-            FileOperationsModule fileModule => new FileOperationsModule(contextAwareClient, GetDefaultWorkingDirectory()),
-            _ => module // Return original if we don't know how to wrap it
-        };
+        // Delegate to the factory to create a context-aware module instance
+        return _moduleContextFactory(module, contextAwareClient);
     }
 
     public async Task<string> ProcessAsync(string input, CancellationToken cancellationToken)
@@ -140,12 +145,12 @@ public sealed class RequestProcessor
         // Phase 1: PLAN — create a GOAP-style plan before any execution
         var planStart = sw.ElapsedMilliseconds;
         var plan = await _planner.CreatePlanAsync(BuildEnrichedInput(input), cancellationToken);
-        Console.WriteLine($"[GOAP] Plan created: {plan.PlanId} with {plan.Steps.Count} step(s)");
+        Log($"[GOAP] Plan created: {plan.PlanId} with {plan.Steps.Count} step(s)");
         foreach (var step in plan.Steps)
         {
-            Console.WriteLine($"[GOAP]   {step.StepId}: {step.ModuleDomain} — {step.Description} (depends: [{string.Join(", ", step.DependsOn)}])");
+            Log($"[GOAP]   {step.StepId}: {step.ModuleDomain} — {step.Description} (depends: [{string.Join(", ", step.DependsOn)}])");
         }
-        Console.WriteLine($"[PERF] Planning: {sw.ElapsedMilliseconds - planStart}ms");
+        Log($"[PERF] Planning: {sw.ElapsedMilliseconds - planStart}ms");
 
         // Phase 2: Handle steps with no module (fallback to direct LLM)
         if (plan.Steps.Count == 1 && string.IsNullOrEmpty(plan.Steps[0].ModuleDomain))
@@ -172,14 +177,14 @@ public sealed class RequestProcessor
 
         var execStart = sw.ElapsedMilliseconds;
         var result = await _executor.ExecuteAsync(plan, null, cancellationToken);
-        Console.WriteLine($"[PERF] Execution: {sw.ElapsedMilliseconds - execStart}ms (parallel steps supported)");
+        Log($"[PERF] Execution: {sw.ElapsedMilliseconds - execStart}ms (parallel steps supported)");
 
         // Phase 4: MEMORY — store conversation turn and log outcome
         var storeStart = sw.ElapsedMilliseconds;
         await StoreConversationTurnAsync(input, result.AggregatedOutput, cancellationToken);
-        Console.WriteLine($"[PERF] StoreConversation: {sw.ElapsedMilliseconds - storeStart}ms");
-        Console.WriteLine($"[GOAP] Plan {plan.PlanId} completed: success={result.Success}, memory_size={_executor.Memory.Count}");
-        Console.WriteLine($"[PERF] Total: {sw.ElapsedMilliseconds}ms");
+        Log($"[PERF] StoreConversation: {sw.ElapsedMilliseconds - storeStart}ms");
+        Log($"[GOAP] Plan {plan.PlanId} completed: success={result.Success}, memory_size={_executor.Memory.Count}");
+        Log($"[PERF] Total: {sw.ElapsedMilliseconds}ms");
 
         return result.AggregatedOutput;
     }
@@ -232,6 +237,5 @@ public sealed class RequestProcessor
         return text.Substring(0, maxLength) + "...";
     }
 
-    private static string GetDefaultWorkingDirectory()
-        => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Vitruvian-workspace");
+    private void Log(string message) => _logger?.Invoke(message);
 }

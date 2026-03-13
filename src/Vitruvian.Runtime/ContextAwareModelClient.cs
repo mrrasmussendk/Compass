@@ -1,6 +1,6 @@
 using VitruvianAbstractions.Interfaces;
 
-namespace VitruvianCli;
+namespace VitruvianRuntime;
 
 /// <summary>
 /// Wraps an IModelClient to automatically inject conversation context into requests.

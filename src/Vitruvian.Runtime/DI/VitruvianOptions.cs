@@ -59,4 +59,11 @@ public sealed class RouterOptions
 
     /// <summary>Gets or sets the minimum confidence threshold for specialized module selection. Defaults to 0.6.</summary>
     public double SpecializedConfidenceThreshold { get; set; } = 0.6;
+
+    /// <summary>
+    /// Gets or sets an optional custom system prompt template for the router.
+    /// Use <c>{modules}</c> as a placeholder for the available module list.
+    /// When <c>null</c>, the built-in default prompt is used.
+    /// </summary>
+    public string? SystemPromptTemplate { get; set; }
 }

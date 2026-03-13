@@ -120,10 +120,13 @@ public sealed class ModuleRouter
         return FallbackSelection(request);
     }
 
-    private string BuildSystemPrompt()
+    internal string BuildSystemPrompt()
     {
         var moduleList = string.Join("\n", _modules.Select(m =>
             $"- {m.Domain}: {m.Description}"));
+
+        if (_options.SystemPromptTemplate is not null)
+            return _options.SystemPromptTemplate.Replace("{modules}", moduleList);
 
         return @"You are a precise module router. Select the BEST module to handle each user request.
 
