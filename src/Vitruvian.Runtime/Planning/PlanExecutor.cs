@@ -146,9 +146,10 @@ public sealed class PlanExecutor
             }
         }
 
-        // Aggregate — include all steps that were actually executed (primary + triggered fallbacks)
+        // Aggregate — include all non-fallback steps plus any fallback steps that
+        // were actually executed (triggered by a primary step failure).
         var orderedResults = plan.Steps
-            .Where(s => results.ContainsKey(s.StepId) || !fallbackOnlyIds.Contains(s.StepId))
+            .Where(s => !fallbackOnlyIds.Contains(s.StepId) || results.ContainsKey(s.StepId))
             .Select(s =>
             {
                 if (results.TryGetValue(s.StepId, out var r))
