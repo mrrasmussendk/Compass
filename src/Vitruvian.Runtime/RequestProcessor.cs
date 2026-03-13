@@ -25,7 +25,7 @@ public sealed class RequestProcessor
     private const int MaxConversationTurns = 10;
 
     /// <summary>
-    /// Initialises a new <see cref="RequestProcessor"/>.
+    /// Initializes a new <see cref="RequestProcessor"/>.
     /// </summary>
     /// <param name="router">The module router used for request routing.</param>
     /// <param name="modelClient">Optional model client for LLM-based planning and fallback.</param>
@@ -117,10 +117,11 @@ public sealed class RequestProcessor
     /// <summary>
     /// Gets a context-aware version of a module that wraps its model client with conversation history.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when the specified domain is not registered.</exception>
     private IVitruvianModule GetContextAwareModule(string domain)
     {
         if (!_modules.TryGetValue(domain, out var module))
-            return null!;
+            throw new InvalidOperationException($"Module '{domain}' is not registered.");
 
         // If we don't have a model client or no factory, just return the original module
         if (_modelClient is null || _moduleContextFactory is null)
