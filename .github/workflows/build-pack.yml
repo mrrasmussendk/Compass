@@ -20,10 +20,9 @@ permissions:
   contents: read
 
 jobs:
-  build-pack:
+  # ── CI: build & test on every platform ──────────────────────────────
+  build-test:
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -35,8 +34,35 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Vitruvian.sln
+
+      - name: Build
+        run: dotnet build Vitruvian.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Vitruvian.sln -c Release --no-build --filter "FullyQualifiedName!~PackagingTests"
+
+  # ── CD: pack, publish, and upload artifacts ─────────────────────────
+  deploy:
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Bump package versions
-        if: inputs.bump_and_publish == true && matrix.os == 'ubuntu-latest'
+        if: inputs.bump_and_publish == true
         run: |
           python3 <<'PY'
           import re
@@ -94,7 +120,7 @@ jobs:
           PY
 
       - name: Commit version bump
-        if: inputs.bump_and_publish == true && matrix.os == 'ubuntu-latest'
+        if: inputs.bump_and_publish == true
         run: |
           set -euo pipefail
           if git diff --quiet; then
@@ -118,38 +144,35 @@ jobs:
       - name: Build
         run: dotnet build Vitruvian.sln -c Release --no-restore
 
-      - name: Test
-        run: dotnet test Vitruvian.sln -c Release --no-build --filter "FullyQualifiedName!~PackagingTests"
-
       - name: Pack Vitruvian tool
-        run: dotnet pack src/Vitruvian.Cli/Vitruvian.Cli.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.Cli/Vitruvian.Cli.csproj -c Release --no-build -o artifacts
 
       - name: Pack Vitruvian Framework
-        run: dotnet pack src/Vitruvian.Framework/Vitruvian.Framework.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.Framework/Vitruvian.Framework.csproj -c Release --no-build -o artifacts
 
       - name: Pack Abstractions
-        run: dotnet pack src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj -c Release --no-build -o artifacts
 
       - name: Pack Runtime
-        run: dotnet pack src/Vitruvian.Runtime/Vitruvian.Runtime.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.Runtime/Vitruvian.Runtime.csproj -c Release --no-build -o artifacts
 
       - name: Pack Plugin SDK
-        run: dotnet pack src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj -c Release --no-build -o artifacts
 
       - name: Pack Plugin Host
-        run: dotnet pack src/Vitruvian.PluginHost/Vitruvian.PluginHost.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.PluginHost/Vitruvian.PluginHost.csproj -c Release --no-build -o artifacts
 
       - name: Pack HITL
-        run: dotnet pack src/Vitruvian.Hitl/Vitruvian.Hitl.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.Hitl/Vitruvian.Hitl.csproj -c Release --no-build -o artifacts
 
       - name: Pack Standard Modules
-        run: dotnet pack src/Vitruvian.StandardModules/Vitruvian.StandardModules.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.StandardModules/Vitruvian.StandardModules.csproj -c Release --no-build -o artifacts
 
       - name: Pack Weather module
-        run: dotnet pack src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj -c Release -o artifacts
+        run: dotnet pack src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj -c Release --no-build -o artifacts
 
       - name: Publish to NuGet
-        if: matrix.os == 'ubuntu-latest' && (inputs.bump_and_publish == true || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')))
+        if: inputs.bump_and_publish == true || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
@@ -172,6 +195,7 @@ jobs:
             exit 1
           fi
 
+          echo "::group::Publishing NuGet packages"
           failed=0
           for pkg in artifacts/*.nupkg; do
             echo "Pushing $pkg ..."
@@ -186,12 +210,13 @@ jobs:
               failed=1
             fi
           done
+          echo "::endgroup::"
           if [ "$failed" -ne 0 ]; then
             exit 1
           fi
 
-      - name: Upload NuGet artifact
+      - name: Upload NuGet artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vitruvian-nuget-${{ matrix.os }}
+          name: vitruvian-nuget-packages
           path: artifacts/*.nupkg
