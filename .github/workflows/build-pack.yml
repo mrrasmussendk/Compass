@@ -220,3 +220,57 @@ jobs:
         with:
           name: vitruvian-nuget-packages
           path: artifacts/*.nupkg
+
+  # ── Post-deploy: install and verify the tool starts ─────────────────
+  run:
+    needs: deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Download NuGet artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: vitruvian-nuget-packages
+          path: artifacts
+
+      - name: Install Vitruvian tool from artifact
+        run: |
+          dotnet tool install --global --add-source artifacts Vitruvian
+
+      - name: Verify Vitruvian starts
+        run: |
+          node -e "
+          const { spawn } = require('child_process');
+          const proc = spawn('vitruvian', ['--help'], { stdio: 'pipe' });
+          let stdout = '';
+          let stderr = '';
+          proc.stdout.on('data', d => stdout += d);
+          proc.stderr.on('data', d => stderr += d);
+          proc.on('close', code => {
+            console.log(stdout);
+            if (stderr) console.error(stderr);
+            if (code !== 0) {
+              console.error('Vitruvian exited with code ' + code);
+              process.exit(1);
+            }
+            if (!stdout.includes('Vitruvian CLI arguments')) {
+              console.error('Unexpected output — missing help text');
+              process.exit(1);
+            }
+            console.log('✓ Vitruvian started successfully');
+          });
+          proc.on('error', err => {
+            console.error('Failed to start Vitruvian:', err.message);
+            process.exit(1);
+          });
+          "
