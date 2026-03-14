@@ -45,7 +45,12 @@ jobs:
 
           projects = [
               Path("src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj"),
+              Path("src/Vitruvian.Runtime/Vitruvian.Runtime.csproj"),
               Path("src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj"),
+              Path("src/Vitruvian.PluginHost/Vitruvian.PluginHost.csproj"),
+              Path("src/Vitruvian.Hitl/Vitruvian.Hitl.csproj"),
+              Path("src/Vitruvian.StandardModules/Vitruvian.StandardModules.csproj"),
+              Path("src/Vitruvian.Framework/Vitruvian.Framework.csproj"),
               Path("src/Vitruvian.Cli/Vitruvian.Cli.csproj"),
               Path("src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj"),
           ]
@@ -98,7 +103,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj src/Vitruvian.Cli/Vitruvian.Cli.csproj src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj
+          git add src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj src/Vitruvian.Runtime/Vitruvian.Runtime.csproj src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj src/Vitruvian.PluginHost/Vitruvian.PluginHost.csproj src/Vitruvian.Hitl/Vitruvian.Hitl.csproj src/Vitruvian.StandardModules/Vitruvian.StandardModules.csproj src/Vitruvian.Framework/Vitruvian.Framework.csproj src/Vitruvian.Cli/Vitruvian.Cli.csproj src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj
           git commit -m "chore: bump package versions [skip ci]"
           git push
 
@@ -119,11 +124,26 @@ jobs:
       - name: Pack Vitruvian tool
         run: dotnet pack src/Vitruvian.Cli/Vitruvian.Cli.csproj -c Release -o artifacts
 
-      - name: Pack Abstractions SDK
+      - name: Pack Vitruvian Framework
+        run: dotnet pack src/Vitruvian.Framework/Vitruvian.Framework.csproj -c Release -o artifacts
+
+      - name: Pack Abstractions
         run: dotnet pack src/Vitruvian.Abstractions/Vitruvian.Abstractions.csproj -c Release -o artifacts
+
+      - name: Pack Runtime
+        run: dotnet pack src/Vitruvian.Runtime/Vitruvian.Runtime.csproj -c Release -o artifacts
 
       - name: Pack Plugin SDK
         run: dotnet pack src/Vitruvian.PluginSdk/Vitruvian.PluginSdk.csproj -c Release -o artifacts
+
+      - name: Pack Plugin Host
+        run: dotnet pack src/Vitruvian.PluginHost/Vitruvian.PluginHost.csproj -c Release -o artifacts
+
+      - name: Pack HITL
+        run: dotnet pack src/Vitruvian.Hitl/Vitruvian.Hitl.csproj -c Release -o artifacts
+
+      - name: Pack Standard Modules
+        run: dotnet pack src/Vitruvian.StandardModules/Vitruvian.StandardModules.csproj -c Release -o artifacts
 
       - name: Pack Weather module
         run: dotnet pack src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj -c Release -o artifacts

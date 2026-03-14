@@ -17,6 +17,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Version>0.2.4</Version>
+    <PackageId>Vitruvian.StandardModules</PackageId>
+    <Authors>Vitruvian</Authors>
+    <Description>Built-in modules (File, Conversation, Web, and more) for the Vitruvian Agent Runtime.</Description>
+    <PackageTags>dotnet;csharp;ai-agents;agent-framework;goap;planning;human-in-the-loop;tool-calling;orchestration</PackageTags>
     <RootNamespace>VitruvianStandardModules</RootNamespace>
   </PropertyGroup>
 
