@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>0.2.4</Version>
+    <PackageId>Vitruvian.Framework</PackageId>
+    <Authors>Vitruvian</Authors>
+    <Description>The complete Vitruvian Agent Runtime framework — includes core abstractions, GOAP planner, plan executor, plugin SDK, plugin host, HITL approval, and standard modules.</Description>
+    <PackageTags>dotnet;csharp;ai-agents;agent-framework;goap;planning;human-in-the-loop;tool-calling;orchestration</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vitruvian.Abstractions\Vitruvian.Abstractions.csproj" />
+    <ProjectReference Include="..\Vitruvian.Runtime\Vitruvian.Runtime.csproj" />
+    <ProjectReference Include="..\Vitruvian.PluginSdk\Vitruvian.PluginSdk.csproj" />
+    <ProjectReference Include="..\Vitruvian.PluginHost\Vitruvian.PluginHost.csproj" />
+    <ProjectReference Include="..\Vitruvian.Hitl\Vitruvian.Hitl.csproj" />
+    <ProjectReference Include="..\Vitruvian.StandardModules\Vitruvian.StandardModules.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
