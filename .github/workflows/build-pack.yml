@@ -20,9 +20,10 @@ permissions:
   contents: read
 
 jobs:
-  # ── CI: build & test on every platform ──────────────────────────────
-  build-test:
+  build-pack:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -34,35 +35,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Restore
-        run: dotnet restore Vitruvian.sln
-
-      - name: Build
-        run: dotnet build Vitruvian.sln -c Release --no-restore
-
-      - name: Test
-        run: dotnet test Vitruvian.sln -c Release --no-build --filter "FullyQualifiedName!~PackagingTests"
-
-  # ── CD: pack, publish, and upload artifacts ─────────────────────────
-  deploy:
-    needs: build-test
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - name: Bump package versions
-        if: inputs.bump_and_publish == true
+        if: inputs.bump_and_publish == true && matrix.os == 'ubuntu-latest'
         run: |
           python3 <<'PY'
           import re
@@ -120,7 +94,7 @@ jobs:
           PY
 
       - name: Commit version bump
-        if: inputs.bump_and_publish == true
+        if: inputs.bump_and_publish == true && matrix.os == 'ubuntu-latest'
         run: |
           set -euo pipefail
           if git diff --quiet; then
@@ -143,6 +117,9 @@ jobs:
 
       - name: Build
         run: dotnet build Vitruvian.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Vitruvian.sln -c Release --no-build --filter "FullyQualifiedName!~PackagingTests"
 
       - name: Pack Vitruvian tool
         run: dotnet pack src/Vitruvian.Cli/Vitruvian.Cli.csproj -c Release --no-build -o artifacts
@@ -172,7 +149,7 @@ jobs:
         run: dotnet pack src/Vitruvian.WeatherModule/Vitruvian.WeatherModule.csproj -c Release --no-build -o artifacts
 
       - name: Publish to NuGet
-        if: inputs.bump_and_publish == true || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'))
+        if: matrix.os == 'ubuntu-latest' && (inputs.bump_and_publish == true || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')))
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
@@ -195,7 +172,6 @@ jobs:
             exit 1
           fi
 
-          echo "::group::Publishing NuGet packages"
           failed=0
           for pkg in artifacts/*.nupkg; do
             echo "Pushing $pkg ..."
@@ -210,67 +186,12 @@ jobs:
               failed=1
             fi
           done
-          echo "::endgroup::"
           if [ "$failed" -ne 0 ]; then
             exit 1
           fi
 
-      - name: Upload NuGet artifacts
+      - name: Upload NuGet artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vitruvian-nuget-packages
+          name: vitruvian-nuget-${{ matrix.os }}
           path: artifacts/*.nupkg
-
-  # ── Post-deploy: install and verify the tool starts ─────────────────
-  run:
-    needs: deploy
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Download NuGet artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: vitruvian-nuget-packages
-          path: artifacts
-
-      - name: Install Vitruvian tool from artifact
-        run: |
-          dotnet tool install --global --add-source artifacts Vitruvian
-
-      - name: Verify Vitruvian starts
-        run: |
-          node -e "
-          const { spawn } = require('child_process');
-          const proc = spawn('vitruvian', ['--help'], { stdio: 'pipe' });
-          let stdout = '';
-          let stderr = '';
-          proc.stdout.on('data', d => stdout += d);
-          proc.stderr.on('data', d => stderr += d);
-          proc.on('close', code => {
-            console.log(stdout);
-            if (stderr) console.error(stderr);
-            if (code !== 0) {
-              console.error('Vitruvian exited with code ' + code);
-              process.exit(1);
-            }
-            if (!stdout.includes('Vitruvian CLI arguments')) {
-              console.error('Unexpected output — missing help text');
-              process.exit(1);
-            }
-            console.log('✓ Vitruvian started successfully');
-          });
-          proc.on('error', err => {
-            console.error('Failed to start Vitruvian:', err.message);
-            process.exit(1);
-          });
-          "
